@@ -1,0 +1,34 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace "com.sedi.app"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.sedi.app"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
