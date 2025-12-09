@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend_clean/app.dart';
+import 'package:sedi_app/app.dart';
 
 void main() {
   testWidgets('SediApp smoke test', (WidgetTester tester) async {

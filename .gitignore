@@ -1,43 +1,70 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# ============================================
+# Flutter & Dart
+# ============================================
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
-.pub/
-/build/
+build/
+Generated.xcconfig
+Flutter.podspec
 
-# Symbolication related
-app.*.symbols
+# ============================================
+# Android
+# ============================================
+android/.gradle/
+android/.idea/
+android/app/build/
+android/local.properties
 
-# Obfuscation related
-app.*.map.json
+# Keystore files (security)
+*.jks
+*.keystore
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ============================================
+# iOS / macOS
+# ============================================
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+macos/Flutter/ephemeral/
+
+# ============================================
+# Visual Studio Code
+# ============================================
+.vscode/
+.idea/
+
+# ============================================
+# Logs & Temporary Files
+# ============================================
+*.log
+*.tmp
+*.lock
+
+# ============================================
+# Dependency Lock Files
+# (Flutter خودش مدیریت می‌کند)
+# ============================================
+pubspec.lock
+packages.lock.json
+
+# ============================================
+# Web
+# ============================================
+web/.dart_tool/
+web/manifest.json
+web/.firebase/
+
+# ============================================
+# Windows Build
+# ============================================
+windows/runner/Debug/
+windows/runner/Release/
+
+# ============================================
+# Linux Build
+# ============================================
+linux/build/

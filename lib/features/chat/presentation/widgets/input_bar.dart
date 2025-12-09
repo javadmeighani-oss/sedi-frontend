@@ -30,6 +30,12 @@ class _InputBarState extends State<InputBar> {
     });
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;

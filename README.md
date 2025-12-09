@@ -11,7 +11,7 @@
 در فایل `lib/core/config/app_config.dart`:
 
 ```dart
-static const bool useLocalMode = true;  // حالت لوکال فعال است
+static const bool useLocalMode = false;  // حالت واقعی (اتصال به بک‌اند)
 ```
 
 - `true`: اجرای لوکال با پاسخ‌های mock (بدون نیاز به بک‌اند)
@@ -35,17 +35,6 @@ flutter pub get
 
 # اجرا روی امولاتور/دستگاه
 flutter run -t lib/main.dart
-
-# اگر پیام تایید دانلود منابع را دیدید، "y" را تایپ کنید
-```
-
-#### روش 3: اجرا با تایید خودکار
-```bash
-# در PowerShell
-echo "y" | flutter run -t lib/main.dart
-
-# در Command Prompt
-echo y | flutter run -t lib/main.dart
 ```
 
 ## ✨ ویژگی‌ها
@@ -85,3 +74,17 @@ lib/
 ## 📝 یادداشت
 
 برای تغییر به حالت واقعی (اتصال به بک‌اند)، `useLocalMode` را در `app_config.dart` به `false` تغییر دهید.
+
+## 🔧 Build برای Android
+
+```bash
+# Build APK
+flutter build apk --release
+
+# Build App Bundle
+flutter build appbundle --release
+```
+
+## 🚀 GitHub Actions
+
+این پروژه برای build خودکار با GitHub Actions تنظیم شده است. فایل workflow در `.github/workflows/flutter-android.yml` قرار دارد.

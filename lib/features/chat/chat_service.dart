@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
-import '../../../core/auth/auth_service.dart';
-import '../../../core/config/app_config.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/config/app_config.dart';
 
 class ChatService {
 
