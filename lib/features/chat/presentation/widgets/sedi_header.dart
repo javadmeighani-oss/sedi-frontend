@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class SediHeader extends StatefulWidget {
-  final bool isThinking; // از کنترلر می‌آید
-  final bool isAlert; // 🔥 این اضافه شد تا با ChatPage هماهنگ شود
-  final double size;
+  final bool isThinking; // آیا صدی در حال فکر کردن است؟
+  final bool isAlert; // آیا هشدار وجود دارد؟
+  final double size; // اندازه لوگو
 
   const SediHeader({
     super.key,
-    this.size = 120,
     required this.isThinking,
     required this.isAlert,
+    this.size = 140,
   });
 
   @override
@@ -25,15 +26,20 @@ class _SediHeaderState extends State<SediHeader>
   void initState() {
     super.initState();
 
+    // انیمیشن تپش قلب
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
+      duration: const Duration(milliseconds: 1200), // سرعت تپش
     );
 
-    _pulse = Tween<double>(begin: 0.96, end: 1.06).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    _pulse = Tween<double>(begin: 0.95, end: 1.08).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
     );
 
+    // شروع تپش اگر صدی در حال فکر کردن است
     if (widget.isThinking || widget.isAlert) {
       _controller.repeat(reverse: true);
     }
@@ -43,6 +49,7 @@ class _SediHeaderState extends State<SediHeader>
   void didUpdateWidget(covariant SediHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // کنترل انیمیشن بر اساس وضعیت
     if ((widget.isThinking || widget.isAlert) && !_controller.isAnimating) {
       _controller.repeat(reverse: true);
     } else if (!widget.isThinking &&
@@ -61,69 +68,77 @@ class _SediHeaderState extends State<SediHeader>
 
   @override
   Widget build(BuildContext context) {
-    const base = Color(0xFF7CCF81); // سبز پسته‌ای اصلی
-    const alertColor = Color(0xFFFF6464); // رنگ هشدار
-    const light = Color(0xFFAEEFC0);
-
-    final outerSize = widget.size;
-    final ringThickness = outerSize * 0.08;
-    final logoSize = outerSize - ringThickness * 2 - 12;
-
-    final ringColor = widget.isAlert ? alertColor : base; // 🔥 انتخاب رنگ هشدار
+    final ringThickness = widget.size * 0.06; // حلقه نازک
+    final logoSize = widget.size - ringThickness * 2 - 8;
 
     return SizedBox(
-      width: outerSize,
-      height: outerSize,
+      width: widget.size,
+      height: widget.size,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          final scale =
-              (widget.isThinking || widget.isAlert) ? _pulse.value : 1.0;
+          final scale = (widget.isThinking || widget.isAlert) 
+              ? _pulse.value 
+              : 1.0;
 
           return Transform.scale(
             scale: scale,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: [
-                    ringColor,
-                    widget.isAlert ? Colors.redAccent : light,
-                    ringColor,
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: ringColor.withOpacity(widget.isAlert ? 0.8 : 0.4),
-                    blurRadius: 32,
-                    spreadRadius: 4,
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Container(
-                  width: outerSize - ringThickness * 2,
-                  height: outerSize - ringThickness * 2,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // ============================================
+                // حلقه سبز پسته‌ای (تپنده)
+                // ============================================
+                Container(
+                  width: widget.size,
+                  height: widget.size,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
                     border: Border.all(
-                      color: ringColor.withOpacity(0.35),
-                      width: 1,
+                      color: AppTheme.pistachioGreen,
+                      width: ringThickness,
                     ),
+                    boxShadow: (widget.isThinking || widget.isAlert)
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.pistachioGreen.withOpacity(0.4),
+                              blurRadius: 20,
+                              spreadRadius: 4,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+
+                // ============================================
+                // لوگوی صدی (وسط)
+                // ============================================
+                Container(
+                  width: logoSize,
+                  height: logoSize,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.backgroundWhite,
                   ),
                   child: Center(
-                    child: SizedBox(
-                      width: logoSize,
-                      height: logoSize,
-                      child: Image.asset(
-                        'assets/images/sedi_logo_1024.png',
-                        fit: BoxFit.contain,
-                      ),
+                    child: Image.asset(
+                      'assets/images/sedi_logo_1024.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        // اگر لوگو پیدا نشد، متن نمایش داده می‌شود
+                        return const Text(
+                          'Sedi.',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.pistachioGreen,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           );
         },

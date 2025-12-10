@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
 import 'features/chat/presentation/pages/chat_page.dart';
 
 class SediApp extends StatelessWidget {
@@ -7,14 +8,9 @@ class SediApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sedi Assistant',
+      title: 'Sedi - Intelligent Health Assistant',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7CB342), // سبز پسته‌ای
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const ChatPage(),
     );
   }

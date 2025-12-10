@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class MessageBubble extends StatefulWidget {
   final String message; // متن پیام
   final bool isSedi; // آیا فرستنده صدی است؟
-  final Duration fadeDuration; // مدت Fade
 
   const MessageBubble({
     super.key,
     required this.message,
     this.isSedi = true,
-    this.fadeDuration = const Duration(milliseconds: 400),
   });
 
   @override
@@ -27,7 +26,7 @@ class _MessageBubbleState extends State<MessageBubble>
     super.initState();
 
     _controller = AnimationController(
-      duration: widget.fadeDuration,
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -53,7 +52,6 @@ class _MessageBubbleState extends State<MessageBubble>
 
   @override
   Widget build(BuildContext context) {
-    final brandColor = Theme.of(context).colorScheme.primary;
     final isUser = !widget.isSedi;
 
     return FadeTransition(
@@ -63,7 +61,7 @@ class _MessageBubbleState extends State<MessageBubble>
         child: Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Container(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -74,34 +72,43 @@ class _MessageBubbleState extends State<MessageBubble>
               ),
               decoration: BoxDecoration(
                 color: isUser
-                    ? brandColor.withOpacity(0.15)
-                    : Colors.grey.shade100,
+                    ? AppTheme.metalLight // پیام کاربر: خاکستری روشن متال
+                    : AppTheme.backgroundWhite, // پیام صدی: سفید
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isUser ? 18 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 18),
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isUser ? 20 : 6),
+                  bottomRight: Radius.circular(isUser ? 6 : 20),
                 ),
-                border: isUser
-                    ? Border.all(
-                        color: brandColor.withOpacity(0.3),
-                        width: 1,
-                      )
-                    : null,
+                border: Border.all(
+                  color: AppTheme.metalGray.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
               child: Text(
                 widget.message,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  color: isUser ? Colors.black87 : Colors.black87,
-                  height: 1.4,
-                  fontWeight: isUser ? FontWeight.w500 : FontWeight.w400,
+                  color: AppTheme.textBlack, // فونت مشکی
+                  height: 1.5,
+                  fontWeight: FontWeight.w400,
                 ),
+                textDirection: _getTextDirection(widget.message),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// تشخیص جهت متن (راست به چپ برای فارسی/عربی)
+  TextDirection _getTextDirection(String text) {
+    // تشخیص کاراکترهای فارسی یا عربی
+    final persianArabicRegex = RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]');
+    if (persianArabicRegex.hasMatch(text)) {
+      return TextDirection.rtl;
+    }
+    return TextDirection.ltr;
   }
 }

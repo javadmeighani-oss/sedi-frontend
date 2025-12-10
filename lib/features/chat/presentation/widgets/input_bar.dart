@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class InputBar extends StatefulWidget {
   final Function(String) onSendText; // ارسال متن
@@ -18,14 +19,19 @@ class InputBar extends StatefulWidget {
 
 class _InputBarState extends State<InputBar> {
   final TextEditingController _controller = TextEditingController();
-  bool isTyping = false;
+  final FocusNode _focusNode = FocusNode();
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(() {
+      setState(() {});
+    });
+    
+    _focusNode.addListener(() {
       setState(() {
-        isTyping = _controller.text.trim().isNotEmpty;
+        _isExpanded = _focusNode.hasFocus;
       });
     });
   }
@@ -33,6 +39,7 @@ class _InputBarState extends State<InputBar> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -42,27 +49,29 @@ class _InputBarState extends State<InputBar> {
 
     widget.onSendText(text);
     _controller.clear();
-    setState(() => isTyping = false);
+    _focusNode.unfocus();
+    setState(() {
+      _isExpanded = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-
-      // ارتفاع چت‌باکس → وقتی تایپ می‌کند بزرگ‌تر می‌شود
-      height: isTyping ? 80 : 60,
-
+      height: _isExpanded ? 120 : 56, // بزرگ شدن هنگام تایپ
       child: Container(
         decoration: BoxDecoration(
+          color: AppTheme.backgroundWhite, // داخل سفید
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: widget.brandColor.withOpacity(isTyping ? 1.0 : 0.6),
-            width: isTyping ? 2.5 : 2,
+            color: _isExpanded 
+                ? widget.brandColor 
+                : AppTheme.metalGray, // کادر خاکستری متال
+            width: _isExpanded ? 2 : 1.5,
           ),
-          boxShadow: isTyping
+          boxShadow: _isExpanded
               ? [
                   BoxShadow(
                     color: widget.brandColor.withOpacity(0.15),
@@ -72,86 +81,105 @@ class _InputBarState extends State<InputBar> {
                 ]
               : null,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            // -------------------------
-            //  دکمه میکروفن
-            // -------------------------
+            // ============================================
+            // آیکن بلندگو (مثل ChatGPT)
+            // ============================================
             Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: widget.onVoiceTap,
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(8),
                   child: Icon(
                     Icons.mic_rounded,
                     color: widget.brandColor,
-                    size: 26,
+                    size: 24,
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
 
-            // -------------------------
+            // ============================================
             // فیلد تایپ پیام
-            // -------------------------
+            // ============================================
             Expanded(
               child: TextField(
                 controller: _controller,
-                decoration: const InputDecoration(
+                focusNode: _focusNode,
+                decoration: InputDecoration(
                   border: InputBorder.none,
-                  hintText: "پیامتو بنویس...",
+                  hintText: "با صدی صحبت کن", // placeholder
+                  hintStyle: TextStyle(
+                    color: AppTheme.metalGray,
+                    fontSize: 16,
+                  ),
+                ),
+                style: const TextStyle(
+                  color: AppTheme.textBlack,
+                  fontSize: 16,
                 ),
                 minLines: 1,
-                maxLines: isTyping ? 4 : 1,
+                maxLines: _isExpanded ? 4 : 1,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _send(),
               ),
             ),
 
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
 
-            // -------------------------
-            //  دکمه ارسال شبیه GPT (فلش ساده)
-            // -------------------------
-            AnimatedScale(
-              scale: isTyping ? 1.0 : 0.85,
-              duration: const Duration(milliseconds: 200),
-              child: AnimatedOpacity(
-                opacity: isTyping ? 1.0 : 0.5,
-                duration: const Duration(milliseconds: 200),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isTyping ? _send : null,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: widget.brandColor,
-                        shape: BoxShape.circle,
-                        boxShadow: isTyping
-                            ? [
-                                BoxShadow(
-                                  color: widget.brandColor.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  spreadRadius: 0,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+            // ============================================
+            // آیکن سند (مثل ChatGPT) - فقط وقتی متن وجود دارد
+            // ============================================
+            if (_controller.text.trim().isNotEmpty)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _send,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: widget.brandColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.brandColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              )
+            else
+              // آیکن سند غیرفعال
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: null,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.attach_file_rounded,
+                      color: AppTheme.metalGray,
+                      size: 20,
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
