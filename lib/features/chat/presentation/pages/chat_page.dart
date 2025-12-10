@@ -21,8 +21,10 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _controller.initialize();
     _controller.addListener(_onControllerUpdate);
+    // initialize باید await شود اما در initState نمی‌توانیم await کنیم
+    // پس بدون await صدا می‌زنیم
+    _controller.initialize();
   }
 
   void _onControllerUpdate() {
@@ -76,7 +78,21 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // ============================================
+            // آخرین پیام (همیشه دیده می‌شود - زیر چت باکس)
+            // ============================================
+            if (_controller.lastMessage != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: MessageBubble(
+                  message: _controller.lastMessage!.text,
+                  isSedi: !_controller.lastMessage!.isUser,
+                ),
+              ),
+
+            const SizedBox(height: 8),
 
             // ============================================
             // پیام‌های قدیمی (با اسکرول چرخشی - بالای آخرین پیام)
@@ -90,15 +106,16 @@ class _ChatPageState extends State<ChatPage> {
                         Expanded(
                           child: ListView.builder(
                             controller: _scrollController,
-                            reverse: false, // پیام قدیمی در بالا
+                            reverse: true, // پیام قدیمی در بالا (reverse برای اسکرول از پایین)
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 8,
                             ),
                             itemCount: _controller.messages.length - 1, // بدون آخرین پیام
                             itemBuilder: (context, index) {
-                              // پیام‌های قدیمی از ابتدای لیست
-                              final msg = _controller.messages[index];
+                              // معکوس کردن index برای نمایش صحیح
+                              final reversedIndex = (_controller.messages.length - 2) - index;
+                              final msg = _controller.messages[reversedIndex];
                               return MessageBubble(
                                 message: msg.text,
                                 isSedi: !msg.isUser,
@@ -117,22 +134,6 @@ class _ChatPageState extends State<ChatPage> {
                       ],
                     ),
             ),
-
-            // ============================================
-            // آخرین پیام (همیشه دیده می‌شود - زیر چت باکس)
-            // ============================================
-            if (_controller.lastMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  bottom: 8,
-                ),
-                child: MessageBubble(
-                  message: _controller.lastMessage!.text,
-                  isSedi: !_controller.lastMessage!.isUser,
-                ),
-              ),
           ],
         ),
       ),
