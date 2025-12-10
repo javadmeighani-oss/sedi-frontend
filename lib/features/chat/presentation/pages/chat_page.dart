@@ -76,24 +76,10 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // ============================================
-            // آخرین پیام (همیشه دیده می‌شود)
-            // ============================================
-            if (_controller.lastMessage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: MessageBubble(
-                  message: _controller.lastMessage!.text,
-                  isSedi: !_controller.lastMessage!.isUser,
-                ),
-              ),
-
-            const SizedBox(height: 8),
-
-            // ============================================
-            // پیام‌های قدیمی (با اسکرول چرخشی)
+            // پیام‌های قدیمی (با اسکرول چرخشی - بالای آخرین پیام)
             // ============================================
             Expanded(
               child: _controller.messages.length <= 1
@@ -104,17 +90,15 @@ class _ChatPageState extends State<ChatPage> {
                         Expanded(
                           child: ListView.builder(
                             controller: _scrollController,
-                            reverse: true, // پیام جدید در پایین
+                            reverse: false, // پیام قدیمی در بالا
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 8,
                             ),
                             itemCount: _controller.messages.length - 1, // بدون آخرین پیام
                             itemBuilder: (context, index) {
-                              // معکوس کردن index برای نمایش صحیح
-                              final reversedIndex =
-                                  (_controller.messages.length - 2) - index;
-                              final msg = _controller.messages[reversedIndex];
+                              // پیام‌های قدیمی از ابتدای لیست
+                              final msg = _controller.messages[index];
                               return MessageBubble(
                                 message: msg.text,
                                 isSedi: !msg.isUser,
@@ -133,6 +117,22 @@ class _ChatPageState extends State<ChatPage> {
                       ],
                     ),
             ),
+
+            // ============================================
+            // آخرین پیام (همیشه دیده می‌شود - زیر چت باکس)
+            // ============================================
+            if (_controller.lastMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  bottom: 8,
+                ),
+                child: MessageBubble(
+                  message: _controller.lastMessage!.text,
+                  isSedi: !_controller.lastMessage!.isUser,
+                ),
+              ),
           ],
         ),
       ),
