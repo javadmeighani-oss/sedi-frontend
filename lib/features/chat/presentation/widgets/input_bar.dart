@@ -178,7 +178,7 @@ class _InputBarState extends State<InputBar> {
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: hasText ? _send : null,
+                    onTap: hasText ? _send : () {},
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -196,24 +196,32 @@ class _InputBarState extends State<InputBar> {
                 const SizedBox(width: 8),
 
                 // آیکن اسپیکر (دوم - بعد از ارسال) - 40px
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onLongPress: widget.isRecording ? null : widget.onVoiceStart,
-                    onLongPressEnd: widget.isRecording 
-                        ? (_) => widget.onVoiceStop() 
-                        : null,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        widget.isRecording 
-                            ? Icons.mic_rounded 
-                            : Icons.mic_rounded,
-                        color: widget.isRecording 
-                            ? Colors.red 
-                            : AppTheme.textBlack,
-                        size: 40, // دو برابر (20 * 2 = 40)
+                // استفاده از GestureDetector برای onLongPress
+                GestureDetector(
+                  onLongPressStart: widget.isRecording 
+                      ? null 
+                      : (_) => widget.onVoiceStart(),
+                  onLongPressEnd: widget.isRecording 
+                      ? (_) => widget.onVoiceStop() 
+                      : null,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.isRecording 
+                          ? widget.onVoiceStop 
+                          : () {},
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          widget.isRecording 
+                              ? Icons.mic_rounded 
+                              : Icons.mic_rounded,
+                          color: widget.isRecording 
+                              ? Colors.red 
+                              : AppTheme.textBlack,
+                          size: 40, // دو برابر (20 * 2 = 40)
+                        ),
                       ),
                     ),
                   ),
