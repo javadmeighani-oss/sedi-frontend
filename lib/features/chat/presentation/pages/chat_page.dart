@@ -108,9 +108,14 @@ class _ChatPageState extends State<ChatPage> {
                 onSendText: (text) {
                   _controller.sendUserMessage(text);
                 },
-                onVoiceTap: () {
-                  _controller.startVoiceInput();
+                onVoiceStart: () {
+                  _controller.startVoiceRecording();
                 },
+                onVoiceStop: () {
+                  _controller.stopVoiceRecording();
+                },
+                isRecording: _controller.isRecording,
+                recordingTime: _controller.recordingTimeFormatted,
               ),
             ),
 
@@ -161,16 +166,15 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
 
-                        // اسکرول‌بار چرخنده
-                        if (_controller.messages.length > 1)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: RotaryScrollbar(
-                              controller: _scrollController,
-                              height: screenHeight * 0.45,
-                              color: AppTheme.pistachioGreen,
-                            ),
+                        // اسکرول‌بار چرخنده (همیشه نمایش داده می‌شود)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: RotaryScrollbar(
+                            controller: _scrollController,
+                            height: screenHeight * 0.45,
+                            color: AppTheme.pistachioGreen,
                           ),
+                        ),
                       ],
                     ),
             ),

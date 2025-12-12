@@ -19,6 +19,10 @@ class ChatController extends ChangeNotifier {
   OnboardingState onboardingState = OnboardingState.none;
   String? userName;
   String? userPassword;
+  
+  // وضعیت ضبط صدا
+  bool isRecording = false;
+  int recordingDuration = 0; // مدت زمان ضبط به ثانیه
 
   final List<ChatMessage> messages = [];
   final ChatService _chatService = ChatService();
@@ -149,13 +153,64 @@ class ChatController extends ChangeNotifier {
   // -------------------------------
   //  ورودی صوت
   // -------------------------------
-  void startVoiceInput() {
+  void startVoiceRecording() {
+    isRecording = true;
+    recordingDuration = 0;
+    notifyListeners();
+    
+    // شروع تایمر ضبط
+    _startRecordingTimer();
+  }
+  
+  void stopVoiceRecording() {
+    isRecording = false;
+    notifyListeners();
+    
+    // شبیه‌سازی ارسال صدا (در آینده به API واقعی تبدیل می‌شود)
     final voiceMsg = currentLanguage == 'fa'
-        ? 'در حال شنیدن صدای شما هستم...'
+        ? 'صدا دریافت شد. در حال پردازش...'
         : currentLanguage == 'ar'
-            ? 'أستمع إلى صوتك...'
-            : 'Listening to your voice...';
-    addSediMessage(voiceMsg);
+            ? 'تم استلام الصوت. جاري المعالجة...'
+            : 'Voice received. Processing...';
+    
+    // اضافه کردن پیام کاربر (شبیه‌سازی)
+    messages.add(
+      ChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        text: '[Voice Message]',
+        isUser: true,
+        type: 'voice',
+      ),
+    );
+    
+    isThinking = true;
+    notifyListeners();
+    
+    // شبیه‌سازی پاسخ صدی (در آینده از API واقعی)
+    Future.delayed(const Duration(seconds: 2), () {
+      final response = currentLanguage == 'fa'
+          ? 'پیام صوتی شما دریافت شد. در حال حاضر فقط پاسخ متنی می‌دهم.'
+          : currentLanguage == 'ar'
+              ? 'تم استلام رسالتك الصوتية. حاليا أرد فقط نصيا.'
+              : 'Your voice message was received. I can only respond with text for now.';
+      addSediMessage(response);
+    });
+  }
+  
+  void _startRecordingTimer() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (isRecording) {
+        recordingDuration++;
+        notifyListeners();
+        _startRecordingTimer();
+      }
+    });
+  }
+  
+  String get recordingTimeFormatted {
+    final minutes = recordingDuration ~/ 60;
+    final seconds = recordingDuration % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   // -------------------------------

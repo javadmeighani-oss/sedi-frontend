@@ -3,14 +3,20 @@ import '../../../../core/theme/app_theme.dart';
 
 class InputBar extends StatefulWidget {
   final Function(String) onSendText; // ارسال متن
-  final VoidCallback onVoiceTap; // لمس میکروفن
+  final VoidCallback onVoiceStart; // شروع ضبط صدا
+  final VoidCallback onVoiceStop; // توقف ضبط صدا
   final Color brandColor; // رنگ سبز پسته‌ای
+  final bool isRecording; // آیا در حال ضبط است؟
+  final String recordingTime; // زمان ضبط
 
   const InputBar({
     super.key,
     required this.onSendText,
-    required this.onVoiceTap,
+    required this.onVoiceStart,
+    required this.onVoiceStop,
     required this.brandColor,
+    this.isRecording = false,
+    this.recordingTime = '00:00',
   });
 
   @override
@@ -58,22 +64,24 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final hasText = _controller.text.trim().isNotEmpty;
+    // چت باکس فقط هنگام تایپ بزرگ می‌شود، نه هنگام ضبط صدا
+    final shouldExpand = _isExpanded && !widget.isRecording;
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
-      height: _isExpanded ? 120 : 56,
+      height: shouldExpand ? 120 : 56,
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.backgroundWhite,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(16), // گوشه‌های گرد (مستطیل)
           border: Border.all(
-            color: _isExpanded 
+            color: shouldExpand 
                 ? widget.brandColor 
                 : AppTheme.metalGray.withOpacity(0.5),
-            width: _isExpanded ? 2.0 : 1.5,
+            width: shouldExpand ? 2.0 : 1.5,
           ),
-          boxShadow: _isExpanded
+          boxShadow: shouldExpand
               ? [
                   BoxShadow(
                     color: widget.brandColor.withOpacity(0.12),
@@ -95,85 +103,116 @@ class _InputBarState extends State<InputBar> {
         child: Row(
           children: [
             // ============================================
-            // متن "Talk to Sedi" (سمت چپ)
+            // محتوای سمت چپ
             // ============================================
-            if (!_isExpanded && !hasText)
-              Text(
-                "Talk to Sedi",
-                style: TextStyle(
-                  color: AppTheme.textBlack,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                ),
-              )
-            else
-              // ============================================
-              // فیلد تایپ پیام (وقتی در حال تایپ است)
-              // ============================================
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Talk to Sedi",
-                    hintStyle: TextStyle(
-                      color: AppTheme.metalGray.withOpacity(0.6),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: const TextStyle(
-                    color: AppTheme.textBlack,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    height: 1.4,
-                  ),
-                  minLines: 1,
-                  maxLines: _isExpanded ? 4 : 1,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _send(),
-                ),
-              ),
+            Expanded(
+              child: widget.isRecording
+                  ? // حالت ضبط صدا
+                  Row(
+                      children: [
+                        // آیکن ضبط (قرمز)
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // تایمر
+                        Text(
+                          widget.recordingTime,
+                          style: const TextStyle(
+                            color: AppTheme.textBlack,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    )
+                  : !shouldExpand && !hasText
+                      ? // حالت عادی - متن "Talk to Sedi..."
+                      Text(
+                          "Talk to Sedi...",
+                          style: TextStyle(
+                            color: AppTheme.textBlack,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        )
+                      : // حالت تایپ
+                      TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Talk to Sedi...",
+                            hintStyle: TextStyle(
+                              color: AppTheme.metalGray.withOpacity(0.6),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(
+                            color: AppTheme.textBlack,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            height: 1.4,
+                          ),
+                          minLines: 1,
+                          maxLines: shouldExpand ? 4 : 1,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                        ),
+            ),
 
-            const Spacer(),
+            const SizedBox(width: 12),
 
             // ============================================
-            // آیکن ارسال (راست) - فقط وقتی متن وجود دارد
-            // ============================================
-            if (hasText)
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _send,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.send_rounded,
-                      color: AppTheme.textBlack,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-
-            const SizedBox(width: 8),
-
-            // ============================================
-            // آیکن اسپیکر/میکروفن (راست)
+            // آیکن ارسال (راست) - همیشه نمایش داده می‌شود
             // ============================================
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: widget.onVoiceTap,
+                onTap: hasText ? _send : null,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   child: Icon(
-                    Icons.mic_rounded,
-                    color: AppTheme.textBlack,
+                    Icons.send_rounded,
+                    color: hasText 
+                        ? AppTheme.textBlack 
+                        : AppTheme.metalGray.withOpacity(0.4),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // ============================================
+            // آیکن اسپیکر/میکروفن (راست) - همیشه نمایش داده می‌شود
+            // ============================================
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.isRecording 
+                    ? widget.onVoiceStop 
+                    : widget.onVoiceStart,
+                onLongPress: widget.isRecording ? null : widget.onVoiceStart,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    widget.isRecording 
+                        ? Icons.stop_circle_rounded 
+                        : Icons.mic_rounded,
+                    color: widget.isRecording 
+                        ? Colors.red 
+                        : AppTheme.textBlack,
                     size: 20,
                   ),
                 ),
