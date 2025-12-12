@@ -101,9 +101,11 @@ class _InputBarState extends State<InputBar> {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // ============================================
-            // محتوای سمت چپ
+            // محتوای سمت چپ - فقط متن (بدون کادر)
             // ============================================
             Expanded(
               child: widget.isRecording
@@ -131,11 +133,11 @@ class _InputBarState extends State<InputBar> {
                         ),
                       ],
                     )
-                  : // همیشه TextField نمایش داده می‌شود (قابل تایپ)
+                  : // TextField برای تایپ
                       TextField(
                           controller: _controller,
                           focusNode: _focusNode,
-                          enabled: !widget.isRecording, // غیرفعال هنگام ضبط
+                          enabled: !widget.isRecording,
                           decoration: InputDecoration(
                             border: InputBorder.none,
                             hintText: !hasText && !_isExpanded 
@@ -159,7 +161,6 @@ class _InputBarState extends State<InputBar> {
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _send(),
                           onChanged: (text) {
-                            // بزرگ شدن چت باکس هنگام تایپ
                             if (text.isNotEmpty && !_isExpanded) {
                               _focusNode.requestFocus();
                             }
@@ -167,55 +168,57 @@ class _InputBarState extends State<InputBar> {
                         ),
             ),
 
-            const SizedBox(width: 12),
-
             // ============================================
-            // آیکن ارسال (راست) - ابتدا - 2 برابر بزرگتر
+            // آیکن‌های سمت راست - مرتب و وسط
             // ============================================
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: hasText ? _send : null,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    Icons.send_rounded,
-                    color: hasText 
-                        ? AppTheme.textBlack 
-                        : AppTheme.metalGray.withOpacity(0.4),
-                    size: 40, // 2 برابر (از 20 به 40)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // آیکن ارسال (ابتدا)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: hasText ? _send : null,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.send_rounded,
+                        color: hasText 
+                            ? AppTheme.textBlack 
+                            : AppTheme.metalGray.withOpacity(0.4),
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            const SizedBox(width: 8),
+                const SizedBox(width: 12),
 
-            // ============================================
-            // آیکن اسپیکر/میکروفن (راست) - سپس - 2 برابر بزرگتر
-            // ============================================
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: widget.isRecording 
-                    ? widget.onVoiceStop 
-                    : widget.onVoiceStart,
-                onLongPress: widget.isRecording ? null : widget.onVoiceStart,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    widget.isRecording 
-                        ? Icons.stop_circle_rounded 
-                        : Icons.mic_rounded,
-                    color: widget.isRecording 
-                        ? Colors.red 
-                        : AppTheme.textBlack,
-                    size: 40, // 2 برابر (از 20 به 40)
+                // آیکن اسپیکر (سپس)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.isRecording 
+                        ? widget.onVoiceStop 
+                        : widget.onVoiceStart,
+                    onLongPress: widget.isRecording ? null : widget.onVoiceStart,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        widget.isRecording 
+                            ? Icons.stop_circle_rounded 
+                            : Icons.mic_rounded,
+                        color: widget.isRecording 
+                            ? Colors.red 
+                            : AppTheme.textBlack,
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

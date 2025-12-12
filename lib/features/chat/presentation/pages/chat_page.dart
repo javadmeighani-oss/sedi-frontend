@@ -3,7 +3,6 @@ import '../../state/chat_controller.dart';
 import '../widgets/sedi_header.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
-import '../widgets/rotary_scrollbar.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
 
@@ -106,10 +105,10 @@ class _ChatPageState extends State<ChatPage> {
             ),
 
             // ============================================
-            // چت باکس (زیر لوگو)
+            // چت باکس (زیر لوگو) - تقریباً تمام عرض موبایل
             // ============================================
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 8), // فقط چند پیکسل از عرض
               child: InputBar(
                 brandColor: AppTheme.pistachioGreen,
                 onSendText: (text) {
@@ -143,43 +142,64 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(height: 12),
 
             // ============================================
-            // پیام‌های قدیمی (با اسکرول چرخشی - بالای آخرین پیام)
+            // پیام‌های قدیمی (با اسکرول انگشتی - بالای آخرین پیام)
             // ============================================
             Expanded(
               child: _controller.messages.length <= 1
                   ? const SizedBox.shrink()
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  : Stack(
                       children: [
                         // لیست پیام‌های قدیمی (بدون آخرین پیام)
-                        Expanded(
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            reverse: true,
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            itemCount: _controller.messages.length - 1,
-                            itemBuilder: (context, index) {
-                              final reversedIndex = (_controller.messages.length - 2) - index;
-                              final msg = _controller.messages[reversedIndex];
-                              return MessageBubble(
-                                message: msg.text,
-                                isSedi: !msg.isUser,
-                              );
-                            },
+                        ListView.builder(
+                          controller: _scrollController,
+                          reverse: true,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
                           ),
+                          itemCount: _controller.messages.length - 1,
+                          itemBuilder: (context, index) {
+                            final reversedIndex = (_controller.messages.length - 2) - index;
+                            final msg = _controller.messages[reversedIndex];
+                            return MessageBubble(
+                              message: msg.text,
+                              isSedi: !msg.isUser,
+                            );
+                          },
                         ),
 
-                        // اسکرول‌بار چرخنده (همیشه نمایش داده می‌شود)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: RotaryScrollbar(
-                            controller: _scrollController,
-                            height: screenHeight * 0.45,
+                        // آیکن برگشت به آخرین پیام (پایین سمت راست)
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          child: Material(
                             color: AppTheme.pistachioGreen,
+                            borderRadius: BorderRadius.circular(24),
+                            elevation: 4,
+                            child: InkWell(
+                              onTap: () {
+                                _scrollController.animateTo(
+                                  0,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOut,
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(24),
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.pistachioGreen,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_downward_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
