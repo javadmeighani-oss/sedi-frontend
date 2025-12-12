@@ -131,23 +131,16 @@ class _InputBarState extends State<InputBar> {
                         ),
                       ],
                     )
-                  : !shouldExpand && !hasText
-                      ? // حالت عادی - متن "Talk to Sedi..."
-                      Text(
-                          "Talk to Sedi...",
-                          style: TextStyle(
-                            color: AppTheme.textBlack,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        )
-                      : // حالت تایپ
+                  : // همیشه TextField نمایش داده می‌شود (قابل تایپ)
                       TextField(
                           controller: _controller,
                           focusNode: _focusNode,
+                          enabled: !widget.isRecording, // غیرفعال هنگام ضبط
                           decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: "Talk to Sedi...",
+                            hintText: !hasText && !_isExpanded 
+                                ? "Talk to Sedi..." 
+                                : null,
                             hintStyle: TextStyle(
                               color: AppTheme.metalGray.withOpacity(0.6),
                               fontSize: 15,
@@ -165,13 +158,19 @@ class _InputBarState extends State<InputBar> {
                           maxLines: shouldExpand ? 4 : 1,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _send(),
+                          onChanged: (text) {
+                            // بزرگ شدن چت باکس هنگام تایپ
+                            if (text.isNotEmpty && !_isExpanded) {
+                              _focusNode.requestFocus();
+                            }
+                          },
                         ),
             ),
 
             const SizedBox(width: 12),
 
             // ============================================
-            // آیکن ارسال (راست) - همیشه نمایش داده می‌شود
+            // آیکن ارسال (راست) - ابتدا - 2 برابر بزرگتر
             // ============================================
             Material(
               color: Colors.transparent,
@@ -185,7 +184,7 @@ class _InputBarState extends State<InputBar> {
                     color: hasText 
                         ? AppTheme.textBlack 
                         : AppTheme.metalGray.withOpacity(0.4),
-                    size: 20,
+                    size: 40, // 2 برابر (از 20 به 40)
                   ),
                 ),
               ),
@@ -194,7 +193,7 @@ class _InputBarState extends State<InputBar> {
             const SizedBox(width: 8),
 
             // ============================================
-            // آیکن اسپیکر/میکروفن (راست) - همیشه نمایش داده می‌شود
+            // آیکن اسپیکر/میکروفن (راست) - سپس - 2 برابر بزرگتر
             // ============================================
             Material(
               color: Colors.transparent,
@@ -213,7 +212,7 @@ class _InputBarState extends State<InputBar> {
                     color: widget.isRecording 
                         ? Colors.red 
                         : AppTheme.textBlack,
-                    size: 20,
+                    size: 40, // 2 برابر (از 20 به 40)
                   ),
                 ),
               ),

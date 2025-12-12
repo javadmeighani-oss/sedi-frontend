@@ -58,7 +58,7 @@ class _RotaryScrollbarState extends State<RotaryScrollbar> {
 
     return SizedBox(
       height: widget.height,
-      width: 20, // عرض اسکرول
+      width: 200, // عرض اسکرول (10 برابر - از 20 به 200)
       child: Align(
         alignment: Alignment.topCenter,
         child: LayoutBuilder(
@@ -83,7 +83,7 @@ class _RotaryScrollbarState extends State<RotaryScrollbar> {
 
                 return Positioned(
                   top: currentY.clamp(0.0, totalHeight - rectangleHeight),
-                  left: (20 - rectangleWidth) / 2,
+                  left: (200 - rectangleWidth) / 2,
                   child: Transform.rotate(
                     angle: rotationAngle + (index * 0.1),
                     alignment: Alignment.center,

@@ -5,6 +5,7 @@ import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/rotary_scrollbar.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'chat_history_page.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -65,7 +66,13 @@ class _ChatPageState extends State<ChatPage> {
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () {
-                        // TODO: باز کردن صفحه تاریخچه چت (دسته‌بندی شده)
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ChatHistoryPage(
+                              chatController: _controller,
+                            ),
+                          ),
+                        );
                       },
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
