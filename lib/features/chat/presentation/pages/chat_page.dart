@@ -45,6 +45,8 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
@@ -54,11 +56,14 @@ class _ChatPageState extends State<ChatPage> {
             // لوگوی صدی در بالا و وسط با حلقه تپنده
             // ============================================
             Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 16),
+              padding: EdgeInsets.only(
+                top: screenHeight * 0.03,
+                bottom: screenHeight * 0.025,
+              ),
               child: SediHeader(
                 isThinking: _controller.isThinking,
                 isAlert: _controller.isAlert,
-                size: 140, // لوگوی بزرگ
+                size: 140,
               ),
             ),
 
@@ -78,42 +83,43 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // ============================================
             // آخرین پیام (همیشه دیده می‌شود - زیر چت باکس)
             // ============================================
             if (_controller.lastMessage != null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: MessageBubble(
                   message: _controller.lastMessage!.text,
                   isSedi: !_controller.lastMessage!.isUser,
                 ),
               ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
             // ============================================
             // پیام‌های قدیمی (با اسکرول چرخشی - بالای آخرین پیام)
             // ============================================
             Expanded(
               child: _controller.messages.length <= 1
-                  ? const SizedBox.shrink() // اگر فقط یک پیام داریم، اسکرول نشان نده
+                  ? const SizedBox.shrink()
                   : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // لیست پیام‌های قدیمی (بدون آخرین پیام)
                         Expanded(
                           child: ListView.builder(
                             controller: _scrollController,
-                            reverse: true, // پیام قدیمی در بالا (reverse برای اسکرول از پایین)
+                            reverse: true,
+                            physics: const BouncingScrollPhysics(),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
+                              horizontal: 14,
                               vertical: 8,
                             ),
-                            itemCount: _controller.messages.length - 1, // بدون آخرین پیام
+                            itemCount: _controller.messages.length - 1,
                             itemBuilder: (context, index) {
-                              // معکوس کردن index برای نمایش صحیح
                               final reversedIndex = (_controller.messages.length - 2) - index;
                               final msg = _controller.messages[reversedIndex];
                               return MessageBubble(
@@ -124,12 +130,15 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
 
-                        // اسکرول‌بار چرخنده (فقط وقتی بیش از یک پیام داریم)
+                        // اسکرول‌بار چرخنده
                         if (_controller.messages.length > 1)
-                          RotaryScrollbar(
-                            controller: _scrollController,
-                            height: MediaQuery.of(context).size.height * 0.4,
-                            color: AppTheme.pistachioGreen,
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: RotaryScrollbar(
+                              controller: _scrollController,
+                              height: screenHeight * 0.45,
+                              color: AppTheme.pistachioGreen,
+                            ),
                           ),
                       ],
                     ),

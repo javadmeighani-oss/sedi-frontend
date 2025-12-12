@@ -26,13 +26,13 @@ class _SediHeaderState extends State<SediHeader>
   void initState() {
     super.initState();
 
-    // انیمیشن تپش قلب
+    // انیمیشن تپش قلب - نرم‌تر و طبیعی‌تر (مثل ضربان قلب)
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200), // سرعت تپش
+      duration: const Duration(milliseconds: 1200), // سرعت تپش طبیعی
     );
 
-    _pulse = Tween<double>(begin: 0.95, end: 1.08).animate(
+    _pulse = Tween<double>(begin: 0.97, end: 1.06).animate(
       CurvedAnimation(
         parent: _controller,
         curve: Curves.easeInOut,
@@ -41,7 +41,11 @@ class _SediHeaderState extends State<SediHeader>
 
     // شروع تپش اگر صدی در حال فکر کردن است
     if (widget.isThinking || widget.isAlert) {
-      _controller.repeat(reverse: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller.repeat(reverse: true);
+        }
+      });
     }
   }
 
@@ -49,14 +53,20 @@ class _SediHeaderState extends State<SediHeader>
   void didUpdateWidget(covariant SediHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // کنترل انیمیشن بر اساس وضعیت
-    if ((widget.isThinking || widget.isAlert) && !_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    } else if (!widget.isThinking &&
-        !widget.isAlert &&
-        _controller.isAnimating) {
-      _controller.stop();
-      _controller.reset();
+    // کنترل انیمیشن بر اساس وضعیت - بهبود یافته
+    final shouldAnimate = widget.isThinking || widget.isAlert;
+    final wasAnimating = oldWidget.isThinking || oldWidget.isAlert;
+
+    // اگر وضعیت تغییر کرده
+    if (shouldAnimate != wasAnimating) {
+      if (shouldAnimate) {
+        // شروع تپش
+        _controller.repeat(reverse: true);
+      } else {
+        // توقف تپش
+        _controller.stop();
+        _controller.reset();
+      }
     }
   }
 
@@ -68,8 +78,8 @@ class _SediHeaderState extends State<SediHeader>
 
   @override
   Widget build(BuildContext context) {
-    final ringThickness = widget.size * 0.06; // حلقه نازک
-    final logoSize = widget.size - ringThickness * 2 - 8;
+    final ringThickness = 2.5; // حلقه نازک‌تر (2.5px)
+    final logoSize = widget.size - (ringThickness * 2) - 12;
 
     return SizedBox(
       width: widget.size,
@@ -77,9 +87,12 @@ class _SediHeaderState extends State<SediHeader>
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          final scale = (widget.isThinking || widget.isAlert) 
-              ? _pulse.value 
-              : 1.0;
+          final isActive = widget.isThinking || widget.isAlert;
+          final scale = isActive ? _pulse.value : 1.0;
+          // محاسبه opacity برای انیمیشن نرم (بین 0.4 تا 0.8)
+          final opacity = isActive 
+              ? 0.4 + ((_pulse.value - 0.97) / (1.06 - 0.97)) * 0.4
+              : 0.3;
 
           return Transform.scale(
             scale: scale,
@@ -87,7 +100,7 @@ class _SediHeaderState extends State<SediHeader>
               alignment: Alignment.center,
               children: [
                 // ============================================
-                // حلقه سبز پسته‌ای (تپنده)
+                // حلقه سبز پسته‌ای (تپنده) - نازک و زیبا
                 // ============================================
                 Container(
                   width: widget.size,
@@ -95,15 +108,22 @@ class _SediHeaderState extends State<SediHeader>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppTheme.pistachioGreen,
+                      color: AppTheme.pistachioGreen.withOpacity(opacity.clamp(0.3, 1.0)),
                       width: ringThickness,
                     ),
-                    boxShadow: (widget.isThinking || widget.isAlert)
+                    boxShadow: isActive
                         ? [
+                            // سایه اول - نزدیک به حلقه (با انیمیشن)
                             BoxShadow(
-                              color: AppTheme.pistachioGreen.withOpacity(0.4),
-                              blurRadius: 20,
-                              spreadRadius: 4,
+                              color: AppTheme.pistachioGreen.withOpacity(0.35 + (scale - 1.0) * 0.3),
+                              blurRadius: 12 + (scale - 1.0) * 30,
+                              spreadRadius: 1 + (scale - 1.0) * 2,
+                            ),
+                            // سایه دوم - دورتر (با انیمیشن)
+                            BoxShadow(
+                              color: AppTheme.pistachioGreen.withOpacity(0.2 + (scale - 1.0) * 0.2),
+                              blurRadius: 25 + (scale - 1.0) * 30,
+                              spreadRadius: 2 + (scale - 1.0) * 3,
                             ),
                           ]
                         : null,
@@ -111,27 +131,37 @@ class _SediHeaderState extends State<SediHeader>
                 ),
 
                 // ============================================
-                // لوگوی صدی (وسط)
+                // لوگوی صدی (وسط) - با سایه ملایم
                 // ============================================
                 Container(
                   width: logoSize,
                   height: logoSize,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppTheme.backgroundWhite,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Image.asset(
                       'assets/images/sedi_logo_1024.png',
                       fit: BoxFit.contain,
+                      width: logoSize * 0.7,
+                      height: logoSize * 0.7,
                       errorBuilder: (context, error, stackTrace) {
                         // اگر لوگو پیدا نشد، متن نمایش داده می‌شود
-                        return const Text(
+                        return Text(
                           'Sedi.',
                           style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontSize: logoSize * 0.25,
+                            fontWeight: FontWeight.w700,
                             color: AppTheme.pistachioGreen,
+                            letterSpacing: -0.5,
                           ),
                         );
                       },

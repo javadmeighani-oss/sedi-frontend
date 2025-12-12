@@ -26,19 +26,25 @@ class _MessageBubbleState extends State<MessageBubble>
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
       vsync: this,
     );
 
     _fade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
     );
 
     _slide = Tween<Offset>(
-      begin: Offset(widget.isSedi ? -0.2 : 0.2, 0),
+      begin: Offset(widget.isSedi ? -0.15 : 0.15, 0.1),
       end: Offset.zero,
     ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+      ),
     );
 
     _controller.forward();
@@ -53,6 +59,7 @@ class _MessageBubbleState extends State<MessageBubble>
   @override
   Widget build(BuildContext context) {
     final isUser = !widget.isSedi;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return FadeTransition(
       opacity: _fade,
@@ -61,37 +68,48 @@ class _MessageBubbleState extends State<MessageBubble>
         child: Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                maxWidth: screenWidth * 0.78,
               ),
               padding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 12,
+                vertical: 14,
               ),
               decoration: BoxDecoration(
                 color: isUser
-                    ? AppTheme.metalLight // پیام کاربر: خاکستری روشن متال
-                    : AppTheme.backgroundWhite, // پیام صدی: سفید
+                    ? AppTheme.metalLight.withOpacity(0.6)
+                    : AppTheme.backgroundWhite,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isUser ? 20 : 6),
-                  bottomRight: Radius.circular(isUser ? 6 : 20),
+                  bottomLeft: Radius.circular(isUser ? 20 : 8),
+                  bottomRight: Radius.circular(isUser ? 8 : 20),
                 ),
                 border: Border.all(
-                  color: AppTheme.metalGray.withOpacity(0.3),
+                  color: isUser
+                      ? AppTheme.metalGray.withOpacity(0.2)
+                      : AppTheme.metalGray.withOpacity(0.15),
                   width: 1,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 4,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Text(
                 widget.message,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textBlack, // فونت مشکی
+                style: TextStyle(
+                  fontSize: 15.5,
+                  color: AppTheme.textBlack,
                   height: 1.5,
                   fontWeight: FontWeight.w400,
+                  letterSpacing: 0.1,
                 ),
                 textDirection: _getTextDirection(widget.message),
               ),
