@@ -169,12 +169,14 @@ class _InputBarState extends State<InputBar> {
             ),
 
             // ============================================
-            // آیکن‌های سمت راست - مرتب و وسط
+            // آیکن‌های سمت راست - داخل چت باکس
+            // ترتیب: ابتدا ارسال، سپس اسپیکر
             // ============================================
             Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // آیکن ارسال (ابتدا)
+                // آیکن ارسال متن (اول - سمت راست)
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -193,9 +195,9 @@ class _InputBarState extends State<InputBar> {
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
 
-                // آیکن اسپیکر (سپس)
+                // آیکن اسپیکر (دوم - بعد از ارسال)
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
