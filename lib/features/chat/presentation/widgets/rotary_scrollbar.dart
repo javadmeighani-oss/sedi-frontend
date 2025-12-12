@@ -18,8 +18,8 @@ class RotaryScrollbar extends StatefulWidget {
 }
 
 class _RotaryScrollbarState extends State<RotaryScrollbar> {
-  double position = 0.0; // موقعیت چرخنده
-  double rotation = 0.0; // چرخش برای حالت چرخشی
+  double scrollPosition = 0.0; // موقعیت اسکرول (0 تا 1)
+  double rotationAngle = 0.0; // زاویه چرخش
 
   @override
   void initState() {
@@ -34,11 +34,11 @@ class _RotaryScrollbarState extends State<RotaryScrollbar> {
     final offset = widget.controller.offset;
 
     setState(() {
-      // نسبت اسکرول پیام‌ها → حرکت اسکرول‌بار
-      position = maxScroll == 0 ? 0 : offset / maxScroll;
+      // محاسبه موقعیت اسکرول (0 تا 1)
+      scrollPosition = maxScroll == 0 ? 0 : (offset / maxScroll).clamp(0.0, 1.0);
 
-      // چرخش اضافه برای حس چرخنده
-      rotation = (offset / 60) % (2 * math.pi);
+      // محاسبه زاویه چرخش بر اساس اسکرول (چرخش 360 درجه)
+      rotationAngle = (offset / 10) % (2 * math.pi);
     });
   }
 
@@ -50,59 +50,59 @@ class _RotaryScrollbarState extends State<RotaryScrollbar> {
 
   @override
   Widget build(BuildContext context) {
+    // تعداد مستطیل‌های چرخشی (بیشتر = نرم‌تر)
+    const int rectangleCount = 12;
+    const double rectangleWidth = 3.0;
+    const double rectangleHeight = 8.0;
+    const double spacing = 2.5;
+
     return SizedBox(
       height: widget.height,
-      width: 35, // پهن‌تر از اسکرول معمول
+      width: 20, // عرض اسکرول
       child: Align(
         alignment: Alignment.topCenter,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // اندازه چرخنده
-            const ballSize = 26.0;
-
-            // موقعیت چرخنده
-            final y = (constraints.maxHeight - ballSize) * position;
+            final totalHeight = constraints.maxHeight;
+            final centerY = totalHeight / 2;
 
             return Stack(
-              children: [
-                // مسیر اسکرول
-                Positioned.fill(
-                  child: Center(
-                    child: Container(
-                      width: 6,
-                      height: constraints.maxHeight,
-                      decoration: BoxDecoration(
-                        color: widget.color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
+              children: List.generate(rectangleCount, (index) {
+                // فاصله از مرکز برای هر مستطیل
+                final distanceFromCenter = (index - rectangleCount / 2) * spacing;
+                final baseY = centerY + distanceFromCenter;
 
-                // چرخنده
-                Positioned(
-                  top: y,
-                  left: 4,
+                // محاسبه موقعیت Y با چرخش
+                final rotationOffset = math.sin(rotationAngle + (index * math.pi / 6)) * 15;
+                final currentY = baseY + rotationOffset + (scrollPosition * (totalHeight - rectangleHeight * rectangleCount));
+
+                // محاسبه opacity و رنگ بر اساس موقعیت
+                final distanceFromViewport = (currentY - centerY).abs() / (totalHeight / 2);
+                final opacity = (1.0 - distanceFromViewport.clamp(0.0, 1.0)) * 0.6 + 0.2;
+                final grayShade = (1.0 - distanceFromViewport.clamp(0.0, 1.0)) * 255;
+
+                return Positioned(
+                  top: currentY.clamp(0.0, totalHeight - rectangleHeight),
+                  left: (20 - rectangleWidth) / 2,
                   child: Transform.rotate(
-                    angle: rotation,
+                    angle: rotationAngle + (index * 0.1),
+                    alignment: Alignment.center,
                     child: Container(
-                      width: ballSize,
-                      height: ballSize,
+                      width: rectangleWidth,
+                      height: rectangleHeight,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.color,
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.color.withOpacity(0.4),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          )
-                        ],
+                        color: Color.fromRGBO(
+                          grayShade.toInt(),
+                          grayShade.toInt(),
+                          grayShade.toInt(),
+                          opacity,
+                        ),
+                        borderRadius: BorderRadius.circular(1),
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              }),
             );
           },
         ),

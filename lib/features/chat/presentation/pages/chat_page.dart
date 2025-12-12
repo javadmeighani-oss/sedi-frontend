@@ -53,17 +53,48 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           children: [
             // ============================================
+            // آیکن تاریخچه چت (بالا سمت چپ)
+            // ============================================
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // آیکن تاریخچه چت
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        // TODO: باز کردن صفحه تاریخچه چت (دسته‌بندی شده)
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.history_rounded,
+                          color: AppTheme.pistachioGreen,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+
+            // ============================================
             // لوگوی صدی در بالا و وسط با حلقه تپنده
             // ============================================
             Padding(
               padding: EdgeInsets.only(
-                top: screenHeight * 0.03,
+                top: screenHeight * 0.02,
                 bottom: screenHeight * 0.025,
               ),
               child: SediHeader(
                 isThinking: _controller.isThinking,
                 isAlert: _controller.isAlert,
-                size: 140,
+                size: 168, // 20% بزرگتر (140 * 1.2 = 168)
               ),
             ),
 

@@ -91,11 +91,78 @@ class _InputBarState extends State<InputBar> {
                   ),
                 ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             // ============================================
-            // آیکن میکروفن (چپ)
+            // متن "Talk to Sedi" (سمت چپ)
+            // ============================================
+            if (!_isExpanded && !hasText)
+              Text(
+                "Talk to Sedi",
+                style: TextStyle(
+                  color: AppTheme.textBlack,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
+              )
+            else
+              // ============================================
+              // فیلد تایپ پیام (وقتی در حال تایپ است)
+              // ============================================
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Talk to Sedi",
+                    hintStyle: TextStyle(
+                      color: AppTheme.metalGray.withOpacity(0.6),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: const TextStyle(
+                    color: AppTheme.textBlack,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                  minLines: 1,
+                  maxLines: _isExpanded ? 4 : 1,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _send(),
+                ),
+              ),
+
+            const Spacer(),
+
+            // ============================================
+            // آیکن ارسال (راست) - فقط وقتی متن وجود دارد
+            // ============================================
+            if (hasText)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _send,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.send_rounded,
+                      color: AppTheme.textBlack,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(width: 8),
+
+            // ============================================
+            // آیکن اسپیکر/میکروفن (راست)
             // ============================================
             Material(
               color: Colors.transparent,
@@ -103,103 +170,14 @@ class _InputBarState extends State<InputBar> {
                 onTap: widget.onVoiceTap,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   child: Icon(
                     Icons.mic_rounded,
-                    color: widget.brandColor,
-                    size: 22,
+                    color: AppTheme.textBlack,
+                    size: 20,
                   ),
                 ),
               ),
-            ),
-
-            const SizedBox(width: 4),
-
-            // ============================================
-            // فیلد تایپ پیام
-            // ============================================
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "با صدی صحبت کن",
-                  hintStyle: TextStyle(
-                    color: AppTheme.metalGray.withOpacity(0.7),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                ),
-                style: const TextStyle(
-                  color: AppTheme.textBlack,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  height: 1.4,
-                ),
-                minLines: 1,
-                maxLines: _isExpanded ? 4 : 1,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _send(),
-              ),
-            ),
-
-            const SizedBox(width: 4),
-
-            // ============================================
-            // آیکن ارسال (راست) - فقط وقتی متن وجود دارد
-            // ============================================
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: hasText
-                  ? Material(
-                      key: const ValueKey('send'),
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _send,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: widget.brandColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: widget.brandColor.withOpacity(0.35),
-                                blurRadius: 10,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(11),
-                          child: const Icon(
-                            Icons.send_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Material(
-                      key: const ValueKey('attach'),
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: null,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          child: Icon(
-                            Icons.attach_file_rounded,
-                            color: AppTheme.metalGray.withOpacity(0.5),
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
             ),
           ],
         ),
@@ -207,3 +185,4 @@ class _InputBarState extends State<InputBar> {
     );
   }
 }
+
