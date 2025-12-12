@@ -1,22 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 
 class InputBar extends StatefulWidget {
-  final Function(String) onSendText; // ارسال متن
-  final VoidCallback onVoiceStart; // شروع ضبط صدا
-  final VoidCallback onVoiceStop; // توقف ضبط صدا
-  final Color brandColor; // رنگ سبز پسته‌ای
-  final bool isRecording; // آیا در حال ضبط است؟
-  final String recordingTime; // زمان ضبط
+  final Future<void> Function(String text) onSendText;
+  final VoidCallback onStartRecording;
+  final VoidCallback onStopRecordingAndSend;
 
   const InputBar({
     super.key,
     required this.onSendText,
-    required this.onVoiceStart,
-    required this.onVoiceStop,
-    required this.brandColor,
-    this.isRecording = false,
-    this.recordingTime = '00:00',
+    required this.onStartRecording,
+    required this.onStopRecordingAndSend,
   });
 
   @override
@@ -26,206 +20,136 @@ class InputBar extends StatefulWidget {
 class _InputBarState extends State<InputBar> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-  bool _isExpanded = false;
+
+  bool _isRecording = false;
+  Timer? _timer;
+  Duration _recordDuration = Duration.zero;
+
+  static const double _collapsedHeight = 56;
+  static const double _expandedHeight = 56 * 4;
+
+  bool get _isExpanded =>
+      _focusNode.hasFocus || _controller.text.isNotEmpty || _isRecording;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      setState(() {});
-    });
-    
-    _focusNode.addListener(() {
-      setState(() {
-        _isExpanded = _focusNode.hasFocus;
-      });
-    });
+    _focusNode.addListener(() => setState(() {}));
+    _controller.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _send() {
+  void _startTimer() {
+    _timer?.cancel();
+    _recordDuration = Duration.zero;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => _recordDuration += const Duration(seconds: 1));
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  String _format(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${two(d.inMinutes)}:${two(d.inSeconds % 60)}";
+  }
+
+  Future<void> _sendText() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    widget.onSendText(text);
+    await widget.onSendText(text);
+
     _controller.clear();
     _focusNode.unfocus();
-    setState(() {
-      _isExpanded = false;
-    });
+    setState(() {});
+  }
+
+  void _startRecording() {
+    setState(() => _isRecording = true);
+    _startTimer();
+    widget.onStartRecording();
+  }
+
+  void _stopRecordingAndSend() {
+    _stopTimer();
+    setState(() => _isRecording = false);
+    widget.onStopRecordingAndSend();
+    _focusNode.unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasText = _controller.text.trim().isNotEmpty;
-    // چت باکس فقط هنگام تایپ بزرگ می‌شود، نه هنگام ضبط صدا
-    final shouldExpand = _isExpanded && !widget.isRecording;
-    
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      height: shouldExpand ? 120 : 56,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundWhite,
-          borderRadius: BorderRadius.circular(16), // گوشه‌های گرد (مستطیل)
-          border: Border.all(
-            color: shouldExpand 
-                ? widget.brandColor 
-                : AppTheme.metalGray.withOpacity(0.5),
-            width: shouldExpand ? 2.0 : 1.5,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      height: _isExpanded ? _expandedHeight : _collapsedHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              textAlign: TextAlign.right,
+              maxLines: null,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: "صحبت با صدی…",
+              ),
+            ),
           ),
-          boxShadow: shouldExpand
-              ? [
-                  BoxShadow(
-                    color: widget.brandColor.withOpacity(0.12),
-                    blurRadius: 16,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 4,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ============================================
-            // محتوای سمت چپ - فقط متن (بدون کادر)
-            // ============================================
-            Expanded(
-              child: widget.isRecording
-                  ? // حالت ضبط صدا
-                  Row(
-                      children: [
-                        // آیکن ضبط (قرمز)
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // تایمر
-                        Text(
-                          widget.recordingTime,
-                          style: const TextStyle(
-                            color: AppTheme.textBlack,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    )
-                  : // TextField برای تایپ
-                      TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          enabled: !widget.isRecording,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: !hasText && !_isExpanded 
-                                ? "Talk to Sedi..." 
-                                : null,
-                            hintStyle: TextStyle(
-                              color: AppTheme.metalGray.withOpacity(0.6),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: const TextStyle(
-                            color: AppTheme.textBlack,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            height: 1.4,
-                          ),
-                          minLines: 1,
-                          maxLines: shouldExpand ? 4 : 1,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          onChanged: (text) {
-                            if (text.isNotEmpty && !_isExpanded) {
-                              _focusNode.requestFocus();
-                            }
-                          },
-                        ),
-            ),
-
-            // ============================================
-            // آیکن‌های سمت راست - داخل چت باکس
-            // ترتیب: ابتدا ارسال، سپس اسپیکر
-            // ============================================
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // آیکن ارسال متن (اول - سمت راست)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: hasText ? _send : null,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        Icons.send_rounded,
-                        color: hasText 
-                            ? AppTheme.textBlack 
-                            : AppTheme.metalGray.withOpacity(0.4),
-                        size: 24,
-                      ),
-                    ),
-                  ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (_isRecording)
+                Text(
+                  _format(_recordDuration),
+                  style: const TextStyle(fontSize: 14),
                 ),
 
-                const SizedBox(width: 8),
+              const Spacer(),
 
-                // آیکن اسپیکر (دوم - بعد از ارسال)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: widget.isRecording 
-                        ? widget.onVoiceStop 
-                        : widget.onVoiceStart,
-                    onLongPress: widget.isRecording ? null : widget.onVoiceStart,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        widget.isRecording 
-                            ? Icons.stop_circle_rounded 
-                            : Icons.mic_rounded,
-                        color: widget.isRecording 
-                            ? Colors.red 
-                            : AppTheme.textBlack,
-                        size: 24,
-                      ),
-                    ),
+              // SEND – بزرگ‌تر و مشکی
+              IconButton(
+                icon: const Icon(Icons.send_rounded),
+                iconSize: 30,
+                color: Colors.black,
+                onPressed: _sendText,
+              ),
+
+              // MIC – ضبط با نگه‌داشتن
+              GestureDetector(
+                onLongPressStart: (_) => _startRecording(),
+                onLongPressEnd: (_) => _stopRecordingAndSend(),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.mic_rounded,
+                    size: 22,
+                    color: Colors.black87,
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
-
