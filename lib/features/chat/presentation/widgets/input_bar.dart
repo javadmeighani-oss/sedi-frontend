@@ -22,6 +22,9 @@ class _InputBarState extends State<InputBar> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  static const double _collapsedHeight = 56;
+  static const double _expandedHeight = 140; // ارتفاع امن و قابل تایپ
+
   bool _expanded = false;
 
   @override
@@ -35,21 +38,22 @@ class _InputBarState extends State<InputBar> {
   void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+
     widget.onSendText(text);
     _controller.clear();
-    _focusNode.unfocus(); // جمع شدن چت‌باکس
+    _focusNode.unfocus(); // جمع شدن بعد از ارسال
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      height: _expanded ? 220 : 56,
+      height: _expanded ? _expandedHeight : _collapsedHeight,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
@@ -61,18 +65,18 @@ class _InputBarState extends State<InputBar> {
               focusNode: _focusNode,
               maxLines: null,
               decoration: InputDecoration(
-                hintText: widget.hintText,
+                hintText: widget.hintText, // 👈 اینجا placeholder
                 border: InputBorder.none,
+                isCollapsed: true,
               ),
             ),
           ),
 
           // ---------- Actions ----------
           Row(
+            textDirection: TextDirection.rtl, // قفل ترتیب آیکن‌ها
             children: [
-              const Spacer(),
-
-              // SEND (اول از راست، بزرگ‌تر)
+              // SEND – اول از راست
               IconButton(
                 icon: const Icon(Icons.send_rounded),
                 iconSize: 30,
@@ -80,12 +84,12 @@ class _InputBarState extends State<InputBar> {
                 onPressed: _send,
               ),
 
-              // MIC (بعد از send)
+              // MIC – بعدش
               GestureDetector(
                 onLongPress: widget.onStartRecording,
                 onLongPressUp: widget.onStopRecordingAndSend,
                 child: const Padding(
-                  padding: EdgeInsets.only(right: 4),
+                  padding: EdgeInsets.only(right: 6),
                   child: Icon(
                     Icons.mic_rounded,
                     size: 22,
@@ -93,6 +97,8 @@ class _InputBarState extends State<InputBar> {
                   ),
                 ),
               ),
+
+              const Spacer(),
             ],
           ),
         ],
