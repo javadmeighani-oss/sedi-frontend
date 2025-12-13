@@ -16,7 +16,6 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final ChatController _controller = ChatController();
   final ScrollController _scrollController = ScrollController();
-  int _lastMessageCount = 0;
 
   @override
   void initState() {
@@ -27,8 +26,12 @@ class _ChatPageState extends State<ChatPage> {
 
   void _onControllerUpdate() {
     setState(() {});
-    if (_controller.messages.length > _lastMessageCount) {
-      _lastMessageCount = _controller.messages.length;
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -56,17 +59,32 @@ class _ChatPageState extends State<ChatPage> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
         child: Column(
           children: [
-            // ---------------- تاریخچه چت
+            // ================= Header =================
             Padding(
-              padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Row(
                 children: [
-                  InkWell(
-                    onTap: () {
+                  const Spacer(),
+
+                  // آیکن علائم حیاتی (راست بالا - دائمی)
+                  IconButton(
+                    icon: const Icon(Icons.favorite_rounded),
+                    color: AppTheme.pistachioGreen,
+                    onPressed: () {
+                      // TODO: navigate to vitals page
+                    },
+                  ),
+
+                  // آیکن تاریخچه چت
+                  IconButton(
+                    icon: const Icon(Icons.history_rounded),
+                    color: AppTheme.pistachioGreen,
+                    onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) =>
@@ -74,21 +92,16 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       );
                     },
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Icon(Icons.history_rounded, size: 24),
-                    ),
                   ),
                 ],
               ),
             ),
 
-            // ---------------- لوگو + حلقه تپنده
+            // ================= Logo + Ring =================
             Padding(
               padding: EdgeInsets.only(
-                top: screenHeight * 0.02,
-                bottom: screenHeight * 0.025,
+                top: screenHeight * 0.015,
+                bottom: screenHeight * 0.02,
               ),
               child: SediHeader(
                 isThinking: _controller.isThinking,
@@ -97,46 +110,21 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            // ---------------- InputBar (اصلاح‌شده)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: InputBar(
-                hintText: _inputHint(),
-                onSendText: _controller.sendUserMessage,
-                onStartRecording: _controller.startVoiceRecording,
-                onStopRecordingAndSend: _controller.stopVoiceRecording,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ---------------- آخرین پیام
-            if (_controller.lastMessage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: MessageBubble(
-                  message: _controller.lastMessage!.text,
-                  isSedi: !_controller.lastMessage!.isUser,
-                ),
-              ),
-
-            const SizedBox(height: 12),
-
-            // ---------------- پیام‌های قبلی
+            // ================= Messages (Center) =================
             Expanded(
-              child: _controller.messages.length <= 1
+              child: _controller.messages.isEmpty
                   ? const SizedBox.shrink()
                   : ListView.builder(
                       controller: _scrollController,
                       reverse: true,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
+                        horizontal: 16,
                         vertical: 8,
                       ),
-                      itemCount: _controller.messages.length - 1,
+                      itemCount: _controller.messages.length,
                       itemBuilder: (context, index) {
                         final reversedIndex =
-                            (_controller.messages.length - 2) - index;
+                            (_controller.messages.length - 1) - index;
                         final msg = _controller.messages[reversedIndex];
                         return MessageBubble(
                           message: msg.text,
@@ -144,6 +132,17 @@ class _ChatPageState extends State<ChatPage> {
                         );
                       },
                     ),
+            ),
+
+            // ================= InputBar (Bottom Fixed) =================
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+              child: InputBar(
+                hintText: _inputHint(),
+                onSendText: _controller.sendUserMessage,
+                onStartRecording: _controller.startVoiceRecording,
+                onStopRecordingAndSend: _controller.stopVoiceRecording,
+              ),
             ),
           ],
         ),
