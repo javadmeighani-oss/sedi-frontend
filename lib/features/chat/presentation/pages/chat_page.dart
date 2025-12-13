@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../state/chat_controller.dart';
-import '../widgets/sedi_header.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/sedi_header.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
 
@@ -14,25 +15,20 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final ChatController _controller = ChatController();
+  late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _controller = ChatController();
     _controller.addListener(_onControllerUpdate);
     _controller.initialize();
   }
 
   void _onControllerUpdate() {
+    if (!mounted) return;
     setState(() {});
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
   }
 
   @override
@@ -56,31 +52,29 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
         child: Column(
           children: [
-            // ================= Header =================
+            // =================== HEADER ===================
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Row(
                 children: [
                   const Spacer(),
 
-                  // آیکن علائم حیاتی (راست بالا - دائمی)
+                  // Vitals (رزرو شده)
                   IconButton(
                     icon: const Icon(Icons.favorite_rounded),
                     color: AppTheme.pistachioGreen,
                     onPressed: () {
-                      // TODO: navigate to vitals page
+                      // TODO: vitals page
                     },
                   ),
 
-                  // آیکن تاریخچه چت
+                  // History
                   IconButton(
                     icon: const Icon(Icons.history_rounded),
                     color: AppTheme.pistachioGreen,
@@ -97,12 +91,9 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            // ================= Logo + Ring =================
+            // =================== LOGO ===================
             Padding(
-              padding: EdgeInsets.only(
-                top: screenHeight * 0.015,
-                bottom: screenHeight * 0.02,
-              ),
+              padding: const EdgeInsets.only(top: 12, bottom: 16),
               child: SediHeader(
                 isThinking: _controller.isThinking,
                 isAlert: _controller.isAlert,
@@ -110,31 +101,24 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            // ================= Messages (Center) =================
+            // =================== MESSAGES ===================
             Expanded(
-              child: _controller.messages.isEmpty
-                  ? const SizedBox.shrink()
-                  : ListView.builder(
-                      controller: _scrollController,
-                      reverse: true,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      itemCount: _controller.messages.length,
-                      itemBuilder: (context, index) {
-                        final reversedIndex =
-                            (_controller.messages.length - 1) - index;
-                        final msg = _controller.messages[reversedIndex];
-                        return MessageBubble(
-                          message: msg.text,
-                          isSedi: !msg.isUser,
-                        );
-                      },
-                    ),
+              child: ListView.builder(
+                controller: _scrollController,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: _controller.messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _controller.messages[index];
+                  return MessageBubble(
+                    message: msg.text,
+                    isSedi: !msg.isUser,
+                  );
+                },
+              ),
             ),
 
-            // ================= InputBar (Bottom Fixed) =================
+            // =================== INPUT ===================
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
               child: InputBar(
