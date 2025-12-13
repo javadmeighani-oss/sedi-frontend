@@ -16,7 +16,6 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late final ChatController _controller;
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -35,7 +34,6 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -56,73 +54,75 @@ class _ChatPageState extends State<ChatPage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // =================== HEADER ===================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Row(
-                children: [
-                  const Spacer(),
-
-                  // Vitals (رزرو شده)
-                  IconButton(
-                    icon: const Icon(Icons.favorite_rounded),
-                    color: AppTheme.pistachioGreen,
-                    onPressed: () {
-                      // TODO: vitals page
-                    },
+            // ================= CONTENT =================
+            Column(
+              children: [
+                // ---------- Header ----------
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.favorite_rounded),
+                        color: AppTheme.pistachioGreen,
+                        onPressed: () {},
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.history_rounded),
+                        color: AppTheme.pistachioGreen,
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ChatHistoryPage(
+                                chatController: _controller,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
+                ),
 
-                  // History
-                  IconButton(
-                    icon: const Icon(Icons.history_rounded),
-                    color: AppTheme.pistachioGreen,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ChatHistoryPage(chatController: _controller),
-                        ),
+                // ---------- Logo ----------
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 16),
+                  child: SediHeader(
+                    isThinking: _controller.isThinking,
+                    isAlert: _controller.isAlert,
+                    size: 168,
+                  ),
+                ),
+
+                // ---------- Messages ----------
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                    itemCount: _controller.messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _controller.messages[index];
+                      return MessageBubble(
+                        message: msg.text,
+                        isSedi: !msg.isUser,
                       );
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
 
-            // =================== LOGO ===================
-            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 16),
-              child: SediHeader(
-                isThinking: _controller.isThinking,
-                isAlert: _controller.isAlert,
-                size: 168,
-              ),
-            ),
-
-            // =================== MESSAGES ===================
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _controller.messages.length,
-                itemBuilder: (context, index) {
-                  final msg = _controller.messages[index];
-                  return MessageBubble(
-                    message: msg.text,
-                    isSedi: !msg.isUser,
-                  );
-                },
-              ),
-            ),
-
-            // =================== INPUT ===================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+            // ================= INPUT OVERLAY =================
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: InputBar(
                 hintText: _inputHint(),
+                isRecording: _controller.isRecording,
+                recordingTime: _controller.recordingTimeFormatted,
                 onSendText: _controller.sendUserMessage,
                 onStartRecording: _controller.startVoiceRecording,
                 onStopRecordingAndSend: _controller.stopVoiceRecording,
