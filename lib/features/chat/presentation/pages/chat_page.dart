@@ -22,14 +22,11 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _controller.addListener(_onControllerUpdate);
-    // initialize باید await شود اما در initState نمی‌توانیم await کنیم
-    // پس بدون await صدا می‌زنیم
     _controller.initialize();
   }
 
   void _onControllerUpdate() {
     setState(() {});
-    // اسکرول خودکار فقط وقتی پیام جدید اضافه می‌شود
     if (_controller.messages.length > _lastMessageCount) {
       _lastMessageCount = _controller.messages.length;
     }
@@ -43,55 +40,51 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
+  String _inputHint() {
+    switch (_controller.currentLanguage) {
+      case 'fa':
+        return 'صحبت با صدی…';
+      case 'ar':
+        return 'تحدّث مع سِدي…';
+      default:
+        return 'Talk to Sedi…';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
         child: Column(
           children: [
-            // ============================================
-            // آیکن تاریخچه چت (بالا سمت چپ)
-            // ============================================
+            // ---------------- تاریخچه چت
             Padding(
               padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // آیکن تاریخچه چت
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ChatHistoryPage(
-                              chatController: _controller,
-                            ),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(
-                          Icons.history_rounded,
-                          color: AppTheme.pistachioGreen,
-                          size: 24,
+                  InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ChatHistoryPage(chatController: _controller),
                         ),
-                      ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.history_rounded, size: 24),
                     ),
                   ),
-                  const Spacer(),
                 ],
               ),
             ),
 
-            // ============================================
-            // لوگوی صدی در بالا و وسط با حلقه تپنده
-            // ============================================
+            // ---------------- لوگو + حلقه تپنده
             Padding(
               padding: EdgeInsets.only(
                 top: screenHeight * 0.02,
@@ -100,36 +93,24 @@ class _ChatPageState extends State<ChatPage> {
               child: SediHeader(
                 isThinking: _controller.isThinking,
                 isAlert: _controller.isAlert,
-                size: 168, // 20% بزرگتر (140 * 1.2 = 168)
+                size: 168,
               ),
             ),
 
-            // ============================================
-            // چت باکس (زیر لوگو) - تقریباً تمام عرض موبایل
-            // ============================================
+            // ---------------- InputBar (اصلاح‌شده)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8), // فقط چند پیکسل از عرض
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: InputBar(
-                brandColor: AppTheme.pistachioGreen,
-                onSendText: (text) {
-                  _controller.sendUserMessage(text);
-                },
-                onVoiceStart: () {
-                  _controller.startVoiceRecording();
-                },
-                onVoiceStop: () {
-                  _controller.stopVoiceRecording();
-                },
-                isRecording: _controller.isRecording,
-                recordingTime: _controller.recordingTimeFormatted,
+                hintText: _inputHint(),
+                onSendText: _controller.sendUserMessage,
+                onStartRecording: _controller.startVoiceRecording,
+                onStopRecordingAndSend: _controller.stopVoiceRecording,
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ============================================
-            // آخرین پیام (همیشه دیده می‌شود - زیر چت باکس)
-            // ============================================
+            // ---------------- آخرین پیام
             if (_controller.lastMessage != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -141,68 +122,27 @@ class _ChatPageState extends State<ChatPage> {
 
             const SizedBox(height: 12),
 
-            // ============================================
-            // پیام‌های قدیمی (با اسکرول انگشتی - بالای آخرین پیام)
-            // ============================================
+            // ---------------- پیام‌های قبلی
             Expanded(
               child: _controller.messages.length <= 1
                   ? const SizedBox.shrink()
-                  : Stack(
-                      children: [
-                        // لیست پیام‌های قدیمی (بدون آخرین پیام)
-                        ListView.builder(
-                          controller: _scrollController,
-                          reverse: true,
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          itemCount: _controller.messages.length - 1,
-                          itemBuilder: (context, index) {
-                            final reversedIndex = (_controller.messages.length - 2) - index;
-                            final msg = _controller.messages[reversedIndex];
-                            return MessageBubble(
-                              message: msg.text,
-                              isSedi: !msg.isUser,
-                            );
-                          },
-                        ),
-
-                        // آیکن برگشت به آخرین پیام (پایین سمت راست)
-                        Positioned(
-                          bottom: 16,
-                          right: 16,
-                          child: Material(
-                            color: AppTheme.pistachioGreen,
-                            borderRadius: BorderRadius.circular(24),
-                            elevation: 4,
-                            child: InkWell(
-                              onTap: () {
-                                _scrollController.animateTo(
-                                  0,
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeOut,
-                                );
-                              },
-                              borderRadius: BorderRadius.circular(24),
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppTheme.pistachioGreen,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_downward_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                  : ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      itemCount: _controller.messages.length - 1,
+                      itemBuilder: (context, index) {
+                        final reversedIndex =
+                            (_controller.messages.length - 2) - index;
+                        final msg = _controller.messages[reversedIndex];
+                        return MessageBubble(
+                          message: msg.text,
+                          isSedi: !msg.isUser,
+                        );
+                      },
                     ),
             ),
           ],
