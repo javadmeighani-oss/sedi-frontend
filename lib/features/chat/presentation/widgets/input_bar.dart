@@ -32,11 +32,8 @@ class _InputBarState extends State<InputBar> {
   void initState() {
     super.initState();
     _focusNode.addListener(() {
-      if (mounted) {
-        setState(() {
-          _expanded = _focusNode.hasFocus;
-        });
-      }
+      if (!mounted) return;
+      setState(() => _expanded = _focusNode.hasFocus);
     });
   }
 
@@ -56,98 +53,103 @@ class _InputBarState extends State<InputBar> {
     _focusNode.unfocus();
   }
 
+  void _ensureFocus() {
+    if (!_focusNode.hasFocus) {
+      FocusScope.of(context).requestFocus(_focusNode);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        height: _expanded ? 140 : 56,
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.black87,
-            width: 1,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _ensureFocus,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          height: _expanded ? 120 : 56,
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                BorderRadius.circular(14), // مستطیل با گوشه کمی کرو (مثل تصویر)
+            border: Border.all(
+              color: Colors.black87,
+              width: 1.2, // خط دور واضح
+            ),
           ),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // =========================
-            // Text Input (بدون باکس اضافه)
-            // =========================
-            TextField(
-              controller: _textController,
-              focusNode: _focusNode,
-              keyboardType: TextInputType.multiline,
-              maxLines: _expanded ? 4 : 1,
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                border: InputBorder.none,
-                isDense: true,
-              ),
-            ),
-
-            const Spacer(),
-
-            // =========================
-            // Actions (دقیقاً مطابق طراحی)
-            // =========================
-            Row(
-              textDirection: TextDirection.rtl,
-              children: [
-                InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: _sendText,
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(
-                      Icons.arrow_upward_rounded,
-                      size: 26,
-                      color: Colors.black,
+          child: Row(
+            crossAxisAlignment: _expanded
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              // -------- Text (Left) --------
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: _expanded ? 10 : 0,
+                    bottom: _expanded ? 10 : 0,
+                    right: 6,
+                  ),
+                  child: TextField(
+                    controller: _textController,
+                    focusNode: _focusNode,
+                    keyboardType: TextInputType.multiline,
+                    maxLines: _expanded ? 4 : 1,
+                    decoration: InputDecoration(
+                      hintText:
+                          widget.hintText, // متن “Talk to Sedi…” داخل چت‌باکس
+                      border: InputBorder.none,
+                      isCollapsed: true,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: widget.isRecording
-                      ? widget.onStopRecordingAndSend
-                      : widget.onStartRecording,
+              ),
+
+              // -------- Mic (Right) --------
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: widget.isRecording
+                    ? widget.onStopRecordingAndSend
+                    : widget.onStartRecording,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.mic_rounded,
-                        size: 22,
-                        color: Colors.black,
-                      ),
-                      if (widget.isRecording)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Text(
-                            widget.recordingTime,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black,
-                            ),
-                          ),
+                      const Icon(Icons.mic_rounded,
+                          color: Colors.black, size: 22),
+                      if (widget.isRecording) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          widget.recordingTime,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black),
                         ),
+                      ],
                     ],
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+
+              // -------- Send (Far Right) --------
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _sendText,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Icon(
+                    Icons.arrow_upward_rounded, // مثل تصویر (فلش رو به بالا)
+                    color: Colors.black,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
