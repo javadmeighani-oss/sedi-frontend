@@ -27,12 +27,13 @@ class _InputBarState extends State<InputBar> {
   final FocusNode _focusNode = FocusNode();
 
   bool _expanded = false;
+  bool _sendPressed = false;
 
   @override
   void initState() {
     super.initState();
+
     _focusNode.addListener(() {
-      if (!mounted) return;
       setState(() {
         _expanded = _focusNode.hasFocus;
       });
@@ -46,12 +47,21 @@ class _InputBarState extends State<InputBar> {
     super.dispose();
   }
 
-  void _send() {
+  void _sendText() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+
+    setState(() => _sendPressed = true);
+
     widget.onSendText(text);
     _controller.clear();
     _focusNode.unfocus();
+
+    Future.delayed(const Duration(milliseconds: 180), () {
+      if (mounted) {
+        setState(() => _sendPressed = false);
+      }
+    });
   }
 
   @override
@@ -59,43 +69,41 @@ class _InputBarState extends State<InputBar> {
     return SafeArea(
       top: false,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 260),
         curve: Curves.easeOut,
         height: _expanded ? 150 : 64,
-        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: Colors.black87,
+            color: _expanded ? Colors.green.shade400 : Colors.black26,
             width: 1.2,
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ================= TEXT INPUT =================
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
-                decoration: InputDecoration.collapsed(
-                  hintText: widget.hintText,
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
+            // ================= TEXT FIELD (NO INNER BOX) =================
+            TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              maxLines: _expanded ? 4 : 1,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration.collapsed(
+                hintText: widget.hintText,
               ),
+              style: const TextStyle(fontSize: 16),
             ),
+
+            const Spacer(),
 
             // ================= ACTIONS =================
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // ---------- Mic ----------
+                // ---- LEFT SIDE TEXT SPACE ----
+                const Spacer(),
+
+                // ---- MIC ICON ----
                 GestureDetector(
                   onTap: widget.isRecording
                       ? widget.onStopRecordingAndSend
@@ -106,39 +114,41 @@ class _InputBarState extends State<InputBar> {
                         Icons.mic_rounded,
                         size: 28,
                         color:
-                            widget.isRecording ? Colors.black : Colors.black54,
+                            widget.isRecording ? Colors.green : Colors.black54,
                       ),
                       if (widget.isRecording)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
                           child: Text(
                             widget.recordingTime,
-                            style: const TextStyle(fontSize: 12),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
 
-                // ---------- Send ----------
+                const SizedBox(width: 14),
+
+                // ---- SEND ICON ----
                 GestureDetector(
-                  onTap: _send,
-                  child: Container(
-                    width: 40,
-                    height: 40,
+                  onTap: _sendText,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _controller.text.isEmpty
-                          ? Colors.grey.shade300
-                          : Colors.black,
+                      color:
+                          _sendPressed ? Colors.green.shade400 : Colors.black12,
                     ),
                     child: Icon(
                       Icons.arrow_upward_rounded,
-                      color: _controller.text.isEmpty
-                          ? Colors.black54
-                          : Colors.white,
-                      size: 22,
+                      size: 26,
+                      color: _sendPressed ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
