@@ -33,7 +33,9 @@ class _InputBarState extends State<InputBar> {
     super.initState();
     _focusNode.addListener(() {
       if (!mounted) return;
-      setState(() => _expanded = _focusNode.hasFocus);
+      setState(() {
+        _expanded = _focusNode.hasFocus;
+      });
     });
   }
 
@@ -65,7 +67,10 @@ class _InputBarState extends State<InputBar> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black87, width: 1.2),
+          border: Border.all(
+            color: Colors.black87,
+            width: 1.2, // فقط همین کادر باید دیده شود
+          ),
         ),
         child: Row(
           crossAxisAlignment:
@@ -73,22 +78,37 @@ class _InputBarState extends State<InputBar> {
           children: [
             // ================= TEXT =================
             Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                keyboardType: TextInputType.multiline,
-                maxLines: _expanded ? 4 : 1,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.4,
-                  color: Colors.black,
+              child: Theme(
+                // 🔴 خنثی‌سازی کامل Theme سراسری فقط در این ویجت
+                data: Theme.of(context).copyWith(
+                  inputDecorationTheme: const InputDecorationTheme(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                  ),
                 ),
-                decoration: InputDecoration(
-                  hintText: widget.hintText,
-                  hintStyle: const TextStyle(color: Colors.black45),
-                  border: InputBorder.none,
-                  isCollapsed: true, // 🔑 حذف باکس داخلی
-                  contentPadding: EdgeInsets.zero, // 🔑 صفر
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  keyboardType: TextInputType.multiline,
+                  maxLines: _expanded ? 4 : 1,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.4,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: widget.hintText,
+                    hintStyle: const TextStyle(
+                      color: Colors.black45,
+                    ),
+                    isCollapsed: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ),
@@ -104,14 +124,17 @@ class _InputBarState extends State<InputBar> {
                 children: [
                   const Icon(
                     Icons.mic_rounded,
-                    size: 34, // ×2
+                    size: 34, // بزرگ‌تر (×۲)
                     color: Colors.black,
                   ),
                   if (widget.isRecording) ...[
                     const SizedBox(width: 6),
                     Text(
                       widget.recordingTime,
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ],
@@ -125,7 +148,7 @@ class _InputBarState extends State<InputBar> {
               onTap: _send,
               child: const Icon(
                 Icons.arrow_upward_rounded,
-                size: 36, // ×2
+                size: 36, // بزرگ‌تر (×۲)
                 color: Colors.black,
               ),
             ),
