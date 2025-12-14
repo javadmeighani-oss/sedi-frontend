@@ -54,12 +54,6 @@ class _InputBarState extends State<InputBar> {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = const TextStyle(
-      fontSize: 16,
-      color: Colors.black,
-      height: 1.4,
-    );
-
     return SafeArea(
       top: false,
       child: AnimatedContainer(
@@ -79,17 +73,22 @@ class _InputBarState extends State<InputBar> {
           children: [
             // ================= TEXT =================
             Expanded(
-              child: GestureDetector(
-                onTap: () => FocusScope.of(context).requestFocus(_focusNode),
-                child: EditableText(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  style: textStyle,
-                  cursorColor: Colors.black,
-                  backgroundCursorColor: Colors.transparent,
-                  maxLines: _expanded ? 4 : 1,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                keyboardType: TextInputType.multiline,
+                maxLines: _expanded ? 4 : 1,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.4,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
                   hintText: widget.hintText,
-                  hintStyle: textStyle.copyWith(color: Colors.black45),
+                  hintStyle: const TextStyle(color: Colors.black45),
+                  border: InputBorder.none,
+                  isCollapsed: true, // 🔑 حذف باکس داخلی
+                  contentPadding: EdgeInsets.zero, // 🔑 صفر
                 ),
               ),
             ),
@@ -103,7 +102,7 @@ class _InputBarState extends State<InputBar> {
                   : widget.onStartRecording,
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.mic_rounded,
                     size: 34, // ×2
                     color: Colors.black,
