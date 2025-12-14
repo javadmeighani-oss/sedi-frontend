@@ -33,9 +33,7 @@ class _InputBarState extends State<InputBar> {
     super.initState();
     _focusNode.addListener(() {
       if (!mounted) return;
-      setState(() {
-        _expanded = _focusNode.hasFocus;
-      });
+      setState(() => _expanded = _focusNode.hasFocus);
     });
   }
 
@@ -61,33 +59,27 @@ class _InputBarState extends State<InputBar> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
-        height: _expanded ? 120 : 56,
+        height: _expanded ? 130 : 56,
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.black87,
-            width: 1.2, // فقط همین کادر باید دیده شود
-          ),
+          border: Border.all(color: Colors.black87, width: 1.2),
         ),
-        child: Row(
-          crossAxisAlignment:
-              _expanded ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        child: Stack(
           children: [
             // ================= TEXT =================
-            Expanded(
+            Positioned(
+              left: 0,
+              right: _expanded ? 0 : 90,
+              top: 0,
               child: Theme(
-                // 🔴 خنثی‌سازی کامل Theme سراسری فقط در این ویجت
                 data: Theme.of(context).copyWith(
                   inputDecorationTheme: const InputDecorationTheme(
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    focusedErrorBorder: InputBorder.none,
                   ),
                 ),
                 child: TextField(
@@ -102,54 +94,58 @@ class _InputBarState extends State<InputBar> {
                   ),
                   decoration: InputDecoration(
                     hintText: widget.hintText,
-                    hintStyle: const TextStyle(
-                      color: Colors.black45,
-                    ),
+                    hintStyle: const TextStyle(color: Colors.black45),
                     isCollapsed: true,
                     contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(width: 8),
-
-            // ================= MIC =================
-            GestureDetector(
-              onTap: widget.isRecording
-                  ? widget.onStopRecordingAndSend
-                  : widget.onStartRecording,
+            // ================= ACTIONS =================
+            Positioned(
+              right: 0,
+              bottom: _expanded ? 0 : null,
+              top: _expanded ? null : 0,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.mic_rounded,
-                    size: 34, // بزرگ‌تر (×۲)
-                    color: Colors.black,
-                  ),
-                  if (widget.isRecording) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.recordingTime,
-                      style: const TextStyle(
-                        fontSize: 12,
+                  // -------- MIC --------
+                  GestureDetector(
+                    onTap: widget.isRecording
+                        ? widget.onStopRecordingAndSend
+                        : widget.onStartRecording,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: widget.isRecording ? 1.0 : 0.45,
+                      child: const Icon(
+                        Icons.mic_rounded,
+                        size: 32,
                         color: Colors.black,
                       ),
                     ),
-                  ],
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // -------- SEND --------
+                  GestureDetector(
+                    onTap: _send,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withOpacity(0.06),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 28,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // ================= SEND =================
-            GestureDetector(
-              onTap: _send,
-              child: const Icon(
-                Icons.arrow_upward_rounded,
-                size: 36, // بزرگ‌تر (×۲)
-                color: Colors.black,
               ),
             ),
           ],
