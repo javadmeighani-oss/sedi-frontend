@@ -132,9 +132,17 @@ class _ChatPageState extends State<ChatPage> {
               left: 0,
               right: 0,
               child: Center(
-                child: IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  onPressed: _scrollToLatest,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: _scrollToLatest,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 28,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
               ),
             ),
