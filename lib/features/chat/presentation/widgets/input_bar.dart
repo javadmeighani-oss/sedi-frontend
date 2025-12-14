@@ -27,21 +27,16 @@ class _InputBarState extends State<InputBar> {
   final FocusNode _focusNode = FocusNode();
 
   bool _expanded = false;
+  bool _sendPressed = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(() {
-      if (!mounted) return;
-      setState(() => _expanded = _focusNode.hasFocus);
+      if (mounted) {
+        setState(() => _expanded = _focusNode.hasFocus);
+      }
     });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
   }
 
   void _send() {
@@ -58,95 +53,86 @@ class _InputBarState extends State<InputBar> {
       top: false,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        height: _expanded ? 130 : 56,
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.all(12),
+        height: _expanded ? 150 : 64,
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black87, width: 1.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black87),
         ),
-        child: Stack(
+        child: Column(
           children: [
-            // ================= TEXT =================
-            Positioned(
-              left: 0,
-              right: _expanded ? 0 : 90,
-              top: 0,
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  inputDecorationTheme: const InputDecorationTheme(
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                  ),
-                ),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  keyboardType: TextInputType.multiline,
-                  maxLines: _expanded ? 4 : 1,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.4,
-                    color: Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: const TextStyle(color: Colors.black45),
-                    isCollapsed: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+            // ---------- Text ----------
+            TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              maxLines: _expanded ? 4 : 1,
+              decoration: InputDecoration(
+                hintText: widget.hintText,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isCollapsed: true,
               ),
             ),
 
-            // ================= ACTIONS =================
-            Positioned(
-              right: 0,
-              bottom: _expanded ? 0 : null,
-              top: _expanded ? null : 0,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // -------- MIC --------
-                  GestureDetector(
-                    onTap: widget.isRecording
-                        ? widget.onStopRecordingAndSend
-                        : widget.onStartRecording,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 150),
-                      opacity: widget.isRecording ? 1.0 : 0.45,
-                      child: const Icon(
+            const Spacer(),
+
+            // ---------- Actions ----------
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // Mic
+                GestureDetector(
+                  onTap: widget.isRecording
+                      ? widget.onStopRecordingAndSend
+                      : widget.onStartRecording,
+                  child: Row(
+                    children: [
+                      Icon(
                         Icons.mic_rounded,
-                        size: 32,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // -------- SEND --------
-                  GestureDetector(
-                    onTap: _send,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black.withOpacity(0.06),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_upward_rounded,
                         size: 28,
-                        color: Colors.black,
+                        color:
+                            widget.isRecording ? Colors.black : Colors.black38,
                       ),
+                      if (widget.isRecording)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(
+                            widget.recordingTime,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Send
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _sendPressed = true),
+                  onTapUp: (_) {
+                    setState(() => _sendPressed = false);
+                    _send();
+                  },
+                  onTapCancel: () => setState(() => _sendPressed = false),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _sendPressed ? Colors.black26 : Colors.black12,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 26,
+                      color: Colors.black,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
