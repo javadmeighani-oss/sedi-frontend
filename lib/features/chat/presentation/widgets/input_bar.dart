@@ -31,7 +31,6 @@ class _InputBarState extends State<InputBar> {
   @override
   void initState() {
     super.initState();
-
     _focusNode.addListener(() {
       if (mounted) {
         setState(() {
@@ -64,49 +63,62 @@ class _InputBarState extends State<InputBar> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
-        height: _expanded ? 150 : 64,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: _expanded ? 140 : 56,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: Colors.black87,
-            blurRadius: 1.2,
+            width: 1,
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // =========================
-            // Text Input (بدون Expanded)
+            // Text Input (بدون باکس اضافه)
             // =========================
             TextField(
               controller: _textController,
               focusNode: _focusNode,
-              autofocus: false,
-              enabled: true,
-              readOnly: false,
               keyboardType: TextInputType.multiline,
               maxLines: _expanded ? 4 : 1,
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 border: InputBorder.none,
-                isCollapsed: true,
+                isDense: true,
               ),
             ),
 
             const Spacer(),
 
             // =========================
-            // Actions
+            // Actions (دقیقاً مطابق طراحی)
             // =========================
             Row(
               textDirection: TextDirection.rtl,
               children: [
-                IconButton(
-                  Icons.arrow_upward_rounded,
-                  size: 26,
-                  color: Colors.black,
+                InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: _sendText,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 26,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 InkWell(
                   borderRadius: BorderRadius.circular(24),
                   onTap: widget.isRecording
@@ -114,13 +126,20 @@ class _InputBarState extends State<InputBar> {
                       : widget.onStartRecording,
                   child: Row(
                     children: [
-                      const Icon(Icons.mic_rounded),
+                      const Icon(
+                        Icons.mic_rounded,
+                        size: 22,
+                        color: Colors.black,
+                      ),
                       if (widget.isRecording)
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: Text(
                             widget.recordingTime,
-                            style: const TextStyle(fontSize: 12),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                     ],
