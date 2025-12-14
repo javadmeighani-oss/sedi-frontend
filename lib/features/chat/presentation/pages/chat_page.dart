@@ -18,34 +18,17 @@ class _ChatPageState extends State<ChatPage> {
   late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
 
-  bool _showScrollToLatest = false;
-
   @override
   void initState() {
     super.initState();
-
     _controller = ChatController();
     _controller.addListener(_onControllerUpdate);
     _controller.initialize();
-
-    _scrollController.addListener(_onScroll);
   }
 
   void _onControllerUpdate() {
     if (!mounted) return;
     setState(() {});
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-
-    final max = _scrollController.position.maxScrollExtent;
-    final current = _scrollController.offset;
-
-    final shouldShow = (max - current) > 80;
-    if (shouldShow != _showScrollToLatest) {
-      setState(() => _showScrollToLatest = shouldShow);
-    }
   }
 
   @override
@@ -61,26 +44,36 @@ class _ChatPageState extends State<ChatPage> {
       case 'fa':
         return 'صحبت با صدی…';
       case 'ar':
-        return 'تحدّث مع سِدي…';
+        return 'تحدث مع سدي…';
       default:
         return 'Talk to Sedi…';
     }
   }
 
+  void _scrollToLatest() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final messages = _controller.messages;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Stack(
           children: [
-            // =========================
-            // Main Content
-            // =========================
+            // ================= MAIN CONTENT =================
             Column(
               children: [
-                // ---------- Top Icons ----------
+                // ---------- Top icons ----------
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Row(
@@ -108,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
 
-                // ---------- Sedi Header ----------
+                // ---------- Logo ----------
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 12),
                   child: SediHeader(
@@ -120,62 +113,50 @@ class _ChatPageState extends State<ChatPage> {
 
                 // ---------- Messages ----------
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      8,
-                      16,
-                      140, // space for InputBar
-                    ),
-                    itemCount: _controller.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = _controller.messages[index];
-                      return MessageBubble(
-                        message: msg.text,
-                        isSedi: !msg.isUser,
-                      );
-                    },
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        reverse: true,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[messages.length - 1 - index];
+                          return MessageBubble(
+                            message: msg.text,
+                            isSedi: !msg.isUser,
+                          );
+                        },
+                      ),
+
+                      // ---------- Scroll to latest ----------
+                      Positioned(
+                        bottom: 16,
+                        right: 16,
+                        child: GestureDetector(
+                          onTap: _scrollToLatest,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.05),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 24,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
 
-            // =========================
-            // Scroll to latest button
-            // =========================
-            if (_showScrollToLatest)
-              Positioned(
-                bottom: 110,
-                right: 16,
-                child: Material(
-                  color: Colors.white,
-                  elevation: 3,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () {
-                      _scrollController.animateTo(
-                        _scrollController.position.maxScrollExtent,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      );
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.black,
-                        size: 26,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            // =========================
-            // Input Bar (Overlay)
-            // =========================
+            // ================= INPUT BAR =================
             Positioned(
               left: 0,
               right: 0,

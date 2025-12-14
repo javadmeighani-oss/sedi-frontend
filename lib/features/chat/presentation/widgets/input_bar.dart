@@ -22,33 +22,35 @@ class InputBar extends StatefulWidget {
   State<InputBar> createState() => _InputBarState();
 }
 
-class _InputBarState extends State<InputBar>
-    with SingleTickerProviderStateMixin {
-  final TextEditingController _textController = TextEditingController();
+class _InputBarState extends State<InputBar> {
+  final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  bool get _hasText => _textController.text.trim().isNotEmpty;
+  bool _expanded = false;
 
   @override
   void initState() {
     super.initState();
-
-    _textController.addListener(() {
-      if (mounted) setState(() {});
+    _focusNode.addListener(() {
+      if (!mounted) return;
+      setState(() {
+        _expanded = _focusNode.hasFocus;
+      });
     });
   }
 
   @override
   void dispose() {
-    _textController.dispose();
+    _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _sendText() {
-    if (!_hasText) return;
-    widget.onSendText(_textController.text.trim());
-    _textController.clear();
+  void _send() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    widget.onSendText(text);
+    _controller.clear();
     _focusNode.unfocus();
   }
 
@@ -56,90 +58,93 @@ class _InputBarState extends State<InputBar>
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color:
-                  _focusNode.hasFocus ? Colors.green.shade300 : Colors.black26,
-              width: 1.2,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        height: _expanded ? 150 : 64,
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.black87,
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ================= TEXT INPUT =================
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                decoration: InputDecoration.collapsed(
+                  hintText: widget.hintText,
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
+              ),
             ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // ================= TEXT INPUT =================
-              Expanded(
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  child: TextField(
-                    controller: _textController,
-                    focusNode: _focusNode,
-                    keyboardType: TextInputType.multiline,
-                    maxLines: _focusNode.hasFocus ? 4 : 1,
-                    decoration: InputDecoration(
-                      hintText: widget.hintText,
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
-                ),
-              ),
 
-              const SizedBox(width: 10),
-
-              // ================= MIC =================
-              GestureDetector(
-                onTap: widget.isRecording
-                    ? widget.onStopRecordingAndSend
-                    : widget.onStartRecording,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.mic_rounded,
-                      size: 30,
-                      color: widget.isRecording ? Colors.black : Colors.black38,
-                    ),
-                    if (widget.isRecording)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: Text(
-                          widget.recordingTime,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+            // ================= ACTIONS =================
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // ---------- Mic ----------
+                GestureDetector(
+                  onTap: widget.isRecording
+                      ? widget.onStopRecordingAndSend
+                      : widget.onStartRecording,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.mic_rounded,
+                        size: 28,
+                        color:
+                            widget.isRecording ? Colors.black : Colors.black54,
                       ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // ================= SEND =================
-              GestureDetector(
-                onTap: _hasText ? _sendText : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _hasText ? Colors.green.shade400 : Colors.black12,
-                  ),
-                  child: Icon(
-                    Icons.arrow_upward_rounded,
-                    color: _hasText ? Colors.white : Colors.black38,
-                    size: 26,
+                      if (widget.isRecording)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(
+                            widget.recordingTime,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+
+                // ---------- Send ----------
+                GestureDetector(
+                  onTap: _send,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _controller.text.isEmpty
+                          ? Colors.grey.shade300
+                          : Colors.black,
+                    ),
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      color: _controller.text.isEmpty
+                          ? Colors.black54
+                          : Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
