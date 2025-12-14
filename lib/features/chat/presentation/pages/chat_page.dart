@@ -16,6 +16,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late final ChatController _controller;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -46,6 +48,15 @@ class _ChatPageState extends State<ChatPage> {
       default:
         return 'Talk to Sedi…';
     }
+  }
+
+  void _scrollToLatest() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -100,7 +111,8 @@ class _ChatPageState extends State<ChatPage> {
                 // ---------- Messages ----------
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
                     itemCount: _controller.messages.length,
                     itemBuilder: (context, index) {
                       final msg = _controller.messages[index];
@@ -112,6 +124,19 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
               ],
+            ),
+
+            // ---------- Scroll to latest ----------
+            Positioned(
+              bottom: 92,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: IconButton(
+                  icon: const Icon(Icons.keyboard_arrow_down),
+                  onPressed: _scrollToLatest,
+                ),
+              ),
             ),
 
             // ================= INPUT OVERLAY =================

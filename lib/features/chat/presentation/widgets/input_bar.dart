@@ -68,13 +68,11 @@ class _InputBarState extends State<InputBar> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-            ),
-          ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.black87,
+            blurRadius: 1.2,
+          ),
         ),
         child: Column(
           children: [
@@ -105,9 +103,9 @@ class _InputBarState extends State<InputBar> {
               textDirection: TextDirection.rtl,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.send_rounded),
-                  iconSize: 30,
-                  onPressed: _sendText,
+                  Icons.arrow_upward_rounded,
+                  size: 26,
+                  color: Colors.black,
                 ),
                 InkWell(
                   borderRadius: BorderRadius.circular(24),
