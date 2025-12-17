@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class InputBar extends StatefulWidget {
   final String hintText;
@@ -27,12 +28,13 @@ class _InputBarState extends State<InputBar> {
   final FocusNode _focusNode = FocusNode();
 
   bool _expanded = false;
+  bool _sendPressed = false;
 
   @override
   void initState() {
     super.initState();
+
     _focusNode.addListener(() {
-      if (!mounted) return;
       setState(() {
         _expanded = _focusNode.hasFocus;
       });
@@ -46,12 +48,19 @@ class _InputBarState extends State<InputBar> {
     super.dispose();
   }
 
-  void _sendText() {
+  void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+
+    setState(() => _sendPressed = true);
+
     widget.onSendText(text);
     _controller.clear();
     _focusNode.unfocus();
+
+    Future.delayed(const Duration(milliseconds: 160), () {
+      if (mounted) setState(() => _sendPressed = false);
+    });
   }
 
   @override
@@ -61,38 +70,45 @@ class _InputBarState extends State<InputBar> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
-        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-        height: _expanded ? 140 : 64,
+        height: _expanded ? 150 : 64,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          color: AppTheme.backgroundWhite,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
           border: Border.all(
-            color: _expanded ? Colors.black : Colors.black38,
+            color: _expanded ? AppTheme.primaryBlack : AppTheme.borderInactive,
             width: 1.2,
           ),
         ),
         child: Column(
           children: [
             // ================= TEXT FIELD =================
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration.collapsed(
-                  hintText: widget.hintText,
+            TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              maxLines: _expanded ? 4 : 1,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration.collapsed(
+                hintText: widget.hintText,
+                hintStyle: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 16,
                 ),
+              ),
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
               ),
             ),
 
-            const SizedBox(height: 6),
+            const Spacer(),
 
             // ================= ACTIONS =================
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // ---------- Mic ----------
+                const Spacer(),
+
+                // -------- Mic --------
                 GestureDetector(
                   onTap: widget.isRecording
                       ? widget.onStopRecordingAndSend
@@ -101,18 +117,19 @@ class _InputBarState extends State<InputBar> {
                     children: [
                       Icon(
                         Icons.mic_rounded,
-                        size: 26,
-                        color:
-                            widget.isRecording ? Colors.black : Colors.black38,
+                        size: 28,
+                        color: widget.isRecording
+                            ? AppTheme.primaryBlack
+                            : AppTheme.iconInactive,
                       ),
                       if (widget.isRecording)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
                           child: Text(
                             widget.recordingTime,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.black,
+                              color: AppTheme.primaryBlack,
                             ),
                           ),
                         ),
@@ -122,24 +139,25 @@ class _InputBarState extends State<InputBar> {
 
                 const SizedBox(width: 14),
 
-                // ---------- Send ----------
+                // -------- Send --------
                 GestureDetector(
-                  onTap: _sendText,
+                  onTap: _send,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.all(8),
+                    duration: const Duration(milliseconds: 140),
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _controller.text.trim().isNotEmpty
-                          ? Colors.black12
-                          : Colors.black12.withOpacity(0.4),
+                      color: _sendPressed
+                          ? AppTheme.primaryBlack
+                          : AppTheme.metalGrey.withOpacity(0.25),
                     ),
                     child: Icon(
                       Icons.arrow_upward_rounded,
                       size: 24,
-                      color: _controller.text.trim().isNotEmpty
-                          ? Colors.black
-                          : Colors.black38,
+                      color: _sendPressed
+                          ? AppTheme.backgroundWhite
+                          : AppTheme.primaryBlack,
                     ),
                   ),
                 ),
