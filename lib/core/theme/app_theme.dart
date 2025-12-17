@@ -1,71 +1,54 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // رنگ سازمانی: سبز پسته‌ای
-  static const Color pistachioGreen = Color(0xFF9BCF88);
-  
-  // رنگ‌های متال
-  static const Color metalGray = Color(0xFFB0B0B0); // خاکستری متال
-  static const Color metalLight = Color(0xFFE8E8E8); // خاکستری روشن متال
-  
-  // رنگ‌های پایه
-  static const Color backgroundWhite = Colors.white;
-  static const Color textBlack = Colors.black;
-  static const Color textBlack87 = Color(0xDD000000);
+  AppTheme._(); // جلوگیری از ساخت instance
 
-  static ThemeData lightTheme = ThemeData(
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: backgroundWhite,
-    primaryColor: pistachioGreen,
-    colorScheme: const ColorScheme.light(
-      primary: pistachioGreen,
-      secondary: metalGray,
-      surface: backgroundWhite,
+  // ===============================
+  // Brand Colors (Sedi Identity)
+  // ===============================
+
+  /// سبز پسته‌ای – هویت اصلی صدی
+  static const Color pistachioGreen = Color(0xFF8BC34A);
+
+  /// خاکستری متال – حالت‌های خنثی و inactive
+  static const Color metalGrey = Color(0xFF9E9E9E);
+
+  /// مشکی – متن و آیکن فعال
+  static const Color primaryBlack = Color(0xFF111111);
+
+  /// سفید – بک‌گراند اصلی
+  static const Color backgroundWhite = Color(0xFFFFFFFF);
+
+  // ===============================
+  // Semantic Colors
+  // ===============================
+
+  static const Color textPrimary = primaryBlack;
+  static const Color textSecondary = metalGrey;
+
+  static const Color iconInactive = metalGrey;
+  static const Color iconActive = primaryBlack;
+
+  static const Color borderInactive = metalGrey;
+  static const Color borderActive = primaryBlack;
+
+  // ===============================
+  // Radius
+  // ===============================
+
+  static const double radiusSmall = 8;
+  static const double radiusMedium = 14;
+  static const double radiusLarge = 18;
+
+  // ===============================
+  // Shadows (مینیمال)
+  // ===============================
+
+  static const List<BoxShadow> softShadow = [
+    BoxShadow(
+      color: Color(0x1A000000), // مشکی با opacity کم
+      blurRadius: 8,
+      offset: Offset(0, 2),
     ),
-    textTheme: const TextTheme(
-      bodyMedium: TextStyle(
-        fontSize: 16,
-        color: textBlack,
-        fontWeight: FontWeight.w400,
-        fontFamily: 'Roboto',
-      ),
-      bodyLarge: TextStyle(
-        fontSize: 18,
-        color: textBlack,
-        fontWeight: FontWeight.w500,
-        fontFamily: 'Roboto',
-      ),
-      bodySmall: TextStyle(
-        fontSize: 14,
-        color: textBlack87,
-        fontWeight: FontWeight.w400,
-        fontFamily: 'Roboto',
-      ),
-    ),
-    inputDecorationTheme: const InputDecorationTheme(
-      filled: true,
-      fillColor: backgroundWhite,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(30)),
-        borderSide: BorderSide(
-          color: metalGray,
-          width: 1.5,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(30)),
-        borderSide: BorderSide(
-          color: metalGray,
-          width: 1.5,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(30)),
-        borderSide: BorderSide(
-          color: pistachioGreen,
-          width: 2,
-        ),
-      ),
-    ),
-  );
+  ];
 }
