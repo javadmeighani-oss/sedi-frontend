@@ -8,10 +8,10 @@ import '../../../../core/theme/app_theme.dart';
 /// CONTRACT:
 /// - فقط یک کادر (بدون box داخلی)
 /// - مستطیل با گوشه‌های کمی گرد
-/// - سمت چپ: hint text
-/// - سمت راست: آیکن ارسال (اول) + آیکن اسپیکر (دوم)
+/// - سمت چپ: hint text یا recording timer
+/// - سمت راست: آیکن اسپیکر (چپ) + آیکن ارسال (راست)
 /// - هنگام فوکوس ارتفاع افزایش یابد
-/// - رنگ‌ها: فقط مشکی و خاکستری
+/// - رنگ‌ها: فقط metalGrey (inactive) و primaryBlack (active)
 /// ============================================
 class InputBar extends StatefulWidget {
   final String hintText;
@@ -40,10 +40,14 @@ class _InputBarState extends State<InputBar> {
   final FocusNode _focusNode = FocusNode();
   bool _isExpanded = false;
   bool _sendPressed = false;
+  bool _micPressed = false;
 
   @override
   void initState() {
     super.initState();
+    _textController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _focusNode.addListener(() {
       if (mounted) {
         setState(() {
@@ -74,7 +78,9 @@ class _InputBarState extends State<InputBar> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    // Visual feedback: briefly change color
     setState(() => _sendPressed = true);
+    
     widget.onSendText(text);
     _textController.clear();
     _focusNode.unfocus();
@@ -84,6 +90,28 @@ class _InputBarState extends State<InputBar> {
         setState(() => _sendPressed = false);
       }
     });
+  }
+
+  void _handleMicTap() {
+    if (widget.isRecording) {
+      // Second tap: stop recording and send
+      setState(() => _micPressed = true);
+      widget.onStopRecordingAndSend();
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          setState(() => _micPressed = false);
+        }
+      });
+    } else {
+      // First tap: start recording
+      setState(() => _micPressed = true);
+      widget.onStartRecording();
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          setState(() => _micPressed = false);
+        }
+      });
+    }
   }
 
   @override
@@ -105,7 +133,7 @@ class _InputBarState extends State<InputBar> {
           border: Border.all(
             color: _isExpanded 
                 ? AppTheme.primaryBlack 
-                : AppTheme.metalGrey.withOpacity(0.5),
+                : AppTheme.metalGrey,
             width: 1.5,
           ),
         ),
@@ -117,7 +145,7 @@ class _InputBarState extends State<InputBar> {
               child: widget.isRecording
                   ? Row(
                       children: [
-                        // آیکن ضبط (قرمز)
+                        // آیکن ضبط (قرمز - برای نشان دادن ضبط)
                         Container(
                           width: 12,
                           height: 12,
@@ -145,8 +173,8 @@ class _InputBarState extends State<InputBar> {
                       maxLines: _isExpanded ? 4 : 1,
                       decoration: InputDecoration.collapsed(
                         hintText: widget.hintText,
-                        hintStyle: TextStyle(
-                          color: AppTheme.metalGrey.withOpacity(0.6),
+                        hintStyle: const TextStyle(
+                          color: AppTheme.metalGrey,
                           fontSize: 15,
                         ),
                       ),
@@ -162,8 +190,28 @@ class _InputBarState extends State<InputBar> {
             const SizedBox(width: 12),
 
             // ================= سمت راست: آیکن‌ها =================
-            // ترتیب: آیکن ارسال (اول) + آیکن اسپیکر (دوم)
+            // ترتیب: آیکن اسپیکر (چپ) + آیکن ارسال (راست)
             
+            // آیکن اسپیکر (هنگام ضبط primaryBlack، غیرفعال metalGrey)
+            GestureDetector(
+              onTap: _handleMicTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  Icons.mic_rounded,
+                  size: 28,
+                  color: widget.isRecording
+                      ? AppTheme.primaryBlack
+                      : (_micPressed 
+                          ? AppTheme.primaryBlack 
+                          : AppTheme.metalGrey),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
             // آیکن ارسال (دایره کم‌رنگ، هنگام لمس پررنگ)
             GestureDetector(
               onTap: hasText ? _sendText : () {},
@@ -175,34 +223,17 @@ class _InputBarState extends State<InputBar> {
                   shape: BoxShape.circle,
                   color: _sendPressed
                       ? AppTheme.primaryBlack
-                      : AppTheme.metalGrey.withOpacity(0.25),
+                      : AppTheme.metalGrey,
                 ),
                 child: Icon(
                   Icons.arrow_upward_rounded,
                   size: 24,
                   color: _sendPressed
                       ? AppTheme.backgroundWhite
-                      : AppTheme.primaryBlack,
+                      : (hasText 
+                          ? AppTheme.primaryBlack 
+                          : AppTheme.metalGrey),
                 ),
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // آیکن اسپیکر (هنگام ضبط خاکستری، هنگام ارسال مشکی)
-            GestureDetector(
-              onLongPressStart: widget.isRecording 
-                  ? null 
-                  : (_) => widget.onStartRecording(),
-              onLongPressEnd: widget.isRecording 
-                  ? (_) => widget.onStopRecordingAndSend() 
-                  : null,
-              child: Icon(
-                Icons.mic_rounded,
-                size: 28,
-                color: widget.isRecording
-                    ? AppTheme.metalGrey
-                    : AppTheme.primaryBlack,
               ),
             ),
           ],
@@ -211,3 +242,5 @@ class _InputBarState extends State<InputBar> {
     );
   }
 }
+
+
