@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-/// Ring animation only (heartbeat-like pulse).
-/// Logo must remain static in SediHeader.
-/// This widget draws ONLY the ring.
+/// ------------------------------------------------------------
+/// SediRingAnim
+///
+/// RESPONSIBILITY:
+/// - Draw and animate ONLY the pistachio ring
+/// - Heartbeat-like pulse when active
+/// - Logo remains static in SediHeader
+/// ------------------------------------------------------------
 class SediRingAnim extends StatefulWidget {
   final bool active;
   final double size;
@@ -21,7 +26,7 @@ class SediRingAnim extends StatefulWidget {
 }
 
 /// Custom heartbeat curve:
-/// fast beat (0..0.25) + slow relax (0.25..1.0)
+/// Fast beat (0..0.25) + slow relax (0.25..1.0)
 class _HeartbeatCurve extends Curve {
   const _HeartbeatCurve();
 
@@ -58,10 +63,11 @@ class _SediRingAnimState extends State<SediRingAnim>
       ),
     );
 
-    // Start if already active
     if (widget.active) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _controller.repeat();
+        if (mounted) {
+          _controller.repeat();
+        }
       });
     }
   }
@@ -74,7 +80,7 @@ class _SediRingAnimState extends State<SediRingAnim>
       _controller.repeat();
     } else if (!widget.active && oldWidget.active) {
       _controller.stop();
-      _controller.value = 0.0;
+      _controller.value = 1.0; // reset to stable state
     }
   }
 
@@ -84,11 +90,13 @@ class _SediRingAnimState extends State<SediRingAnim>
     super.dispose();
   }
 
-  double _ringOpacity(double t) {
-    // 0..0.25 get stronger, then relax
-    if (!widget.active) return 0.30;
-    if (t < 0.25) return 0.50 + (t / 0.25) * 0.45; // 0.50 -> 0.95
-    return 0.95 - ((t - 0.25) / 0.75) * 0.45; // 0.95 -> 0.50
+  double _ringOpacity(double t, bool active) {
+    if (!active) return 0.30;
+
+    if (t < 0.25) {
+      return 0.50 + (t / 0.25) * 0.45; // 0.50 → 0.95
+    }
+    return 0.95 - ((t - 0.25) / 0.75) * 0.45; // 0.95 → 0.50
   }
 
   @override
@@ -97,7 +105,10 @@ class _SediRingAnimState extends State<SediRingAnim>
       animation: _controller,
       builder: (_, __) {
         final scale = widget.active ? _pulse.value : 1.0;
-        final opacity = _ringOpacity(_controller.value).clamp(0.30, 1.0);
+        final opacity = _ringOpacity(
+          _controller.value,
+          widget.active,
+        ).clamp(0.30, 1.0);
 
         return Transform.scale(
           scale: scale,
@@ -120,7 +131,7 @@ class _SediRingAnimState extends State<SediRingAnim>
                         spreadRadius: 1 + (scale - 1.0) * 2,
                       ),
                     ]
-                  : null,
+                  : const [],
             ),
           ),
         );

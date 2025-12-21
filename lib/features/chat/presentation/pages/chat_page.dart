@@ -4,7 +4,7 @@ import '../../state/chat_controller.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
-import '../widgets/rotary_scroll_bar.dart';
+import '../widgets/rotary_scrollbar.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
 
@@ -17,6 +17,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late final ChatController _controller;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -56,26 +58,20 @@ class _ChatPageState extends State<ChatPage> {
               child: Row(
                 children: [
                   const Spacer(),
-
-                  // Health Status Icon (placeholder)
                   IconButton(
                     icon: const Icon(Icons.favorite_border),
                     color: AppTheme.primaryBlack,
                     onPressed: () {
-                      // later: open daily health status
+                      // later: daily health status
                     },
                   ),
-
-                  // Chat History Icon
                   IconButton(
                     icon: const Icon(Icons.history),
                     color: AppTheme.primaryBlack,
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => ChatHistoryPage(
-                            chatController: _controller,
-                          ),
+                          builder: (_) => const ChatHistoryPage(),
                         ),
                       );
                     },
@@ -94,16 +90,37 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            // ================= MESSAGES =================
+            // ================= MESSAGES + SCROLL =================
             Expanded(
-              child: RotaryScrollBar(
-                messages: _controller.messages,
-                builder: (context, message) {
-                  return MessageBubble(
-                    message: message.text,
-                    isSedi: !message.isUser,
-                  );
-                },
+              child: Stack(
+                children: [
+                  ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _controller.messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _controller.messages[index];
+                      return MessageBubble(
+                        message: msg.text,
+                        isSedi: msg.isSedi,
+                      );
+                    },
+                  ),
+
+                  // Rotary scrollbar overlay
+                  Positioned(
+                    right: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: RotaryScrollbar(
+                      controller: _scrollController,
+                      height: MediaQuery.of(context).size.height * 0.6,
+                    ),
+                  ),
+                ],
               ),
             ),
 

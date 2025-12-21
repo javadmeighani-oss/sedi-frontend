@@ -24,7 +24,7 @@ class InputBar extends StatefulWidget {
 }
 
 class _InputBarState extends State<InputBar> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
   bool _expanded = false;
@@ -34,32 +34,49 @@ class _InputBarState extends State<InputBar> {
   void initState() {
     super.initState();
 
-    _focusNode.addListener(() {
-      setState(() {
-        _expanded = _focusNode.hasFocus;
-      });
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    if (!mounted) return;
+    setState(() {
+      _expanded = _focusNode.hasFocus || widget.isRecording;
     });
   }
 
   @override
+  void didUpdateWidget(covariant InputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // keep expanded while recording
+    if (oldWidget.isRecording != widget.isRecording) {
+      setState(() {
+        _expanded = widget.isRecording || _focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _textController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _send() {
-    final text = _controller.text.trim();
+  void _sendText() {
+    final text = _textController.text.trim();
     if (text.isEmpty) return;
 
     setState(() => _sendPressed = true);
 
     widget.onSendText(text);
-    _controller.clear();
+    _textController.clear();
     _focusNode.unfocus();
 
-    Future.delayed(const Duration(milliseconds: 160), () {
-      if (mounted) setState(() => _sendPressed = false);
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() => _sendPressed = false);
+      }
     });
   }
 
@@ -76,15 +93,15 @@ class _InputBarState extends State<InputBar> {
           color: AppTheme.backgroundWhite,
           borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
           border: Border.all(
-            color: _expanded ? AppTheme.primaryBlack : AppTheme.borderInactive,
+            color: _expanded ? AppTheme.borderActive : AppTheme.borderInactive,
             width: 1.2,
           ),
         ),
         child: Column(
           children: [
-            // ================= TEXT FIELD =================
+            // ================= TEXT INPUT =================
             TextField(
-              controller: _controller,
+              controller: _textController,
               focusNode: _focusNode,
               maxLines: _expanded ? 4 : 1,
               keyboardType: TextInputType.multiline,
@@ -119,7 +136,7 @@ class _InputBarState extends State<InputBar> {
                         Icons.mic_rounded,
                         size: 28,
                         color: widget.isRecording
-                            ? AppTheme.primaryBlack
+                            ? AppTheme.iconActive
                             : AppTheme.iconInactive,
                       ),
                       if (widget.isRecording)
@@ -129,7 +146,7 @@ class _InputBarState extends State<InputBar> {
                             widget.recordingTime,
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.primaryBlack,
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                         ),
@@ -141,7 +158,7 @@ class _InputBarState extends State<InputBar> {
 
                 // -------- Send --------
                 GestureDetector(
-                  onTap: _send,
+                  onTap: _sendText,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 140),
                     width: 42,

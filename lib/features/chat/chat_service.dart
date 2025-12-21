@@ -1,107 +1,81 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
-import '../../core/auth/auth_service.dart';
-import '../../core/config/app_config.dart';
 
+import '../../../core/auth/auth_service.dart';
+import '../../../core/config/app_config.dart';
+
+/// ------------------------------------------------------------
+/// ChatService
+///
+/// RESPONSIBILITY:
+/// - Send user message to backend (or mock)
+/// - Return raw assistant reply
+/// - NO UI logic
+/// - NO personality / intent logic
+/// ------------------------------------------------------------
 class ChatService {
-
-  /// ساخت هدرهای درخواست با Authorization
-  Future<Map<String, String>> _getHeaders() async {
+  /// Build request headers with optional Authorization
+  Future<Map<String, String>> _buildHeaders() async {
     final headers = <String, String>{
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
 
-    // افزودن هدر Authorization در صورت وجود توکن
     final token = await AuthService.getToken();
     if (token != null && token.isNotEmpty) {
-      headers["Authorization"] = "Bearer $token";
+      headers['Authorization'] = 'Bearer $token';
     }
 
     return headers;
   }
 
-  /// پاسخ‌های mock برای حالت لوکال
-  String _getMockResponse(String userMessage) {
-    final message = userMessage.toLowerCase();
-    final random = Random();
+  /// Minimal mock response for frontend development
+  /// Personality & intelligence handled elsewhere
+  String _mockReply(String userMessage) {
+    final replies = <String>[
+      'I understand.',
+      'Got it.',
+      'Please continue.',
+      'Thanks for sharing.',
+      'I am processing your message.',
+    ];
 
-    // پاسخ‌های هوشمند بر اساس کلمات کلیدی
-    if (message.contains('سلام') ||
-        message.contains('hi') ||
-        message.contains('hello')) {
-      return 'سلام! خوش اومدی 😊\nچطور می‌تونم کمکت کنم؟';
-    } else if (message.contains('چطوری') || message.contains('حالت')) {
-      return 'من خوبم، ممنون که پرسیدی! تو چطوری؟ 😊';
-    } else if (message.contains('اسم') || message.contains('کیستی')) {
-      return 'من صدی هستم، دستیار هوشمند شما! 🤖✨';
-    } else if (message.contains('کمک') || message.contains('help')) {
-      return 'حتماً! می‌تونم در زمینه‌های مختلف کمکت کنم:\n• پاسخ به سوالات\n• راهنمایی\n• و خیلی چیزهای دیگه!\n\nبگو چی می‌خوای؟';
-    } else if (message.contains('ساعت') || message.contains('زمان')) {
-      final now = DateTime.now();
-      return 'الان ساعت ${now.hour}:${now.minute.toString().padLeft(2, '0')} هست ⏰';
-    } else if (message.contains('تاریخ') || message.contains('روز')) {
-      final now = DateTime.now();
-      return 'امروز ${now.year}/${now.month}/${now.day} هست 📅';
-    } else if (message.contains('خداحافظ') || message.contains('bye')) {
-      return 'خداحافظ! همیشه در خدمتت هستم 👋';
-    } else if (message.contains('ممنون') || message.contains('تشکر')) {
-      return 'خواهش می‌کنم! خوشحالم که تونستم کمکت کنم 😊';
-    } else if (message.contains('چی') && message.contains('می‌کنی') ||
-        message.contains('چه کار')) {
-      return 'من اینجام تا بهت کمک کنم! می‌تونم:\n• به سوالاتت جواب بدم\n• راهنماییت کنم\n• و هر چیزی که نیاز داری!\n\nبگو چی می‌خوای؟';
-    } else {
-      // پاسخ‌های تصادفی برای پیام‌های دیگر
-      final responses = [
-        'جالب بود! می‌تونی بیشتر توضیح بدی؟ 🤔',
-        'درسته! این موضوع رو بررسی می‌کنم... 💭',
-        'خوب متوجه شدم! بذار ببینم چطور می‌تونم کمکت کنم... ✨',
-        'ممنون از توضیحت! الان بررسی می‌کنم... 🔍',
-        'عالی! این موضوع رو یادداشت کردم. چیز دیگه‌ای هم هست؟ 📝',
-        'درست متوجه شدم! بذار ببینم چطور می‌تونم بهتر کمکت کنم... 💡',
-      ];
-      return responses[random.nextInt(responses.length)];
-    }
+    return replies[Random().nextInt(replies.length)];
   }
 
+  /// Send message to backend or mock
   Future<String> sendMessage(String userMessage) async {
-    // حالت لوکال - بدون اتصال به بک‌اند
+    // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
-      // شبیه‌سازی تاخیر شبکه
       await Future.delayed(
-          Duration(milliseconds: 500 + Random().nextInt(1000)));
-      return _getMockResponse(userMessage);
+        Duration(milliseconds: 400 + Random().nextInt(600)),
+      );
+      return _mockReply(userMessage);
     }
 
-    // حالت واقعی - اتصال به بک‌اند
+    // ---------------- BACKEND MODE ----------------
     try {
-      final url = Uri.parse("${AppConfig.baseUrl}/chat");
-      final headers = await _getHeaders();
+      final uri = Uri.parse('${AppConfig.baseUrl}/chat');
+      final headers = await _buildHeaders();
 
       final response = await http.post(
-        url,
+        uri,
         headers: headers,
-        body: jsonEncode({"message": userMessage}),
+        body: jsonEncode({'message': userMessage}),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data["reply"] ?? "خطا: پاسخ نامعتبر از سرور";
-      } else if (response.statusCode == 401) {
-        // خطای احراز هویت
-        return "خطا: نیاز به احراز هویت مجدد";
-      } else {
-        // بررسی خطای JSON در پاسخ
-        try {
-          final errorData = jsonDecode(response.body);
-          if (errorData.containsKey("Message")) {
-            return "خطا: ${errorData["Message"]}";
-          }
-        } catch (_) {}
-        return "خطا در اتصال به سرور (${response.statusCode})";
+        final body = jsonDecode(response.body);
+        return body['reply']?.toString() ?? '';
       }
-    } catch (e) {
-      return "عدم اتصال به سرور: ${e.toString()}";
+
+      if (response.statusCode == 401) {
+        return 'AUTH_REQUIRED';
+      }
+
+      return 'SERVER_ERROR_${response.statusCode}';
+    } catch (_) {
+      return 'NETWORK_ERROR';
     }
   }
 }

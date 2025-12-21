@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// ------------------------------------------------------------
 /// ChatHistoryPage
 ///
 /// RESPONSIBILITY:
-/// - Display previous days chat history (UI only)
+/// - Display previous chat sessions (UI only)
 /// - No dependency on chat state or message models
-/// - Safe for CI/CD build (GitHub Actions)
-///
-/// This page is PRESENTATION ONLY.
+/// - Fully aligned with Sedi AppTheme
 /// ------------------------------------------------------------
 class ChatHistoryPage extends StatelessWidget {
   const ChatHistoryPage({super.key});
@@ -18,20 +17,32 @@ class ChatHistoryPage extends StatelessWidget {
     final history = _mockHistory();
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
-        title: const Text('Chat History'),
+        elevation: 0,
+        backgroundColor: AppTheme.backgroundWhite,
+        foregroundColor: AppTheme.primaryBlack,
+        title: const Text(
+          'Chat History',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         itemCount: history.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, __) => Divider(
+          height: 1,
+          color: AppTheme.metalGrey.withOpacity(0.3),
+        ),
         itemBuilder: (context, index) {
           final day = history[index];
           return _HistoryDayTile(
             day: day,
             onTap: () {
-              // Future: navigate & load that day's conversation
+              // Later: load selected chat session
               Navigator.pop(context);
             },
           );
@@ -43,9 +54,6 @@ class ChatHistoryPage extends StatelessWidget {
 
 /// ------------------------------------------------------------
 /// UI MODEL (PRIVATE)
-///
-/// Used ONLY for ChatHistoryPage rendering.
-/// This avoids dependency on real chat entities.
 /// ------------------------------------------------------------
 class _HistoryDay {
   final String title;
@@ -60,15 +68,13 @@ class _HistoryDay {
 }
 
 /// ------------------------------------------------------------
-/// MOCK DATA
-///
-/// Temporary until chat persistence layer is finalized.
+/// MOCK DATA (Temporary)
 /// ------------------------------------------------------------
 List<_HistoryDay> _mockHistory() {
   return [
     _HistoryDay(
       title: 'Today',
-      lastMessage: 'Sedi is here to help you...',
+      lastMessage: 'Sedi is here to help you…',
       date: DateTime.now(),
     ),
     _HistoryDay(
@@ -88,7 +94,7 @@ List<_HistoryDay> _mockHistory() {
 /// HISTORY DAY TILE
 ///
 /// Single responsibility:
-/// - Visual representation of one day
+/// - Visual representation of one chat session
 /// ------------------------------------------------------------
 class _HistoryDayTile extends StatelessWidget {
   final _HistoryDay day;
@@ -101,18 +107,51 @@ class _HistoryDayTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return InkWell(
       onTap: onTap,
-      title: Text(
-        day.title,
-        style: Theme.of(context).textTheme.titleMedium,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        child: Row(
+          children: [
+            // Date / Title
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    day.title,
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    day.lastMessage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            Icon(
+              Icons.chevron_right,
+              color: AppTheme.metalGrey,
+            ),
+          ],
+        ),
       ),
-      subtitle: Text(
-        day.lastMessage,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: const Icon(Icons.chevron_right),
     );
   }
 }

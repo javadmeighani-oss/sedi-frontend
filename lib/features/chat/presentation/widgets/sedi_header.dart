@@ -3,8 +3,8 @@ import '../../../../core/theme/app_theme.dart';
 import 'sedi_ring_anim.dart';
 
 /// Header widget:
-/// - shows big Sedi logo in center (static)
-/// - shows pistachio ring around it (animated when isThinking/isAlert)
+/// - Shows Sedi logo (static)
+/// - Shows animated pistachio ring when active
 class SediHeader extends StatelessWidget {
   final bool isThinking;
   final bool isAlert;
@@ -19,12 +19,10 @@ class SediHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = isThinking || isAlert;
+    final isActive = isThinking || isAlert;
 
-    // ring thickness accounted in ring widget
-    final ringThickness = 2.5;
-    // Keep some padding so logo doesn't touch ring visually
-    final logoContainerSize = size - (ringThickness * 2) - 14;
+    // Logo size as ratio of header size (safe & responsive)
+    final logoSize = size * 0.78;
 
     return SizedBox(
       width: size,
@@ -32,41 +30,34 @@ class SediHeader extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Ring only (animated)
+          // Animated ring (logic isolated inside ring widget)
           SediRingAnim(
-            active: active,
+            active: isActive,
             size: size,
-            thickness: ringThickness,
           ),
 
-          // Logo container (static)
+          // Static logo
           Container(
-            width: logoContainerSize,
-            height: logoContainerSize,
+            width: logoSize,
+            height: logoSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppTheme.backgroundWhite,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-              ],
+              boxShadow: AppTheme.softShadow,
             ),
             child: Center(
               child: Image.asset(
                 'assets/images/sedi_logo_1024.png',
                 fit: BoxFit.contain,
-                width: logoContainerSize * 0.72,
-                height: logoContainerSize * 0.72,
+                width: logoSize * 0.7,
+                height: logoSize * 0.7,
                 errorBuilder: (_, __, ___) {
                   return Text(
                     'Sedi.',
                     style: TextStyle(
-                      fontSize: logoContainerSize * 0.24,
+                      fontSize: logoSize * 0.24,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.pistachioGreen,
+                      color: AppTheme.primaryBlack,
                       letterSpacing: -0.5,
                     ),
                   );
