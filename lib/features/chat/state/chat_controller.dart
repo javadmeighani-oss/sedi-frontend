@@ -62,22 +62,25 @@ class ChatController extends ChangeNotifier {
       notifyListeners();
 
       Future.delayed(const Duration(milliseconds: 600), () {
-        _addSediMessage(AppMessages.getWelcomeMessage('en'));
+        _addSediMessage('Hello! I’m Sedi 😊');
       });
 
       Future.delayed(const Duration(milliseconds: 1400), () {
-        _addSediMessage(AppMessages.getNameRequest('en'));
+        _addSediMessage('Please enter your name:');
       });
     } else {
       userName = await UserPreferences.getUserName();
       currentLanguage = await UserPreferences.getUserLanguage();
-
       onboardingState = OnboardingState.completed;
       notifyListeners();
 
       Future.delayed(const Duration(milliseconds: 500), () {
         _addSediMessage(
-          AppMessages.getWelcomeBack(currentLanguage, userName ?? ''),
+          currentLanguage == 'fa'
+              ? 'خوش برگشتی ${userName ?? ''} 😊'
+              : currentLanguage == 'ar'
+                  ? 'مرحباً بعودتك ${userName ?? ''} 😊'
+                  : 'Welcome back ${userName ?? ''} 😊',
         );
       });
     }
@@ -91,11 +94,11 @@ class ChatController extends ChangeNotifier {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
-    // Language detection only AFTER onboarding
+    // Detect language ONLY after onboarding
     if (onboardingState == OnboardingState.completed) {
-      final detectedLang = LanguageDetector.detectLanguage(trimmed);
-      if (detectedLang != currentLanguage) {
-        currentLanguage = detectedLang;
+      final detected = LanguageDetector.detectLanguage(trimmed);
+      if (detected != currentLanguage) {
+        currentLanguage = detected;
         await UserPreferences.saveUserLanguage(currentLanguage);
       }
     }
@@ -112,7 +115,11 @@ class ChatController extends ChangeNotifier {
       notifyListeners();
 
       _addSediMessage(
-        AppMessages.getPasswordRequest(currentLanguage),
+        currentLanguage == 'fa'
+            ? 'یک رمز عبور انتخاب کن'
+            : currentLanguage == 'ar'
+                ? 'اختر كلمة مرور'
+                : 'Please choose a password',
       );
       return;
     }
@@ -140,6 +147,7 @@ class ChatController extends ChangeNotifier {
     // Normal chat
     // ---------------------------
 
+    // 1️⃣ add user message
     messages.add(
       ChatMessage(
         text: trimmed,
@@ -153,9 +161,7 @@ class ChatController extends ChangeNotifier {
     try {
       final response = await _chatService.sendMessage(trimmed);
 
-      if (response.isEmpty ||
-          response == 'NETWORK_ERROR' ||
-          response == 'AUTH_REQUIRED') {
+      if (response.isEmpty) {
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'مشکلی در ارتباط پیش آمد.'
