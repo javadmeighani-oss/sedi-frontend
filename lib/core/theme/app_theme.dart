@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/// ============================================
+/// AppTheme - هویت بصری صدی
+/// ============================================
+/// 
+/// RESPONSIBILITY:
+/// - فقط رنگ‌ها، radius، shadow
+/// - بدون UI widget
+/// - بدون logic
+/// ============================================
 class AppTheme {
   AppTheme._(); // جلوگیری از ساخت instance
 

@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'sedi_ring_anim.dart';
 
-/// Header widget:
-/// - Shows Sedi logo (static)
-/// - Shows animated pistachio ring when active
+/// ============================================
+/// SediHeader - هدر صدی
+/// ============================================
+/// 
+/// CONTRACT:
+/// - لوگو بزرگ در مرکز (ثابت)
+/// - حلقه سبز پسته‌ای دور لوگو
+/// - فقط حلقه animate شود (heartbeat)
+/// - انیمیشن فقط وقتی isThinking == true یا isAlert == true
+/// ============================================
 class SediHeader extends StatelessWidget {
   final bool isThinking;
   final bool isAlert;

@@ -1,9 +1,19 @@
-import 'package:flutter/material.dart';
+/// ============================================
+/// ChatController - State Management
+/// ============================================
+/// 
+/// CONTRACT:
+/// - فقط state management
+/// - بدون UI
+/// - بدون animation
+/// - بدون import widget
+/// ============================================
 
 import '../../../../core/utils/language_detector.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../data/model/chat_message.dart';
 import '../chat_service.dart';
+import 'package:flutter/foundation.dart';
 
 enum OnboardingState {
   none,
@@ -14,7 +24,7 @@ enum OnboardingState {
 
 class ChatController extends ChangeNotifier {
   // ===============================
-  // UI States
+  // Animation States (for SediHeader)
   // ===============================
 
   bool isThinking = false;

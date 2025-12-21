@@ -4,10 +4,19 @@ import '../../state/chat_controller.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
-import '../widgets/rotary_scrollbar.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
 
+/// ============================================
+/// ChatPage - صفحه اصلی چت
+/// ============================================
+/// 
+/// CONTRACT:
+/// - پیام‌های صدی نباید زیر چت‌باکس بروند
+/// - فقط آخرین پیام به صورت طبیعی دیده شود
+/// - اسکرول دستی برای پیام‌های قبلی
+/// - دکمه بازگشت به آخرین پیام (سمت راست پایین)
+/// ============================================
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
@@ -41,6 +50,16 @@ class _ChatPageState extends State<ChatPage> {
         return 'تحدّث مع سِدي…';
       default:
         return 'Talk to Sedi…';
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -90,19 +109,25 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-            // ================= MESSAGES + SCROLL =================
+            // ================= MESSAGES AREA =================
             Expanded(
               child: Stack(
                 children: [
+                  // لیست پیام‌های قبلی (اسکرول دستی)
                   ListView.builder(
                     controller: _scrollController,
+                    reverse: true, // آخرین پیام در پایین
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    itemCount: _controller.messages.length,
+                    itemCount: _controller.messages.length > 1 
+                        ? _controller.messages.length - 1 
+                        : 0,
                     itemBuilder: (context, index) {
-                      final msg = _controller.messages[index];
+                      // از آخر به اول (چون reverse: true)
+                      final reverseIndex = _controller.messages.length - 2 - index;
+                      final msg = _controller.messages[reverseIndex];
                       return MessageBubble(
                         message: msg.text,
                         isSedi: msg.isSedi,
@@ -110,19 +135,34 @@ class _ChatPageState extends State<ChatPage> {
                     },
                   ),
 
-                  // Rotary scrollbar overlay
-                  Positioned(
-                    right: 4,
-                    top: 0,
-                    bottom: 0,
-                    child: RotaryScrollbar(
-                      controller: _scrollController,
-                      height: MediaQuery.of(context).size.height * 0.6,
+                  // دکمه بازگشت به آخرین پیام (سمت راست پایین)
+                  if (_scrollController.hasClients && 
+                      _scrollController.offset > 100)
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: FloatingActionButton.small(
+                        backgroundColor: AppTheme.pistachioGreen,
+                        onPressed: _scrollToBottom,
+                        child: const Icon(
+                          Icons.arrow_downward_rounded,
+                          color: AppTheme.backgroundWhite,
+                        ),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
+
+            // ================= آخرین پیام (همیشه دیده می‌شود) =================
+            if (_controller.messages.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: MessageBubble(
+                  message: _controller.messages.last.text,
+                  isSedi: _controller.messages.last.isSedi,
+                ),
+              ),
 
             // ================= INPUT BAR =================
             InputBar(
