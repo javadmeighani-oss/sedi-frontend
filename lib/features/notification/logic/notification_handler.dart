@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../chat/state/chat_message.dart';
+import '../../../data/models/chat_message.dart';
 
 class NotificationHandler {
   // ---------------------------------------------------------------------------------

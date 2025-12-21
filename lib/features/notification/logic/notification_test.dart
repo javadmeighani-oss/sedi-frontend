@@ -1,4 +1,4 @@
-import '../../chat/state/chat_message.dart';
+import '../../../data/models/chat_message.dart';
 
 class NotificationTest {
   /// تست نوتیف صبح بخیر

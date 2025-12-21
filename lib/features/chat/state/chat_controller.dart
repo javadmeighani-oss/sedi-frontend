@@ -11,7 +11,7 @@
 
 import '../../../../core/utils/language_detector.dart';
 import '../../../../core/utils/user_preferences.dart';
-import '../../data/model/chat_message.dart';
+import '../../../../data/models/chat_message.dart';
 import '../chat_service.dart';
 import 'package:flutter/foundation.dart';
 
@@ -162,6 +162,7 @@ class ChatController extends ChangeNotifier {
       ChatMessage(
         text: trimmed,
         isSedi: false,
+        isUser: true,
       ),
     );
 
@@ -229,6 +230,7 @@ class ChatController extends ChangeNotifier {
       ChatMessage(
         text: '[Voice Message]',
         isSedi: false,
+        isUser: true,
       ),
     );
 
