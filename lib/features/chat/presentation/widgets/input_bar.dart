@@ -8,7 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 /// CONTRACT:
 /// - ChatGPT-style input box
 /// - Border: primaryBlack (always)
-/// - Icons: primaryBlack
+/// - Icons: primaryBlack (default)
 /// - Clean, medical-grade UI
 /// - NO pistachio green, NO opacity hacks, NO glow effects
 /// ============================================
@@ -215,7 +215,7 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Recording timer (appears to the RIGHT of Speaker icon, between Speaker and Send)
+  /// Recording timer (appears between SEND and SPEAKER when recording)
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -243,18 +243,17 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Send icon (ChatGPT-style: arrow inside circle)
-  /// Circle: primaryBlack when hasText, metalGrey when empty
-  /// Arrow: always backgroundWhite
+  /// Send icon (ChatGPT-style: white arrow inside black circle)
+  /// Always: primaryBlack circle with white arrow
   Widget _buildSendIcon(bool hasText) {
     return GestureDetector(
       onTap: hasText ? _sendText : () {},
       child: Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: hasText ? AppTheme.primaryBlack : AppTheme.metalGrey,
+          color: AppTheme.primaryBlack, // Always black circle
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
@@ -278,7 +277,7 @@ class _InputBarState extends State<InputBar> {
           size: 28,
           color: widget.isRecording
               ? AppTheme.metalGrey // Lighter when recording
-              : AppTheme.primaryBlack, // Normal when idle
+              : AppTheme.primaryBlack, // Normal when idle (default black)
         ),
       ),
     );
