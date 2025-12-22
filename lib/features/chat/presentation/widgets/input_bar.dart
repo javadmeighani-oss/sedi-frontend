@@ -255,7 +255,8 @@ class _InputBarState extends State<InputBar> {
           shape: BoxShape.circle,
           color: hasText
               ? AppTheme.iconActive
-              : AppTheme.iconInactive, // Active when user types, inactive otherwise
+              : AppTheme
+                  .iconInactive, // Active when user types, inactive otherwise
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
