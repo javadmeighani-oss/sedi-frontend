@@ -4,7 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 /// ============================================
 /// InputBar - چت باکس صدی
 /// ============================================
-/// 
+///
 /// CONTRACT:
 /// - ChatGPT-style input box
 /// - Border: primaryBlack (always)
@@ -125,7 +125,7 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [SEND] [TIMER (if recording)] [SPEAKER] [TEXT FIELD]
+  /// Icon order from RIGHT to LEFT: [SPEAKER] [TIMER (if recording)] [SEND] [TEXT FIELD]
   Widget _buildCompactLayout(bool hasText) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -158,14 +158,14 @@ class _InputBarState extends State<InputBar> {
         const SizedBox(width: 12),
 
         // RIGHT SIDE: Icons in correct order
-        // From RIGHT edge: [SEND] [TIMER (if recording)] [SPEAKER]
-        _buildSendIcon(hasText),
+        // From RIGHT edge: [SPEAKER] [TIMER (if recording)] [SEND]
+        _buildSpeakerIcon(),
         if (widget.isRecording) ...[
           const SizedBox(width: 8),
           _buildRecordingTimer(),
         ],
         const SizedBox(width: 8),
-        _buildSpeakerIcon(),
+        _buildSendIcon(hasText),
       ],
     );
   }
@@ -202,20 +202,20 @@ class _InputBarState extends State<InputBar> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSendIcon(hasText),
+            _buildSpeakerIcon(),
             if (widget.isRecording) ...[
               const SizedBox(width: 8),
               _buildRecordingTimer(),
             ],
             const SizedBox(width: 8),
-            _buildSpeakerIcon(),
+            _buildSendIcon(hasText),
           ],
         ),
       ],
     );
   }
 
-  /// Recording timer (appears between SEND and SPEAKER when recording)
+  /// Recording timer (appears between SPEAKER and SEND when recording)
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
