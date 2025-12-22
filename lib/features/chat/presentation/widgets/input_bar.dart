@@ -220,13 +220,13 @@ class _InputBarState extends State<InputBar> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Recording indicator (red dot - standard for recording)
+        // Recording indicator (using AppTheme color)
         Container(
           width: 12,
           height: 12,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.red, // Standard recording indicator color
+            color: AppTheme.primaryBlack, // Using AppTheme color
           ),
         ),
         const SizedBox(width: 8),
