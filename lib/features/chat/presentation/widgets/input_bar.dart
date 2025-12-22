@@ -244,16 +244,18 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Send icon (ChatGPT-style: white arrow inside black circle)
-  /// Always: primaryBlack circle with white arrow
+  /// primaryBlack circle when hasText, metalGrey when empty
   Widget _buildSendIcon(bool hasText) {
     return GestureDetector(
       onTap: hasText ? _sendText : () {},
       child: Container(
         width: 32,
         height: 32,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppTheme.primaryBlack, // Always black circle
+          color: hasText
+              ? AppTheme.primaryBlack
+              : AppTheme.metalGrey, // Black when user types, grey otherwise
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
