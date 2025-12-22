@@ -125,7 +125,7 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [SPEAKER] [TIMER (if recording)] [SEND] [TEXT FIELD]
+  /// Icon order from RIGHT to LEFT: [SEND] [SPEAKER] [TIMER (if recording)] [TEXT FIELD]
   Widget _buildCompactLayout(bool hasText) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -158,14 +158,14 @@ class _InputBarState extends State<InputBar> {
         const SizedBox(width: 12),
 
         // RIGHT SIDE: Icons in correct order
-        // From RIGHT edge: [SPEAKER] [TIMER (if recording)] [SEND]
+        // From RIGHT edge: [SEND] [SPEAKER] [TIMER (if recording)]
+        _buildSendIcon(hasText),
+        const SizedBox(width: 8),
         _buildSpeakerIcon(),
         if (widget.isRecording) ...[
           const SizedBox(width: 8),
           _buildRecordingTimer(),
         ],
-        const SizedBox(width: 8),
-        _buildSendIcon(hasText),
       ],
     );
   }
@@ -202,31 +202,31 @@ class _InputBarState extends State<InputBar> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            _buildSendIcon(hasText),
+            const SizedBox(width: 8),
             _buildSpeakerIcon(),
             if (widget.isRecording) ...[
               const SizedBox(width: 8),
               _buildRecordingTimer(),
             ],
-            const SizedBox(width: 8),
-            _buildSendIcon(hasText),
           ],
         ),
       ],
     );
   }
 
-  /// Recording timer (appears between SPEAKER and SEND when recording)
+  /// Recording timer (appears after SPEAKER when recording)
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Recording indicator (red dot)
+        // Recording indicator (red dot - standard for recording)
         Container(
           width: 12,
           height: 12,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.red,
+            color: Colors.red, // Standard recording indicator color
           ),
         ),
         const SizedBox(width: 8),
