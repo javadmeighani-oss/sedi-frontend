@@ -125,7 +125,7 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [SEND] [SPEAKER] [TIMER (if recording)] [TEXT FIELD]
+  /// Icon order from RIGHT to LEFT: [MIC] [SEND] [TIMER (if recording)] [TEXT FIELD]
   Widget _buildCompactLayout(bool hasText) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -157,11 +157,11 @@ class _InputBarState extends State<InputBar> {
 
         const SizedBox(width: 12),
 
-        // RIGHT SIDE: Icons in correct order
-        // From RIGHT edge: [SEND] [SPEAKER] [TIMER (if recording)]
-        _buildSendIcon(hasText),
-        const SizedBox(width: 8),
+        // RIGHT SIDE: Icons in correct order (matching image)
+        // From RIGHT edge: [MIC] [SEND] [TIMER (if recording)]
         _buildSpeakerIcon(),
+        const SizedBox(width: 8),
+        _buildSendIcon(hasText),
         if (widget.isRecording) ...[
           const SizedBox(width: 8),
           _buildRecordingTimer(),
@@ -198,13 +198,13 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
 
-        // Icons at bottom-right (same order as compact)
+        // Icons at bottom-right (same order as compact - matching image)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSendIcon(hasText),
-            const SizedBox(width: 8),
             _buildSpeakerIcon(),
+            const SizedBox(width: 8),
+            _buildSendIcon(hasText),
             if (widget.isRecording) ...[
               const SizedBox(width: 8),
               _buildRecordingTimer(),
@@ -215,7 +215,7 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Recording timer (appears after SPEAKER when recording)
+  /// Recording timer (appears after SEND when recording)
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
