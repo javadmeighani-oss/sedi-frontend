@@ -32,11 +32,20 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _controller = ChatController();
+    // Add listener to update UI when timer changes
+    _controller.addListener(_onControllerChanged);
     _controller.initialize();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {}); // Update UI (including timer display)
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged); // Remove listener
     _scrollController.dispose();
     _controller.dispose();
     super.dispose();

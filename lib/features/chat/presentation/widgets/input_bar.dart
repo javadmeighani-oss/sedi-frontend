@@ -125,7 +125,7 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [MIC] [SEND] [TIMER (if recording)] [TEXT FIELD]
+  /// Icon order from RIGHT to LEFT: [MIC] [TIMER (if recording)] [SEND] [TEXT FIELD]
   Widget _buildCompactLayout(bool hasText) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -157,15 +157,15 @@ class _InputBarState extends State<InputBar> {
 
         const SizedBox(width: 12),
 
-        // RIGHT SIDE: Icons in correct order (matching image)
-        // From RIGHT edge: [MIC] [SEND] [TIMER (if recording)]
+        // RIGHT SIDE: Icons in correct order
+        // From RIGHT edge: [MIC] [TIMER (if recording)] [SEND]
         _buildSpeakerIcon(),
-        const SizedBox(width: 8),
-        _buildSendIcon(hasText),
         if (widget.isRecording) ...[
           const SizedBox(width: 8),
           _buildRecordingTimer(),
         ],
+        const SizedBox(width: 8),
+        _buildSendIcon(hasText),
       ],
     );
   }
@@ -198,43 +198,44 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
 
-        // Icons at bottom-right (same order as compact - matching image)
+        // Icons at bottom-right (same order as compact)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildSpeakerIcon(),
-            const SizedBox(width: 8),
-            _buildSendIcon(hasText),
             if (widget.isRecording) ...[
               const SizedBox(width: 8),
               _buildRecordingTimer(),
             ],
+            const SizedBox(width: 8),
+            _buildSendIcon(hasText),
           ],
         ),
       ],
     );
   }
 
-  /// Recording timer (appears after SEND when recording)
+  /// Recording timer (appears after MIC when recording)
+  /// Color: black (primaryBlack) to match Sedi theme
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Recording indicator (using AppTheme color)
+        // Recording indicator (black dot - matching Sedi theme)
         Container(
           width: 12,
           height: 12,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: AppTheme.iconActive, // Using AppTheme semantic color
+            color: AppTheme.textPrimary, // Black to match Sedi theme
           ),
         ),
         const SizedBox(width: 8),
-        // Timer text from recordingTimeFormatted
+        // Timer text from recordingTimeFormatted (black color)
         Text(
           widget.recordingTime,
           style: const TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimary, // Black color
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
