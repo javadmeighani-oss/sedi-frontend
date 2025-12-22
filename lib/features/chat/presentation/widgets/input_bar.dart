@@ -156,12 +156,13 @@ class _InputBarState extends State<InputBar> {
 
         const SizedBox(width: 12),
 
-        // RIGHT SIDE: Timer (when recording) + Icons (Send first, then Speaker)
-        if (widget.isRecording) ...[
-          _buildRecordingTimer(),
-          const SizedBox(width: 8),
-        ],
+        // RIGHT SIDE: Icons in correct order
+        // Order from rightmost: [SEND] [TIMER (if recording)] [SPEAKER]
         _buildSendIcon(hasText),
+        if (widget.isRecording) ...[
+          const SizedBox(width: 8),
+          _buildRecordingTimer(),
+        ],
         const SizedBox(width: 8),
         _buildSpeakerIcon(),
       ],
@@ -195,11 +196,15 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
 
-        // Icons at bottom-right
+        // Icons at bottom-right (same order as compact)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildSendIcon(hasText),
+            if (widget.isRecording) ...[
+              const SizedBox(width: 8),
+              _buildRecordingTimer(),
+            ],
             const SizedBox(width: 8),
             _buildSpeakerIcon(),
           ],
@@ -208,7 +213,7 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Recording timer (appears LEFT of speaker icon on right side)
+  /// Recording timer (appears to the RIGHT of Speaker icon, between Speaker and Send)
   Widget _buildRecordingTimer() {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -236,7 +241,7 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Send icon (bright arrow inside solid black circle)
+  /// Send icon (ChatGPT-style: arrow inside circle)
   Widget _buildSendIcon(bool hasText) {
     return GestureDetector(
       onTap: hasText ? _sendText : () {},
@@ -250,13 +255,13 @@ class _InputBarState extends State<InputBar> {
         child: Icon(
           Icons.arrow_upward_rounded,
           size: 20,
-          color: hasText ? AppTheme.backgroundWhite : AppTheme.primaryBlack,
+          color: AppTheme.backgroundWhite, // Always white arrow
         ),
       ),
     );
   }
 
-  /// Speaker (mic) icon
+  /// Speaker (mic) icon (simple mic without circle)
   Widget _buildSpeakerIcon() {
     return GestureDetector(
       onTap: _handleMicTap,
@@ -267,7 +272,7 @@ class _InputBarState extends State<InputBar> {
           size: 28,
           color: widget.isRecording
               ? AppTheme.metalGrey // Lighter when recording
-              : AppTheme.primaryBlack, // Normal when not recording
+              : AppTheme.primaryBlack, // Normal when idle
         ),
       ),
     );
