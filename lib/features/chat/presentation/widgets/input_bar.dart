@@ -6,12 +6,11 @@ import '../../../../core/theme/app_theme.dart';
 /// ============================================
 /// 
 /// CONTRACT:
-/// - فقط یک کادر (بدون box داخلی)
-/// - مستطیل با گوشه‌های کمی گرد
-/// - سمت چپ: hint text یا recording timer
-/// - سمت راست: آیکن اسپیکر (چپ) + آیکن ارسال (راست)
-/// - هنگام فوکوس ارتفاع افزایش یابد
-/// - رنگ‌ها: فقط metalGrey (inactive) و primaryBlack (active)
+/// - ChatGPT-style input box
+/// - Border: primaryBlack (always)
+/// - Icons: primaryBlack
+/// - Clean, medical-grade UI
+/// - NO pistachio green, NO opacity hacks, NO glow effects
 /// ============================================
 class InputBar extends StatefulWidget {
   final String hintText;
@@ -39,8 +38,6 @@ class _InputBarState extends State<InputBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isExpanded = false;
-  bool _sendPressed = false;
-  bool _micPressed = false;
 
   @override
   void initState() {
@@ -51,6 +48,7 @@ class _InputBarState extends State<InputBar> {
     _focusNode.addListener(() {
       if (mounted) {
         setState(() {
+          // Only expand when typing, NOT when recording
           _isExpanded = _focusNode.hasFocus && !widget.isRecording;
         });
       }
@@ -62,6 +60,7 @@ class _InputBarState extends State<InputBar> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isRecording != widget.isRecording) {
       setState(() {
+        // Prevent expansion during recording
         _isExpanded = _focusNode.hasFocus && !widget.isRecording;
       });
     }
@@ -78,46 +77,26 @@ class _InputBarState extends State<InputBar> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    // Visual feedback: briefly change color
-    setState(() => _sendPressed = true);
-    
     widget.onSendText(text);
     _textController.clear();
     _focusNode.unfocus();
-
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (mounted) {
-        setState(() => _sendPressed = false);
-      }
-    });
   }
 
   void _handleMicTap() {
     if (widget.isRecording) {
-      // Second tap: stop recording and send
-      setState(() => _micPressed = true);
+      // Second tap: stop recording
       widget.onStopRecordingAndSend();
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (mounted) {
-          setState(() => _micPressed = false);
-        }
-      });
     } else {
       // First tap: start recording
-      setState(() => _micPressed = true);
       widget.onStartRecording();
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (mounted) {
-          setState(() => _micPressed = false);
-        }
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final hasText = _textController.text.trim().isNotEmpty;
-    final height = _isExpanded ? 120.0 : 56.0;
+    // Compact height when not expanded or recording
+    final height = (_isExpanded && !widget.isRecording) ? 120.0 : 56.0;
 
     return SafeArea(
       top: false,
@@ -126,121 +105,171 @@ class _InputBarState extends State<InputBar> {
         curve: Curves.easeOut,
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: _isExpanded ? 12 : 12,
+        ),
         decoration: BoxDecoration(
           color: AppTheme.backgroundWhite,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: _isExpanded 
-                ? AppTheme.primaryBlack 
-                : AppTheme.metalGrey,
+            color: AppTheme.primaryBlack, // Always primaryBlack
             width: 1.5,
           ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ================= سمت چپ: TextField یا Recording Timer =================
-            Expanded(
-              child: widget.isRecording
-                  ? Row(
-                      children: [
-                        // آیکن ضبط (قرمز - برای نشان دادن ضبط)
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // تایمر ضبط (حتماً نمایش داده شود)
-                        Text(
-                          widget.recordingTime,
-                          style: const TextStyle(
-                            color: AppTheme.primaryBlack,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    )
-                  : TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      enabled: !widget.isRecording,
-                      maxLines: _isExpanded ? 4 : 1,
-                      decoration: InputDecoration.collapsed(
-                        hintText: widget.hintText,
-                        hintStyle: const TextStyle(
-                          color: AppTheme.metalGrey,
-                          fontSize: 15,
-                        ),
-                      ),
-                      style: const TextStyle(
-                        color: AppTheme.primaryBlack,
-                        fontSize: 15,
-                      ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendText(),
+        child: _isExpanded && !widget.isRecording
+            ? _buildExpandedLayout(hasText)
+            : _buildCompactLayout(hasText),
+      ),
+    );
+  }
+
+  /// Compact layout (default state)
+  Widget _buildCompactLayout(bool hasText) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // LEFT SIDE: TextField (empty when recording)
+        Expanded(
+          child: widget.isRecording
+              ? const SizedBox.shrink() // Empty when recording
+              : TextField(
+                  controller: _textController,
+                  focusNode: _focusNode,
+                  enabled: !widget.isRecording,
+                  maxLines: 1,
+                  decoration: InputDecoration.collapsed(
+                    hintText: widget.hintText,
+                    hintStyle: const TextStyle(
+                      color: AppTheme.metalGrey,
+                      fontSize: 15,
                     ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // ================= سمت راست: آیکن‌ها =================
-            // ترتیب: آیکن اسپیکر (چپ) + آیکن ارسال (راست)
-            
-            // آیکن اسپیکر (هنگام ضبط primaryBlack، غیرفعال metalGrey)
-            GestureDetector(
-              onTap: _handleMicTap,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.mic_rounded,
-                  size: 28,
-                  color: widget.isRecording
-                      ? AppTheme.primaryBlack
-                      : (_micPressed 
-                          ? AppTheme.primaryBlack 
-                          : AppTheme.metalGrey),
+                  ),
+                  style: const TextStyle(
+                    color: AppTheme.primaryBlack,
+                    fontSize: 15,
+                  ),
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendText(),
                 ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // RIGHT SIDE: Timer (when recording) + Icons (Send first, then Speaker)
+        if (widget.isRecording) ...[
+          _buildRecordingTimer(),
+          const SizedBox(width: 8),
+        ],
+        _buildSendIcon(hasText),
+        const SizedBox(width: 8),
+        _buildSpeakerIcon(),
+      ],
+    );
+  }
+
+  /// Expanded layout (typing state)
+  Widget _buildExpandedLayout(bool hasText) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Text field at top
+        Expanded(
+          child: TextField(
+            controller: _textController,
+            focusNode: _focusNode,
+            enabled: !widget.isRecording,
+            maxLines: null,
+            decoration: InputDecoration.collapsed(
+              hintText: widget.hintText,
+              hintStyle: const TextStyle(
+                color: AppTheme.metalGrey,
+                fontSize: 15,
               ),
             ),
-
-            const SizedBox(width: 12),
-
-            // آیکن ارسال (دایره کم‌رنگ، هنگام لمس پررنگ)
-            GestureDetector(
-              onTap: hasText ? _sendText : () {},
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _sendPressed
-                      ? AppTheme.primaryBlack
-                      : AppTheme.metalGrey,
-                ),
-                child: Icon(
-                  Icons.arrow_upward_rounded,
-                  size: 24,
-                  color: _sendPressed
-                      ? AppTheme.backgroundWhite
-                      : (hasText 
-                          ? AppTheme.primaryBlack 
-                          : AppTheme.metalGrey),
-                ),
-              ),
+            style: const TextStyle(
+              color: AppTheme.primaryBlack,
+              fontSize: 15,
             ),
+            textInputAction: TextInputAction.newline,
+          ),
+        ),
+
+        // Icons at bottom-right
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSendIcon(hasText),
+            const SizedBox(width: 8),
+            _buildSpeakerIcon(),
           ],
+        ),
+      ],
+    );
+  }
+
+  /// Recording timer (appears LEFT of speaker icon on right side)
+  Widget _buildRecordingTimer() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Recording indicator (red dot)
+        Container(
+          width: 12,
+          height: 12,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.red,
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Timer
+        Text(
+          widget.recordingTime,
+          style: const TextStyle(
+            color: AppTheme.primaryBlack,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Send icon (bright arrow inside solid black circle)
+  Widget _buildSendIcon(bool hasText) {
+    return GestureDetector(
+      onTap: hasText ? _sendText : () {},
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: hasText ? AppTheme.primaryBlack : AppTheme.metalGrey,
+        ),
+        child: Icon(
+          Icons.arrow_upward_rounded,
+          size: 20,
+          color: hasText ? AppTheme.backgroundWhite : AppTheme.primaryBlack,
+        ),
+      ),
+    );
+  }
+
+  /// Speaker (mic) icon
+  Widget _buildSpeakerIcon() {
+    return GestureDetector(
+      onTap: _handleMicTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          Icons.mic_rounded,
+          size: 28,
+          color: widget.isRecording
+              ? AppTheme.metalGrey // Lighter when recording
+              : AppTheme.primaryBlack, // Normal when not recording
         ),
       ),
     );
   }
 }
-
-
