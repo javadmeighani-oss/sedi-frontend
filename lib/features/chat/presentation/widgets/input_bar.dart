@@ -113,7 +113,7 @@ class _InputBarState extends State<InputBar> {
           color: AppTheme.backgroundWhite,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: AppTheme.primaryBlack, // Always primaryBlack
+            color: AppTheme.borderActive, // Using AppTheme semantic color
             width: 1.5,
           ),
         ),
@@ -142,12 +142,12 @@ class _InputBarState extends State<InputBar> {
                   decoration: InputDecoration.collapsed(
                     hintText: widget.hintText,
                     hintStyle: const TextStyle(
-                      color: AppTheme.metalGrey,
+                      color: AppTheme.textSecondary,
                       fontSize: 15,
                     ),
                   ),
                   style: const TextStyle(
-                    color: AppTheme.primaryBlack,
+                    color: AppTheme.textPrimary,
                     fontSize: 15,
                   ),
                   textInputAction: TextInputAction.send,
@@ -186,12 +186,12 @@ class _InputBarState extends State<InputBar> {
             decoration: InputDecoration.collapsed(
               hintText: widget.hintText,
               hintStyle: const TextStyle(
-                color: AppTheme.metalGrey,
+                color: AppTheme.textSecondary,
                 fontSize: 15,
               ),
             ),
             style: const TextStyle(
-              color: AppTheme.primaryBlack,
+              color: AppTheme.textPrimary,
               fontSize: 15,
             ),
             textInputAction: TextInputAction.newline,
@@ -226,7 +226,7 @@ class _InputBarState extends State<InputBar> {
           height: 12,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: AppTheme.primaryBlack, // Using AppTheme color
+            color: AppTheme.iconActive, // Using AppTheme semantic color
           ),
         ),
         const SizedBox(width: 8),
@@ -234,7 +234,7 @@ class _InputBarState extends State<InputBar> {
         Text(
           widget.recordingTime,
           style: const TextStyle(
-            color: AppTheme.primaryBlack,
+            color: AppTheme.textPrimary,
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
@@ -254,8 +254,8 @@ class _InputBarState extends State<InputBar> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: hasText
-              ? AppTheme.primaryBlack
-              : AppTheme.metalGrey, // Black when user types, grey otherwise
+              ? AppTheme.iconActive
+              : AppTheme.iconInactive, // Active when user types, inactive otherwise
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
@@ -278,8 +278,8 @@ class _InputBarState extends State<InputBar> {
           Icons.mic_rounded,
           size: 28,
           color: widget.isRecording
-              ? AppTheme.metalGrey // Lighter when recording
-              : AppTheme.primaryBlack, // Normal when idle (default black)
+              ? AppTheme.iconInactive // Inactive when recording
+              : AppTheme.iconActive, // Active when idle
         ),
       ),
     );
