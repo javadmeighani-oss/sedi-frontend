@@ -75,8 +75,8 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final hasText = _textController.text.trim().isNotEmpty;
-    // Height doubled: 56.0 * 2 = 112.0
-    const height = 112.0;
+    // Height reduced by 20%: 112.0 * 0.8 = 89.6 ≈ 90.0
+    const height = 90.0;
 
     // Calculate width: 2.5x the original width
     // Original: screenWidth - 16 (8px margin on each side)
@@ -115,10 +115,10 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// New layout with doubled height
+  /// New layout with reduced height (20% smaller)
   /// - Recording text: top-left
   /// - TextField: bottom-left
-  /// - Timer, Speaker, Send icons: bottom-right
+  /// - Icons (bottom-right): [SEND] [SPEAKER] [TIMER (if recording)]
   Widget _buildNewLayout(bool hasText) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +172,8 @@ class _InputBarState extends State<InputBar> {
 
             const SizedBox(width: 12),
 
-            // RIGHT SIDE: Send, Speaker, Timer (left of speaker) icons
-            // Order from right to left: [SEND] [SPEAKER] [TIMER (if recording)]
+            // RIGHT SIDE (bottom-right): Icons order from right to left
+            // [SEND] [SPEAKER] [TIMER (if recording)]
             Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
