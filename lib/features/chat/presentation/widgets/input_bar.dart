@@ -37,7 +37,6 @@ class InputBar extends StatefulWidget {
 class _InputBarState extends State<InputBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -45,25 +44,6 @@ class _InputBarState extends State<InputBar> {
     _textController.addListener(() {
       if (mounted) setState(() {});
     });
-    _focusNode.addListener(() {
-      if (mounted) {
-        setState(() {
-          // Only expand when typing, NOT when recording
-          _isExpanded = _focusNode.hasFocus && !widget.isRecording;
-        });
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant InputBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isRecording != widget.isRecording) {
-      setState(() {
-        // Prevent expansion during recording
-        _isExpanded = _focusNode.hasFocus && !widget.isRecording;
-      });
-    }
   }
 
   @override
@@ -95,13 +75,11 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final hasText = _textController.text.trim().isNotEmpty;
-    // Compact height when not expanded or recording
-    final height = (_isExpanded && !widget.isRecording) ? 120.0 : 56.0;
+    // Fixed height - no expansion
+    const height = 56.0;
 
     // Remove SafeArea from InputBar - ChatPage handles it
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
+    return Container(
       height: height,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       padding: const EdgeInsets.symmetric(
@@ -124,9 +102,7 @@ class _InputBarState extends State<InputBar> {
             FocusScope.of(context).requestFocus(_focusNode);
           }
         },
-        child: _isExpanded && !widget.isRecording
-            ? _buildExpandedLayout(hasText)
-            : _buildCompactLayout(hasText),
+        child: _buildCompactLayout(hasText),
       ),
     );
   }
@@ -181,52 +157,6 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Expanded layout (typing state)
-  /// TextField at top, Icons at bottom-right
-  Widget _buildExpandedLayout(bool hasText) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        // Text field at top (expanded)
-        Expanded(
-          child: TextField(
-            controller: _textController,
-            focusNode: _focusNode,
-            enabled: !widget.isRecording,
-            maxLines: null,
-            decoration: InputDecoration.collapsed(
-              hintText: widget.hintText,
-              hintStyle: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 15,
-              ),
-            ),
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-            ),
-            textInputAction: TextInputAction.newline,
-          ),
-        ),
-
-        // Icons at bottom-right (same order as compact)
-        // From RIGHT edge: [SEND] [MIC] [TIMER (if recording, left of MIC)]
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (widget.isRecording) ...[
-              _buildRecordingTimer(),
-              const SizedBox(width: 8),
-            ],
-            _buildSpeakerIcon(),
-            const SizedBox(width: 8),
-            _buildSendIcon(hasText),
-          ],
-        ),
-      ],
-    );
-  }
 
   /// Recording timer (appears after MIC when recording)
   /// Color: black (primaryBlack) to match Sedi theme
