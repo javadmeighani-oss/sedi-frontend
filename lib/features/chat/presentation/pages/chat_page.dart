@@ -77,7 +77,7 @@ class _ChatPageState extends State<ChatPage> {
     // Get keyboard height to adjust layout
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // Add extra padding to ensure InputBar (with icons) is fully visible above keyboard
-    final bottomPadding = keyboardHeight > 0 ? keyboardHeight + 8.0 : 0.0;
+    final bottomPadding = keyboardHeight > 0 ? keyboardHeight + 16.0 : 0.0;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
