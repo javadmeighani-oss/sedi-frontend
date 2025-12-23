@@ -125,7 +125,7 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [MIC] [TIMER (if recording)] [SEND] [TEXT FIELD]
+  /// Icon order from RIGHT to LEFT: [SEND] [MIC] [TIMER (if recording, left of MIC)] [TEXT FIELD]
   Widget _buildCompactLayout(bool hasText) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -158,12 +158,12 @@ class _InputBarState extends State<InputBar> {
         const SizedBox(width: 12),
 
         // RIGHT SIDE: Icons in correct order
-        // From RIGHT edge: [MIC] [TIMER (if recording)] [SEND]
-        _buildSpeakerIcon(),
+        // From RIGHT edge: [SEND] [MIC] [TIMER (if recording, left of MIC)]
         if (widget.isRecording) ...[
-          const SizedBox(width: 8),
           _buildRecordingTimer(),
+          const SizedBox(width: 8),
         ],
+        _buildSpeakerIcon(),
         const SizedBox(width: 8),
         _buildSendIcon(hasText),
       ],
@@ -201,12 +201,13 @@ class _InputBarState extends State<InputBar> {
         // Icons at bottom-right (same order as compact)
         Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildSpeakerIcon(),
             if (widget.isRecording) ...[
-              const SizedBox(width: 8),
               _buildRecordingTimer(),
+              const SizedBox(width: 8),
             ],
+            _buildSpeakerIcon(),
             const SizedBox(width: 8),
             _buildSendIcon(hasText),
           ],
@@ -246,12 +247,13 @@ class _InputBarState extends State<InputBar> {
 
   /// Send icon (ChatGPT-style: white arrow inside black circle)
   /// primaryBlack circle when hasText, metalGrey when empty
+  /// Size: 20% larger (32 -> 38, arrow 20 -> 24)
   Widget _buildSendIcon(bool hasText) {
     return GestureDetector(
       onTap: hasText ? _sendText : () {},
       child: Container(
-        width: 32,
-        height: 32,
+        width: 38, // 32 * 1.2 = 38.4 ≈ 38
+        height: 38,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: hasText
@@ -261,7 +263,7 @@ class _InputBarState extends State<InputBar> {
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
-          size: 20,
+          size: 24, // 20 * 1.2 = 24
           color: AppTheme.backgroundWhite, // Always white arrow
         ),
       ),
@@ -271,14 +273,16 @@ class _InputBarState extends State<InputBar> {
   /// Speaker (mic) icon (simple mic without circle)
   /// Default: primaryBlack
   /// When recording: metalGrey
+  /// Size: 20% larger (28 -> 34)
   Widget _buildSpeakerIcon() {
     return GestureDetector(
       onTap: _handleMicTap,
       child: Container(
         padding: const EdgeInsets.all(8),
+        alignment: Alignment.center,
         child: Icon(
           Icons.mic_rounded,
-          size: 28,
+          size: 34, // 28 * 1.2 = 33.6 ≈ 34
           color: widget.isRecording
               ? AppTheme.iconInactive // Inactive when recording
               : AppTheme.iconActive, // Active when idle
