@@ -76,17 +76,19 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     // Get keyboard height to adjust layout
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // Add extra padding to ensure InputBar (with icons) is fully visible above keyboard
-    final bottomPadding = keyboardHeight > 0 ? keyboardHeight + 16.0 : 0.0;
+    // InputBar height: 56px (compact) + margin: 16px (8px top + 8px bottom) = 72px total
+    // Add extra padding to ensure InputBar icons are fully visible above keyboard
+    final bottomPadding = keyboardHeight > 0 ? keyboardHeight + 72.0 : 0.0;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: false, // Prevent automatic resize
+      resizeToAvoidBottomInset: true, // Allow resize to accommodate keyboard
       body: SafeArea(
+        bottom: false, // Don't use SafeArea for bottom - we handle it manually
         child: Padding(
           padding: EdgeInsets.only(
               bottom:
-                  bottomPadding), // Push content above keyboard with extra space
+                  bottomPadding), // Push content above keyboard with InputBar height + margin
           child: Column(
             children: [
               // ================= TOP BAR =================
