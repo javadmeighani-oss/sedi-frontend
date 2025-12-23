@@ -169,7 +169,11 @@ class _InputBarState extends State<InputBar> {
           _buildRecordingTimer(),
           const SizedBox(width: 8),
         ],
-        _buildSpeakerIcon(),
+        // Move speaker icon slightly up in compact layout
+        Transform.translate(
+          offset: const Offset(0, -4), // Move up by 4 pixels
+          child: _buildSpeakerIcon(),
+        ),
         const SizedBox(width: 8),
         _buildSendIcon(hasText),
       ],
