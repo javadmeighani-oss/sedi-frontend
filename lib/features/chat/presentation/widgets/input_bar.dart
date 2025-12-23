@@ -77,11 +77,18 @@ class _InputBarState extends State<InputBar> {
     final hasText = _textController.text.trim().isNotEmpty;
     // Fixed height - no expansion
     const height = 56.0;
+    
+    // Calculate width: 2.5x the original width
+    // Original: screenWidth - 16 (8px margin on each side)
+    // New: screenWidth - 6 (3px margin on each side) ≈ 2.5x wider
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth - 6; // 2.5x wider than original (screenWidth - 16)
 
     // Remove SafeArea from InputBar - ChatPage handles it
     return Container(
+      width: containerWidth,
       height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8), // Reduced horizontal margin to increase width 2.5x
+      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
       padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,

@@ -189,16 +189,18 @@ class _ChatPageState extends State<ChatPage> {
 
             // ================= INPUT BAR (Positioned above keyboard) =================
             Positioned(
+              bottom: keyboardHeight, // Position InputBar above keyboard
               left: 0,
               right: 0,
-              bottom: keyboardHeight, // Position InputBar above keyboard
-              child: InputBar(
-                hintText: _inputHint(),
-                isRecording: _controller.isRecording,
-                recordingTime: _controller.recordingTimeFormatted,
-                onSendText: _controller.sendUserMessage,
-                onStartRecording: _controller.startVoiceRecording,
-                onStopRecordingAndSend: _controller.stopVoiceRecording,
+              child: Center( // Center InputBar and allow custom width
+                child: InputBar(
+                  hintText: _inputHint(),
+                  isRecording: _controller.isRecording,
+                  recordingTime: _controller.recordingTimeFormatted,
+                  onSendText: _controller.sendUserMessage,
+                  onStartRecording: _controller.startVoiceRecording,
+                  onStopRecordingAndSend: _controller.stopVoiceRecording,
+                ),
               ),
             ),
           ],
