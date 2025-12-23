@@ -99,30 +99,31 @@ class _InputBarState extends State<InputBar> {
     final height = (_isExpanded && !widget.isRecording) ? 120.0 : 56.0;
 
     // Remove SafeArea from InputBar - ChatPage handles it
-    return GestureDetector(
-      onTap: () {
-        // When user taps on InputBar container, focus TextField to open keyboard
-        if (!widget.isRecording) {
-          _focusNode.requestFocus();
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        height: height,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      height: height,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 12,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        border: Border.all(
+          color: AppTheme.borderActive, // Using AppTheme semantic color
+          width: 1.5,
         ),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundWhite,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          border: Border.all(
-            color: AppTheme.borderActive, // Using AppTheme semantic color
-            width: 1.5,
-          ),
-        ),
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque, // Capture all taps in the container
+        onTap: () {
+          // When user taps anywhere on InputBar, focus TextField to open keyboard
+          if (!widget.isRecording) {
+            FocusScope.of(context).requestFocus(_focusNode);
+          }
+        },
         child: _isExpanded && !widget.isRecording
             ? _buildExpandedLayout(hasText)
             : _buildCompactLayout(hasText),
