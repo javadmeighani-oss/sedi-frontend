@@ -116,21 +116,27 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// New layout with reduced height (20% smaller)
-  /// - TextField: top-left
-  /// - Recording text: bottom-left (when recording)
-  /// - Icons (bottom-right): [SEND] [SPEAKER] [TIMER (if recording)]
+  /// - Top-left: Recording text (when recording) or TextField (when not recording)
+  /// - Bottom-right: Icons [SEND] [SPEAKER] [TIMER (if recording)]
   Widget _buildNewLayout(bool hasText) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // TOP-LEFT: TextField
+        // TOP-LEFT: Recording text (when recording) or TextField (when not recording)
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: widget.isRecording
-                  ? const SizedBox.shrink() // Empty when recording
+                  ? Text(
+                      'مکالمه با صدا', // Short text for voice conversation
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
                   : TextField(
                       controller: _textController,
                       focusNode: _focusNode,
@@ -154,26 +160,12 @@ class _InputBarState extends State<InputBar> {
           ],
         ),
 
-        // BOTTOM ROW: Recording text on left, Icons on right
+        // BOTTOM-RIGHT: Icons
         Row(
+          mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // LEFT SIDE: Recording text (when recording)
-            if (widget.isRecording)
-              Text(
-                'مکالمه با صدا', // Short text for voice conversation
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              )
-            else
-              const SizedBox.shrink(),
-
-            const Spacer(),
-
-            // BOTTOM-RIGHT: Icons order from right to left
+            // Icons order from right to left
             // Order: [SEND] (bottom-right) → [SPEAKER] (middle) → [TIMER] (leftmost, if recording)
             Row(
               mainAxisSize: MainAxisSize.min,
