@@ -173,13 +173,13 @@ class _InputBarState extends State<InputBar> {
 
             const Spacer(),
 
-            // RIGHT SIDE (bottom-right): Icons order from right to left
-            // Order: [SEND] (rightmost) → [SPEAKER] (middle) → [TIMER] (leftmost, if recording)
+            // BOTTOM-RIGHT: Icons order from right to left
+            // Order: [SEND] (bottom-right) → [SPEAKER] (middle) → [TIMER] (leftmost, if recording)
             Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // 1. Send icon (rightmost)
+                // 1. Send icon (bottom-right, rightmost position)
                 _buildSendIcon(hasText),
                 const SizedBox(width: 8),
                 // 2. Speaker icon (middle)
