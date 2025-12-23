@@ -177,12 +177,12 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// Expanded layout (typing state)
-  /// Icons in same line as TextField (not below)
+  /// TextField at top, Icons at bottom-right
   Widget _buildExpandedLayout(bool hasText) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Text field on left (expanded)
+        // Text field at top (expanded)
         Expanded(
           child: TextField(
             controller: _textController,
@@ -204,17 +204,21 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
 
-        const SizedBox(width: 12),
-
-        // Icons on right (same line as TextField)
+        // Icons at bottom-right (same order as compact)
         // From RIGHT edge: [SEND] [MIC] [TIMER (if recording, left of MIC)]
-        if (widget.isRecording) ...[
-          _buildRecordingTimer(),
-          const SizedBox(width: 8),
-        ],
-        _buildSpeakerIcon(),
-        const SizedBox(width: 8),
-        _buildSendIcon(hasText),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (widget.isRecording) ...[
+              _buildRecordingTimer(),
+              const SizedBox(width: 8),
+            ],
+            _buildSpeakerIcon(),
+            const SizedBox(width: 8),
+            _buildSendIcon(hasText),
+          ],
+        ),
       ],
     );
   }
