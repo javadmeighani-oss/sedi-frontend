@@ -116,36 +116,18 @@ class _InputBarState extends State<InputBar> {
   }
 
   /// New layout with reduced height (20% smaller)
-  /// - Recording text: top-left
-  /// - TextField: bottom-left
+  /// - TextField: top-left
+  /// - Recording text: bottom-left (when recording)
   /// - Icons (bottom-right): [SEND] [SPEAKER] [TIMER (if recording)]
   Widget _buildNewLayout(bool hasText) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // TOP-LEFT: Recording text (when recording)
-        if (widget.isRecording)
-          Row(
-            children: [
-              Text(
-                'مکالمه با صدا', // Short text for voice conversation
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          )
-        else
-          const SizedBox.shrink(),
-
-        // BOTTOM ROW: TextField on left, Icons on right
+        // TOP-LEFT: TextField
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LEFT SIDE: TextField
             Expanded(
               child: widget.isRecording
                   ? const SizedBox.shrink() // Empty when recording
@@ -169,8 +151,27 @@ class _InputBarState extends State<InputBar> {
                       onSubmitted: (_) => _sendText(),
                     ),
             ),
+          ],
+        ),
 
-            const SizedBox(width: 12),
+        // BOTTOM ROW: Recording text on left, Icons on right
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // LEFT SIDE: Recording text (when recording)
+            if (widget.isRecording)
+              Text(
+                'مکالمه با صدا', // Short text for voice conversation
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+
+            const Spacer(),
 
             // RIGHT SIDE (bottom-right): Icons order from right to left
             // [SEND] [SPEAKER] [TIMER (if recording)]
