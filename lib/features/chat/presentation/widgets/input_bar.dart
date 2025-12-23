@@ -117,7 +117,7 @@ class _InputBarState extends State<InputBar> {
 
   /// New layout with reduced height (20% smaller)
   /// - Top-left: Recording text (when recording) or TextField (when not recording)
-  /// - Bottom-right: Icons [SEND] [SPEAKER] [TIMER (if recording)]
+  /// - Bottom-right: Icons [TIMER] (left) [SPEAKER] (middle) [SEND] (right)
   Widget _buildNewLayout(bool hasText) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,27 +160,28 @@ class _InputBarState extends State<InputBar> {
           ],
         ),
 
-        // BOTTOM-RIGHT: Icons
+        // BOTTOM-RIGHT: Icons (all in one horizontal line)
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Icons order from right to left
-            // Order: [SEND] (bottom-right) → [SPEAKER] (middle) → [TIMER] (leftmost, if recording)
+            // Icons order from left to right
+            // Order: [TIMER] (left) → [SPEAKER] (middle) → [SEND] (right)
+            // All icons aligned in one horizontal line
             Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 1. Send icon (bottom-right, rightmost position)
-                _buildSendIcon(hasText),
-                const SizedBox(width: 8),
+                // 1. Timer (leftmost, only when recording)
+                if (widget.isRecording) ...[
+                  _buildRecordingTimer(),
+                  const SizedBox(width: 8),
+                ],
                 // 2. Speaker icon (middle)
                 _buildSpeakerIcon(),
-                // 3. Timer (leftmost, only when recording)
-                if (widget.isRecording) ...[
-                  const SizedBox(width: 8),
-                  _buildRecordingTimer(),
-                ],
+                const SizedBox(width: 8),
+                // 3. Send icon (rightmost position - bottom-right)
+                _buildSendIcon(hasText),
               ],
             ),
           ],
@@ -247,11 +248,13 @@ class _InputBarState extends State<InputBar> {
   /// Default: primaryBlack
   /// When recording: metalGrey
   /// Size: 20% larger (28 -> 34)
+  /// Fixed container size to align with other icons in one line
   Widget _buildSpeakerIcon() {
     return GestureDetector(
       onTap: _handleMicTap,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        width: 50, // Fixed width to match icon size + padding
+        height: 50, // Fixed height to align with other icons
         alignment: Alignment.center,
         child: Icon(
           Icons.mic_rounded,
