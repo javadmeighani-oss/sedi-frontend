@@ -192,7 +192,8 @@ class _ChatPageState extends State<ChatPage> {
               bottom: keyboardHeight, // Position InputBar above keyboard
               left: 0,
               right: 0,
-              child: Center( // Center InputBar and allow custom width
+              child: Center(
+                // Center InputBar and allow custom width
                 child: InputBar(
                   hintText: _inputHint(),
                   isRecording: _controller.isRecording,

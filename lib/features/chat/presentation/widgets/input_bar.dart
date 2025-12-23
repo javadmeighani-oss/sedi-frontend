@@ -75,8 +75,8 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final hasText = _textController.text.trim().isNotEmpty;
-    // Fixed height - 2.5x the original (56 * 2.5 = 140)
-    const height = 140.0;
+    // Height doubled: 56.0 * 2 = 112.0
+    const height = 112.0;
 
     // Calculate width: 2.5x the original width
     // Original: screenWidth - 16 (8px margin on each side)
@@ -110,57 +110,85 @@ class _InputBarState extends State<InputBar> {
             FocusScope.of(context).requestFocus(_focusNode);
           }
         },
-        child: _buildCompactLayout(hasText),
+        child: _buildNewLayout(hasText),
       ),
     );
   }
 
-  /// Compact layout (default state)
-  /// Icon order from RIGHT to LEFT: [SEND] [MIC] [TIMER (if recording, left of MIC)] [TEXT FIELD]
-  Widget _buildCompactLayout(bool hasText) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+  /// New layout with doubled height
+  /// - Recording text: top-left
+  /// - TextField: bottom-left
+  /// - Timer, Speaker, Send icons: bottom-right
+  Widget _buildNewLayout(bool hasText) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // LEFT SIDE: TextField (empty when recording)
-        Expanded(
-          child: widget.isRecording
-              ? const SizedBox.shrink() // Empty when recording
-              : TextField(
-                  controller: _textController,
-                  focusNode: _focusNode,
-                  enabled: !widget.isRecording,
-                  maxLines: 1,
-                  decoration: InputDecoration.collapsed(
-                    hintText: widget.hintText,
-                    hintStyle: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 15,
-                    ),
-                  ),
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 15,
-                  ),
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendText(),
+        // TOP-LEFT: Recording text (when recording)
+        if (widget.isRecording)
+          Row(
+            children: [
+              Text(
+                'مکالمه با صدا', // Short text for voice conversation
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-        ),
+              ),
+            ],
+          )
+        else
+          const SizedBox.shrink(),
 
-        const SizedBox(width: 12),
+        // BOTTOM ROW: TextField on left, Icons on right
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // LEFT SIDE: TextField
+            Expanded(
+              child: widget.isRecording
+                  ? const SizedBox.shrink() // Empty when recording
+                  : TextField(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      enabled: !widget.isRecording,
+                      maxLines: 1,
+                      decoration: InputDecoration.collapsed(
+                        hintText: widget.hintText,
+                        hintStyle: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 15,
+                      ),
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendText(),
+                    ),
+            ),
 
-        // RIGHT SIDE: Icons in correct order
-        // From RIGHT edge: [SEND] [MIC] [TIMER (if recording, left of MIC)]
-        if (widget.isRecording) ...[
-          _buildRecordingTimer(),
-          const SizedBox(width: 8),
-        ],
-        // Move speaker icon slightly up in compact layout
-        Transform.translate(
-          offset: const Offset(0, -4), // Move up by 4 pixels
-          child: _buildSpeakerIcon(),
+            const SizedBox(width: 12),
+
+            // RIGHT SIDE: Send, Speaker, Timer (left of speaker) icons
+            // Order from right to left: [SEND] [SPEAKER] [TIMER (if recording)]
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildSendIcon(hasText),
+                const SizedBox(width: 8),
+                _buildSpeakerIcon(),
+                if (widget.isRecording) ...[
+                  const SizedBox(width: 8),
+                  _buildRecordingTimer(),
+                ],
+              ],
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _buildSendIcon(hasText),
       ],
     );
   }
