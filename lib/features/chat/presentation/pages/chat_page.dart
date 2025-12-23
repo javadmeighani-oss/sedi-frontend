@@ -10,7 +10,7 @@ import 'chat_history_page.dart';
 /// ============================================
 /// ChatPage - صفحه اصلی چت
 /// ============================================
-/// 
+///
 /// CONTRACT:
 /// - پیام‌های صدی نباید زیر چت‌باکس بروند
 /// - فقط آخرین پیام به صورت طبیعی دیده شود
@@ -76,117 +76,123 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     // Get keyboard height to adjust layout
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    
+    // Add extra padding to ensure InputBar (with icons) is fully visible above keyboard
+    final bottomPadding = keyboardHeight > 0 ? keyboardHeight + 8.0 : 0.0;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       resizeToAvoidBottomInset: false, // Prevent automatic resize
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.only(bottom: keyboardHeight), // Push content above keyboard
+          padding: EdgeInsets.only(
+              bottom:
+                  bottomPadding), // Push content above keyboard with extra space
           child: Column(
             children: [
-            // ================= TOP BAR =================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.favorite_border),
-                    color: AppTheme.primaryBlack,
-                    onPressed: () {
-                      // later: daily health status
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.history),
-                    color: AppTheme.primaryBlack,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ChatHistoryPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // ================= HEADER =================
-            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 20),
-              child: SediHeader(
-                isThinking: _controller.isThinking,
-                isAlert: _controller.isAlert,
-                size: 168,
-              ),
-            ),
-
-            // ================= MESSAGES AREA =================
-            Expanded(
-              child: Stack(
-                children: [
-                  // لیست پیام‌های قبلی (اسکرول دستی)
-                  ListView.builder(
-                    controller: _scrollController,
-                    reverse: true, // آخرین پیام در پایین
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: _controller.messages.length > 1 
-                        ? _controller.messages.length - 1 
-                        : 0,
-                    itemBuilder: (context, index) {
-                      // از آخر به اول (چون reverse: true)
-                      final reverseIndex = _controller.messages.length - 2 - index;
-                      final msg = _controller.messages[reverseIndex];
-                      return MessageBubble(
-                        message: msg.text,
-                        isSedi: msg.isSedi,
-                      );
-                    },
-                  ),
-
-                  // دکمه بازگشت به آخرین پیام (سمت راست پایین)
-                  if (_scrollController.hasClients && 
-                      _scrollController.offset > 100)
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: FloatingActionButton.small(
-                        backgroundColor: AppTheme.pistachioGreen,
-                        onPressed: _scrollToBottom,
-                        child: const Icon(
-                          Icons.arrow_downward_rounded,
-                          color: AppTheme.backgroundWhite,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // ================= آخرین پیام (همیشه دیده می‌شود) =================
-            if (_controller.messages.isNotEmpty)
+              // ================= TOP BAR =================
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: MessageBubble(
-                  message: _controller.messages.last.text,
-                  isSedi: _controller.messages.last.isSedi,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.favorite_border),
+                      color: AppTheme.primaryBlack,
+                      onPressed: () {
+                        // later: daily health status
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.history),
+                      color: AppTheme.primaryBlack,
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ChatHistoryPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 
-            // ================= INPUT BAR =================
-            InputBar(
-              hintText: _inputHint(),
-              isRecording: _controller.isRecording,
-              recordingTime: _controller.recordingTimeFormatted,
-              onSendText: _controller.sendUserMessage,
-              onStartRecording: _controller.startVoiceRecording,
-              onStopRecordingAndSend: _controller.stopVoiceRecording,
-            ),
+              // ================= HEADER =================
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 20),
+                child: SediHeader(
+                  isThinking: _controller.isThinking,
+                  isAlert: _controller.isAlert,
+                  size: 168,
+                ),
+              ),
+
+              // ================= MESSAGES AREA =================
+              Expanded(
+                child: Stack(
+                  children: [
+                    // لیست پیام‌های قبلی (اسکرول دستی)
+                    ListView.builder(
+                      controller: _scrollController,
+                      reverse: true, // آخرین پیام در پایین
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: _controller.messages.length > 1
+                          ? _controller.messages.length - 1
+                          : 0,
+                      itemBuilder: (context, index) {
+                        // از آخر به اول (چون reverse: true)
+                        final reverseIndex =
+                            _controller.messages.length - 2 - index;
+                        final msg = _controller.messages[reverseIndex];
+                        return MessageBubble(
+                          message: msg.text,
+                          isSedi: msg.isSedi,
+                        );
+                      },
+                    ),
+
+                    // دکمه بازگشت به آخرین پیام (سمت راست پایین)
+                    if (_scrollController.hasClients &&
+                        _scrollController.offset > 100)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton.small(
+                          backgroundColor: AppTheme.pistachioGreen,
+                          onPressed: _scrollToBottom,
+                          child: const Icon(
+                            Icons.arrow_downward_rounded,
+                            color: AppTheme.backgroundWhite,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // ================= آخرین پیام (همیشه دیده می‌شود) =================
+              if (_controller.messages.isNotEmpty)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: MessageBubble(
+                    message: _controller.messages.last.text,
+                    isSedi: _controller.messages.last.isSedi,
+                  ),
+                ),
+
+              // ================= INPUT BAR =================
+              InputBar(
+                hintText: _inputHint(),
+                isRecording: _controller.isRecording,
+                recordingTime: _controller.recordingTimeFormatted,
+                onSendText: _controller.sendUserMessage,
+                onStartRecording: _controller.startVoiceRecording,
+                onStopRecordingAndSend: _controller.stopVoiceRecording,
+              ),
             ],
           ),
         ),
