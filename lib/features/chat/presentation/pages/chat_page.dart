@@ -74,12 +74,17 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get keyboard height to adjust layout
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: false, // Prevent keyboard from covering input bar
+      resizeToAvoidBottomInset: false, // Prevent automatic resize
       body: SafeArea(
-        child: Column(
-          children: [
+        child: Padding(
+          padding: EdgeInsets.only(bottom: keyboardHeight), // Push content above keyboard
+          child: Column(
+            children: [
             // ================= TOP BAR =================
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -182,7 +187,8 @@ class _ChatPageState extends State<ChatPage> {
               onStartRecording: _controller.startVoiceRecording,
               onStopRecordingAndSend: _controller.stopVoiceRecording,
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
