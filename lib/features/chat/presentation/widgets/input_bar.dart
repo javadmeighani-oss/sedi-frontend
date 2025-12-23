@@ -174,14 +174,17 @@ class _InputBarState extends State<InputBar> {
             const Spacer(),
 
             // RIGHT SIDE (bottom-right): Icons order from right to left
-            // [SEND] [SPEAKER] [TIMER (if recording)]
+            // Order: [SEND] (rightmost) → [SPEAKER] (middle) → [TIMER] (leftmost, if recording)
             Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // 1. Send icon (rightmost)
                 _buildSendIcon(hasText),
                 const SizedBox(width: 8),
+                // 2. Speaker icon (middle)
                 _buildSpeakerIcon(),
+                // 3. Timer (leftmost, only when recording)
                 if (widget.isRecording) ...[
                   const SizedBox(width: 8),
                   _buildRecordingTimer(),
