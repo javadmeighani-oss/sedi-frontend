@@ -76,7 +76,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false, // Prevent keyboard from covering input bar
       body: SafeArea(
         child: Column(
           children: [
