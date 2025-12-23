@@ -81,7 +81,7 @@ class _InputBarState extends State<InputBar> {
     // Remove SafeArea from InputBar - ChatPage handles it
     return Container(
       height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8), // Reduced horizontal margin to increase width 2.5x
       padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,
@@ -156,7 +156,6 @@ class _InputBarState extends State<InputBar> {
       ],
     );
   }
-
 
   /// Recording timer (appears after MIC when recording)
   /// Color: black (primaryBlack) to match Sedi theme
