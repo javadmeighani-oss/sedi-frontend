@@ -98,29 +98,27 @@ class _InputBarState extends State<InputBar> {
     // Compact height when not expanded or recording
     final height = (_isExpanded && !widget.isRecording) ? 120.0 : 56.0;
 
-    return SafeArea(
-      top: false,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        height: height,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundWhite,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          border: Border.all(
-            color: AppTheme.borderActive, // Using AppTheme semantic color
-            width: 1.5,
-          ),
-        ),
-        child: _isExpanded && !widget.isRecording
-            ? _buildExpandedLayout(hasText)
-            : _buildCompactLayout(hasText),
+    // Remove SafeArea from InputBar - ChatPage handles it
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      height: height,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 12,
       ),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        border: Border.all(
+          color: AppTheme.borderActive, // Using AppTheme semantic color
+          width: 1.5,
+        ),
+      ),
+      child: _isExpanded && !widget.isRecording
+          ? _buildExpandedLayout(hasText)
+          : _buildCompactLayout(hasText),
     );
   }
 
