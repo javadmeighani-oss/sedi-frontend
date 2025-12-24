@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../state/chat_controller.dart';
 import '../widgets/input_bar.dart';
@@ -28,6 +31,10 @@ class _ChatPageState extends State<ChatPage> {
   late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
 
+  // Double tap to exit variables
+  DateTime? _lastBackPressTime;
+  Timer? _backPressTimer;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +52,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    _backPressTimer?.cancel(); // Cancel timer if active
     _controller.removeListener(_onControllerChanged); // Remove listener
     _scrollController.dispose();
     _controller.dispose();
@@ -72,6 +80,55 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  /// Handle back button press with double tap to exit
+  bool _handleBackPress() {
+    final now = DateTime.now();
+    
+    // If this is the first tap or more than 2 seconds have passed
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      // First tap: show message and start timer
+      _lastBackPressTime = now;
+      
+      // Cancel previous timer if exists
+      _backPressTimer?.cancel();
+      
+      // Show snackbar message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'برای خروج دوباره back بزنید',
+            textDirection: TextDirection.rtl,
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppTheme.primaryBlack.withOpacity(0.8),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(
+            bottom: 100,
+            left: 16,
+            right: 16,
+          ),
+        ),
+      );
+      
+      // Reset counter after 2 seconds
+      _backPressTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _lastBackPressTime = null;
+          });
+        }
+      });
+      
+      return false; // Prevent exit
+    } else {
+      // Second tap within 2 seconds: exit app
+      _backPressTimer?.cancel();
+      SystemNavigator.pop(); // Exit the app
+      return true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get keyboard height to position InputBar above keyboard
@@ -80,16 +137,15 @@ class _ChatPageState extends State<ChatPage> {
     return PopScope(
       // Prevent back navigation to IntroPage
       // IntroPage should only appear once at app start
+      // Implement double tap to exit functionality
       canPop: false,
       onPopInvoked: (didPop) {
-        // If user tries to go back, exit the app instead
-        // This ensures IntroPage only appears once
         if (didPop) {
           // Already handled by system
           return;
         }
-        // Prevent navigation back to IntroPage
-        // User can exit app using system back button if needed
+        // Handle double tap to exit
+        _handleBackPress();
       },
       child: Scaffold(
         backgroundColor: AppTheme.backgroundWhite,
