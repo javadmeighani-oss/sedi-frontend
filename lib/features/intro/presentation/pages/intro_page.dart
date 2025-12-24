@@ -26,9 +26,9 @@ class IntroPage extends StatefulWidget {
 }
 
 class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
-  // Final logo size matching ChatPage header (168 * 0.78 * 0.7 ≈ 92)
-  static const double _finalLogoSize = 92.0;
-  static const double _initialLogoSize = 70.0; // Start smaller
+  // Final logo size: 20% larger than before (92 * 1.2 = 110.4)
+  static const double _finalLogoSize = 110.4;
+  static const double _initialLogoSize = 84.0; // Start smaller (70 * 1.2)
 
   late AnimationController _fadeInController;
   late AnimationController _scaleUpController;
@@ -49,7 +49,7 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     );
 
     _fadeInAnimation = Tween<double>(
-      begin: 0.0,
+      begin: 0.3, // 30% less transparent (30% more opacity from start)
       end: 1.0,
     ).animate(
       CurvedAnimation(
@@ -121,13 +121,24 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   void _navigateToChat() {
-    Navigator.of(context).pushReplacement(
+    // Use push instead of pushReplacement to allow both pages in transition
+    Navigator.of(context)
+        .push(
       _createCubeTransitionRoute(),
-    );
+    )
+        .then((_) {
+      // After transition completes, remove IntroPage from stack
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
   }
 
-  /// Right-to-left slide transition (simplified for reliability)
+  /// Dual transition: IntroPage exits left, ChatPage enters from right
   PageRouteBuilder _createCubeTransitionRoute() {
+    // Store reference to this state for building IntroPage
+    final introPageState = this;
+
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) {
         // Build ChatPage immediately to ensure it's ready
@@ -135,25 +146,47 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
       },
       transitionDuration: const Duration(milliseconds: 600),
       reverseTransitionDuration: const Duration(milliseconds: 600),
-      opaque: true, // Ensure the new page is opaque
+      opaque: false, // Allow both pages to be visible during transition
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Simple slide transition from right to left with fade
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: Curves.easeInOutCubic,
         );
 
-        // Slide from right to left
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1.0, 0.0), // Start from right
-            end: Offset.zero, // End at center
-          ).animate(curvedAnimation),
-          // Fade in simultaneously
-          child: FadeTransition(
-            opacity: curvedAnimation,
-            child: child,
-          ),
+        // Exit animation for IntroPage (slides left)
+        // secondaryAnimation goes from 1.0 to 0.0 for the exiting page
+        final exitAnimation = CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: Curves.easeInOutCubic,
+        );
+
+        return Stack(
+          children: [
+            // IntroPage: Exit to left (using secondaryAnimation)
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset.zero,
+                end: const Offset(-1.0, 0.0), // Exit to left
+              ).animate(exitAnimation),
+              child: FadeTransition(
+                opacity: exitAnimation,
+                child: Builder(
+                  builder: (context) => introPageState.build(context),
+                ),
+              ),
+            ),
+            // ChatPage: Enter from right
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0), // Start from right
+                end: Offset.zero, // End at center
+              ).animate(curvedAnimation),
+              child: FadeTransition(
+                opacity: curvedAnimation,
+                child: child, // New ChatPage
+              ),
+            ),
+          ],
         );
       },
     );
@@ -195,33 +228,39 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
               },
             ),
           ),
-          // Logo with animations
+          // Logo with animations (positioned 30% higher)
           SafeArea(
             child: Center(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([
-                  _fadeInAnimation,
-                  _scaleUpAnimation,
-                  _breathingAnimation,
-                ]),
-                builder: (context, child) {
-                  // Combined scale: scale up + breathing
-                  final combinedScale =
-                      _scaleUpAnimation.value * _breathingAnimation.value;
+              child: Transform.translate(
+                offset: Offset(
+                    0,
+                    -MediaQuery.of(context).size.height *
+                        0.15), // 30% higher (15% up from center)
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([
+                    _fadeInAnimation,
+                    _scaleUpAnimation,
+                    _breathingAnimation,
+                  ]),
+                  builder: (context, child) {
+                    // Combined scale: scale up + breathing
+                    final combinedScale =
+                        _scaleUpAnimation.value * _breathingAnimation.value;
 
-                  return Opacity(
-                    opacity: _fadeInAnimation.value,
-                    child: Transform.scale(
-                      scale: combinedScale,
-                      child: child,
-                    ),
-                  );
-                },
-                child: Image.asset(
-                  'assets/images/sedi_logo_1024.png',
-                  width: _finalLogoSize,
-                  height: _finalLogoSize,
-                  fit: BoxFit.contain,
+                    return Opacity(
+                      opacity: _fadeInAnimation.value,
+                      child: Transform.scale(
+                        scale: combinedScale,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Image.asset(
+                    'assets/images/sedi_logo_1024.png',
+                    width: _finalLogoSize,
+                    height: _finalLogoSize,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),

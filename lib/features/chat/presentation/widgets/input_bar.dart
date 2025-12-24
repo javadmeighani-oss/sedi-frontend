@@ -94,13 +94,13 @@ class _InputBarState extends State<InputBar> {
         horizontal: 16,
         vertical: 12,
       ),
-      decoration: BoxDecoration(
+        decoration: BoxDecoration(
         color: AppTheme.backgroundWhite,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(
+          border: Border.all(
           color: AppTheme.borderActive, // Using AppTheme semantic color
           width: 1.5,
-        ),
+          ),
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque, // Capture all taps in the container
@@ -111,7 +111,7 @@ class _InputBarState extends State<InputBar> {
           }
         },
         child: _buildNewLayout(hasText),
-      ),
+                  ),
     );
   }
 
@@ -152,7 +152,7 @@ class _InputBarState extends State<InputBar> {
                       style: const TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
-                      ),
+                  ),
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendText(),
                     ),
@@ -225,17 +225,17 @@ class _InputBarState extends State<InputBar> {
   Widget _buildSendIcon(bool hasText) {
     return GestureDetector(
       onTap: hasText ? _sendText : () {},
-      child: Container(
+                    child: Container(
         width: 38, // 32 * 1.2 = 38.4 ≈ 38
         height: 38,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
           color: hasText
               ? AppTheme.iconActive
               : AppTheme
                   .iconInactive, // Active when user types, inactive otherwise
         ),
-        child: const Icon(
+                      child: const Icon(
           Icons.arrow_upward_rounded,
           size: 24, // 20 * 1.2 = 24
           color: AppTheme.backgroundWhite, // Always white arrow
