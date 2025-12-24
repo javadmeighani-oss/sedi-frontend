@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/chat/presentation/pages/chat_page.dart';
+import 'features/intro/presentation/pages/intro_page.dart';
 
 class SediApp extends StatelessWidget {
   const SediApp({super.key});
@@ -43,7 +43,7 @@ class SediApp extends StatelessWidget {
       // ===============================
       // Entry Page
       // ===============================
-      home: const ChatPage(),
+      home: const IntroPage(),
     );
   }
 }

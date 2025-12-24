@@ -1,0 +1,216 @@
+import 'package:flutter/material.dart';
+
+import '../../../chat/presentation/pages/chat_page.dart';
+
+/// ============================================
+/// IntroPage - Pre-Welcome Screen
+/// ============================================
+/// 
+/// RESPONSIBILITY:
+/// - Full screen intro with cosmic sunrise background image
+/// - Sedi logo in center with breathing animation
+/// - Auto-transition to ChatPage after ~2 seconds
+/// - Right-to-left 3D cube transition animation
+/// 
+/// TIMELINE:
+/// 0.0s  IntroPage appears, background visible
+/// 0.2s  Logo fades in + starts breathing
+/// 1.4s  Breathing animation finishes
+/// 2.0s  Automatic navigation to ChatPage starts
+/// ============================================
+class IntroPage extends StatefulWidget {
+  const IntroPage({super.key});
+
+  @override
+  State<IntroPage> createState() => _IntroPageState();
+}
+
+class _IntroPageState extends State<IntroPage>
+    with TickerProviderStateMixin {
+  // Final logo size matching ChatPage header (168 * 0.78 * 0.7 ≈ 92)
+  static const double _finalLogoSize = 92.0;
+  static const double _initialLogoSize = 70.0; // Start smaller
+
+  late AnimationController _fadeInController;
+  late AnimationController _scaleUpController;
+  late AnimationController _breathingController;
+
+  late Animation<double> _fadeInAnimation;
+  late Animation<double> _scaleUpAnimation;
+  late Animation<double> _breathingAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Fade in animation (starts at 0.2s, duration 300ms)
+    _fadeInController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _fadeInAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _fadeInController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Scale up animation (from initial to final size, starts at 0.2s)
+    _scaleUpController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _scaleUpAnimation = Tween<double>(
+      begin: _initialLogoSize / _finalLogoSize, // ~0.76
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _scaleUpController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Breathing animation (0.96 → 1.00 → 0.96, one cycle only, 1200ms)
+    _breathingController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _breathingAnimation = Tween<double>(
+      begin: 0.96,
+      end: 1.00,
+    ).animate(
+      CurvedAnimation(
+        parent: _breathingController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Start animations with delays
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _fadeInController.forward();
+        _scaleUpController.forward();
+        // Breathing: one cycle (forward then reverse)
+        _breathingController.forward().then((_) {
+          if (mounted) {
+            _breathingController.reverse();
+          }
+        });
+      }
+    });
+
+    // Auto-transition to ChatPage after 2.0s
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        _navigateToChat();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeInController.dispose();
+    _scaleUpController.dispose();
+    _breathingController.dispose();
+    super.dispose();
+  }
+
+  void _navigateToChat() {
+    Navigator.of(context).pushReplacement(
+      _createCubeTransitionRoute(),
+    );
+  }
+
+  /// Right-to-left 3D cube transition
+  PageRouteBuilder _createCubeTransitionRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const ChatPage(),
+      transitionDuration: const Duration(milliseconds: 800),
+      reverseTransitionDuration: const Duration(milliseconds: 800),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // 3D cube rotation effect (right-to-left)
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+
+        return AnimatedBuilder(
+          animation: curvedAnimation,
+          builder: (context, child) {
+            // Calculate rotation angle (0 to 90 degrees)
+            final angle = curvedAnimation.value * 1.5708; // π/2 radians = 90°
+
+            // Transform: rotate around Y-axis and translate
+            return Transform(
+              alignment: Alignment.centerRight,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001) // Perspective
+                ..rotateY(angle)
+                ..translateX(-MediaQuery.of(context).size.width *
+                    curvedAnimation.value),
+              child: Opacity(
+                opacity: 1.0 - curvedAnimation.value,
+                child: child,
+              ),
+            );
+          },
+          child: child,
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        // Cosmic sunrise background image
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/cosmic_sunrise_background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([
+                _fadeInAnimation,
+                _scaleUpAnimation,
+                _breathingAnimation,
+              ]),
+              builder: (context, child) {
+                // Combined scale: scale up + breathing
+                final combinedScale =
+                    _scaleUpAnimation.value * _breathingAnimation.value;
+
+                return Opacity(
+                  opacity: _fadeInAnimation.value,
+                  child: Transform.scale(
+                    scale: combinedScale,
+                    child: child,
+                  ),
+                );
+              },
+              child: Image.asset(
+                'assets/images/sedi_logo_1024.png',
+                width: _finalLogoSize,
+                height: _finalLogoSize,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
