@@ -151,8 +151,8 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001) // Perspective
                 ..rotateY(angle)
-                ..translateX(
-                    -MediaQuery.of(context).size.width * curvedAnimation.value),
+                ..translate(
+                    -MediaQuery.of(context).size.width * curvedAnimation.value, 0, 0),
               child: Opacity(
                 opacity: 1.0 - curvedAnimation.value,
                 child: child,
