@@ -129,7 +129,10 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   /// Right-to-left 3D cube transition
   PageRouteBuilder _createCubeTransitionRoute() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const ChatPage(),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        // Build ChatPage immediately to ensure it's ready
+        return const ChatPage();
+      },
       transitionDuration: const Duration(milliseconds: 800),
       reverseTransitionDuration: const Duration(milliseconds: 800),
       opaque: true, // Ensure the new page is opaque
@@ -148,14 +151,18 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
             final screenWidth = MediaQuery.of(context).size.width;
 
             // Transform: rotate around Y-axis and translate from right to left
+            // Start from right (x = screenWidth) and move to center (x = 0)
+            final translateX = screenWidth * (1 - curvedAnimation.value);
+            
             return Transform(
               alignment: Alignment.centerRight,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001) // Perspective
                 ..rotateY(angle)
-                ..translate(-screenWidth * (1 - curvedAnimation.value), 0, 0),
+                ..translate(-translateX, 0, 0),
               child: Opacity(
-                opacity: curvedAnimation.value,
+                // Ensure opacity is always visible (minimum 0.8 for better visibility)
+                opacity: (0.8 + (curvedAnimation.value * 0.2)).clamp(0.8, 1.0),
                 child: child,
               ),
             );
