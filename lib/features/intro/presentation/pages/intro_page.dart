@@ -146,15 +146,18 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
             final angle = curvedAnimation.value * 1.5708; // π/2 radians = 90°
 
             // Transform: rotate around Y-axis and translate
+            // Opacity: starts at 0 (invisible) and goes to 1 (fully visible)
             return Transform(
               alignment: Alignment.centerRight,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001) // Perspective
                 ..rotateY(angle)
                 ..translate(
-                    -MediaQuery.of(context).size.width * curvedAnimation.value, 0, 0),
+                    -MediaQuery.of(context).size.width * curvedAnimation.value,
+                    0,
+                    0),
               child: Opacity(
-                opacity: 1.0 - curvedAnimation.value,
+                opacity: curvedAnimation.value, // Fixed: should be 1.0 when animation completes
                 child: child,
               ),
             );
