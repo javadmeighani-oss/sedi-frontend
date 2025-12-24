@@ -5,13 +5,13 @@ import '../../../chat/presentation/pages/chat_page.dart';
 /// ============================================
 /// IntroPage - Pre-Welcome Screen
 /// ============================================
-/// 
+///
 /// RESPONSIBILITY:
 /// - Full screen intro with cosmic sunrise background image
 /// - Sedi logo in center with breathing animation
 /// - Auto-transition to ChatPage after ~2 seconds
 /// - Right-to-left 3D cube transition animation
-/// 
+///
 /// TIMELINE:
 /// 0.0s  IntroPage appears, background visible
 /// 0.2s  Logo fades in + starts breathing
@@ -25,8 +25,7 @@ class IntroPage extends StatefulWidget {
   State<IntroPage> createState() => _IntroPageState();
 }
 
-class _IntroPageState extends State<IntroPage>
-    with TickerProviderStateMixin {
+class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   // Final logo size matching ChatPage header (168 * 0.78 * 0.7 ≈ 92)
   static const double _finalLogoSize = 92.0;
   static const double _initialLogoSize = 70.0; // Start smaller
@@ -130,8 +129,7 @@ class _IntroPageState extends State<IntroPage>
   /// Right-to-left 3D cube transition
   PageRouteBuilder _createCubeTransitionRoute() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          const ChatPage(),
+      pageBuilder: (context, animation, secondaryAnimation) => const ChatPage(),
       transitionDuration: const Duration(milliseconds: 800),
       reverseTransitionDuration: const Duration(milliseconds: 800),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -153,8 +151,8 @@ class _IntroPageState extends State<IntroPage>
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.001) // Perspective
                 ..rotateY(angle)
-                ..translateX(-MediaQuery.of(context).size.width *
-                    curvedAnimation.value),
+                ..translateX(
+                    -MediaQuery.of(context).size.width * curvedAnimation.value),
               child: Opacity(
                 opacity: 1.0 - curvedAnimation.value,
                 child: child,
