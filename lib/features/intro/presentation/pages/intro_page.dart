@@ -121,17 +121,11 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   void _navigateToChat() {
-    // Use push instead of pushReplacement to allow both pages in transition
-    Navigator.of(context)
-        .push(
+    // Use pushReplacement to remove IntroPage from stack
+    // This prevents user from going back to IntroPage
+    Navigator.of(context).pushReplacement(
       _createCubeTransitionRoute(),
-    )
-        .then((_) {
-      // After transition completes, remove IntroPage from stack
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-    });
+    );
   }
 
   /// Dual transition: IntroPage exits left, ChatPage enters from right

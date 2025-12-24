@@ -77,11 +77,25 @@ class _ChatPageState extends State<ChatPage> {
     // Get keyboard height to position InputBar above keyboard
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: false, // We handle keyboard manually
-      body: SafeArea(
-        child: Stack(
+    return PopScope(
+      // Prevent back navigation to IntroPage
+      // IntroPage should only appear once at app start
+      canPop: false,
+      onPopInvoked: (didPop) {
+        // If user tries to go back, exit the app instead
+        // This ensures IntroPage only appears once
+        if (didPop) {
+          // Already handled by system
+          return;
+        }
+        // Prevent navigation back to IntroPage
+        // User can exit app using system back button if needed
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundWhite,
+        resizeToAvoidBottomInset: false, // We handle keyboard manually
+        body: SafeArea(
+          child: Stack(
           children: [
             // ================= MAIN CONTENT =================
             Column(
@@ -205,6 +219,7 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
