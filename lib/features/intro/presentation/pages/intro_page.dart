@@ -170,46 +170,71 @@ class _IntroPageState extends State<IntroPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        // Cosmic sunrise background image
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/cosmic_sunrise_background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: Listenable.merge([
-                _fadeInAnimation,
-                _scaleUpAnimation,
-                _breathingAnimation,
-              ]),
-              builder: (context, child) {
-                // Combined scale: scale up + breathing
-                final combinedScale =
-                    _scaleUpAnimation.value * _breathingAnimation.value;
-
-                return Opacity(
-                  opacity: _fadeInAnimation.value,
-                  child: Transform.scale(
-                    scale: combinedScale,
-                    child: child,
+      body: Stack(
+        children: [
+          // Cosmic sunrise background image
+          // NOTE: Add 'cosmic_sunrise_background.png' to assets/images/
+          // Fallback gradient shown if image not found
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/cosmic_sunrise_background.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback gradient (cosmic sunrise colors) if image not found
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF1A1A2E), // Deep space blue
+                        Color(0xFF16213E), // Dark blue
+                        Color(0xFF0F3460), // Midnight blue
+                        Color(0xFF533483), // Purple
+                        Color(0xFFE94560), // Deep pink-red
+                        Color(0xFFFF6B6B), // Coral red
+                        Color(0xFFFFA07A), // Light salmon
+                        Color(0xFFFFD700), // Gold (sunrise)
+                      ],
+                      stops: [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.0],
+                    ),
                   ),
                 );
               },
-              child: Image.asset(
-                'assets/images/sedi_logo_1024.png',
-                width: _finalLogoSize,
-                height: _finalLogoSize,
-                fit: BoxFit.contain,
+            ),
+          ),
+          // Logo with animations
+          SafeArea(
+            child: Center(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _fadeInAnimation,
+                  _scaleUpAnimation,
+                  _breathingAnimation,
+                ]),
+                builder: (context, child) {
+                  // Combined scale: scale up + breathing
+                  final combinedScale =
+                      _scaleUpAnimation.value * _breathingAnimation.value;
+
+                  return Opacity(
+                    opacity: _fadeInAnimation.value,
+                    child: Transform.scale(
+                      scale: combinedScale,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Image.asset(
+                  'assets/images/sedi_logo_1024.png',
+                  width: _finalLogoSize,
+                  height: _finalLogoSize,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
