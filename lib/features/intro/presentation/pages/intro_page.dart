@@ -126,48 +126,34 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     );
   }
 
-  /// Right-to-left 3D cube transition
+  /// Right-to-left slide transition (simplified for reliability)
   PageRouteBuilder _createCubeTransitionRoute() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) {
         // Build ChatPage immediately to ensure it's ready
         return const ChatPage();
       },
-      transitionDuration: const Duration(milliseconds: 800),
-      reverseTransitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 600),
+      reverseTransitionDuration: const Duration(milliseconds: 600),
       opaque: true, // Ensure the new page is opaque
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // 3D cube rotation effect (right-to-left)
+        // Simple slide transition from right to left with fade
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: Curves.easeInOutCubic,
         );
 
-        return AnimatedBuilder(
-          animation: curvedAnimation,
-          builder: (context, child) {
-            // Calculate rotation angle (0 to 90 degrees)
-            final angle = curvedAnimation.value * 1.5708; // π/2 radians = 90°
-            final screenWidth = MediaQuery.of(context).size.width;
-
-            // Transform: rotate around Y-axis and translate from right to left
-            // Start from right (x = screenWidth) and move to center (x = 0)
-            final translateX = screenWidth * (1 - curvedAnimation.value);
-            
-            return Transform(
-              alignment: Alignment.centerRight,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // Perspective
-                ..rotateY(angle)
-                ..translate(-translateX, 0, 0),
-              child: Opacity(
-                // Ensure opacity is always visible (minimum 0.8 for better visibility)
-                opacity: (0.8 + (curvedAnimation.value * 0.2)).clamp(0.8, 1.0),
-                child: child,
-              ),
-            );
-          },
-          child: child,
+        // Slide from right to left
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1.0, 0.0), // Start from right
+            end: Offset.zero, // End at center
+          ).animate(curvedAnimation),
+          // Fade in simultaneously
+          child: FadeTransition(
+            opacity: curvedAnimation,
+            child: child,
+          ),
         );
       },
     );
