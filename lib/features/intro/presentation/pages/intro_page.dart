@@ -121,11 +121,48 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   void _navigateToChat() {
-    // Use pushReplacement to replace IntroPage with ChatPage
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const ChatPage(),
-      ),
+      _createCubeTransitionRoute(),
+    );
+  }
+
+  /// Right-to-left 3D cube transition
+  PageRouteBuilder _createCubeTransitionRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const ChatPage(),
+      transitionDuration: const Duration(milliseconds: 800),
+      reverseTransitionDuration: const Duration(milliseconds: 800),
+      opaque: true, // Ensure the new page is opaque
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // 3D cube rotation effect (right-to-left)
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+
+        return AnimatedBuilder(
+          animation: curvedAnimation,
+          builder: (context, child) {
+            // Calculate rotation angle (0 to 90 degrees)
+            final angle = curvedAnimation.value * 1.5708; // π/2 radians = 90°
+            final screenWidth = MediaQuery.of(context).size.width;
+
+            // Transform: rotate around Y-axis and translate from right to left
+            return Transform(
+              alignment: Alignment.centerRight,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001) // Perspective
+                ..rotateY(angle)
+                ..translate(-screenWidth * (1 - curvedAnimation.value), 0, 0),
+              child: Opacity(
+                opacity: curvedAnimation.value,
+                child: child,
+              ),
+            );
+          },
+          child: child,
+        );
+      },
     );
   }
 
