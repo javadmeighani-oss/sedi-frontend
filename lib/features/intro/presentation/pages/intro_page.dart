@@ -121,50 +121,11 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   void _navigateToChat() {
+    // Use pushReplacement to replace IntroPage with ChatPage
     Navigator.of(context).pushReplacement(
-      _createCubeTransitionRoute(),
-    );
-  }
-
-  /// Right-to-left 3D cube transition
-  PageRouteBuilder _createCubeTransitionRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const ChatPage(),
-      transitionDuration: const Duration(milliseconds: 800),
-      reverseTransitionDuration: const Duration(milliseconds: 800),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // 3D cube rotation effect (right-to-left)
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        );
-
-        return AnimatedBuilder(
-          animation: curvedAnimation,
-          builder: (context, child) {
-            // Calculate rotation angle (0 to 90 degrees)
-            final angle = curvedAnimation.value * 1.5708; // π/2 radians = 90°
-
-            // Transform: rotate around Y-axis and translate
-            // Opacity: starts at 0 (invisible) and goes to 1 (fully visible)
-            return Transform(
-              alignment: Alignment.centerRight,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // Perspective
-                ..rotateY(angle)
-                ..translate(
-                    -MediaQuery.of(context).size.width * curvedAnimation.value,
-                    0,
-                    0),
-              child: Opacity(
-                opacity: curvedAnimation.value, // Fixed: should be 1.0 when animation completes
-                child: child,
-              ),
-            );
-          },
-          child: child,
-        );
-      },
+      MaterialPageRoute(
+        builder: (context) => const ChatPage(),
+      ),
     );
   }
 
