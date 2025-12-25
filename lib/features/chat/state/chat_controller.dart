@@ -143,13 +143,45 @@ class ChatController extends ChangeNotifier {
       onboardingState = OnboardingState.completed;
       notifyListeners();
 
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'عالی! حالا می‌تونیم شروع کنیم 😊'
-            : currentLanguage == 'ar'
-                ? 'رائع! الآن يمكننا البدء 😊'
-                : 'Great! Now we can start 😊',
-      );
+      // Register user with backend
+      isThinking = true;
+      notifyListeners();
+
+      try {
+        final registrationMessage = await _chatService.registerUser(
+          userName!,
+          userPassword!,
+          currentLanguage,
+        );
+
+        isThinking = false;
+        notifyListeners();
+
+        if (registrationMessage != null && !registrationMessage.startsWith('REGISTRATION_ERROR')) {
+          // Show backend welcome message if registration successful
+          _addSediMessage(registrationMessage);
+        } else {
+          // Show default welcome message
+          _addSediMessage(
+            currentLanguage == 'fa'
+                ? 'عالی! حالا می‌تونیم شروع کنیم 😊'
+                : currentLanguage == 'ar'
+                    ? 'رائع! الآن يمكننا البدء 😊'
+                    : 'Great! Now we can start 😊',
+          );
+        }
+      } catch (_) {
+        isThinking = false;
+        notifyListeners();
+        // Show default welcome message on error
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'عالی! حالا می‌تونیم شروع کنیم 😊'
+              : currentLanguage == 'ar'
+                  ? 'رائع! الآن يمكننا البدء 😊'
+                  : 'Great! Now we can start 😊',
+        );
+      }
       return;
     }
 

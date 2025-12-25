@@ -44,6 +44,46 @@ class ChatService {
     return replies[Random().nextInt(replies.length)];
   }
 
+  /// Register user with backend (onboarding)
+  Future<String?> registerUser(String userName, String password, String language) async {
+    // ---------------- LOCAL MODE ----------------
+    if (AppConfig.useLocalMode) {
+      return null; // No registration needed in local mode
+    }
+
+    // ---------------- BACKEND MODE ----------------
+    try {
+      final uri = Uri.parse('${AppConfig.baseUrl}/interact/introduce').replace(
+        queryParameters: {
+          'name': userName,
+          'secret_key': password,
+          'lang': language,
+        },
+      );
+
+      final headers = await _buildHeaders();
+
+      final response = await http.post(
+        uri,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['message']?.toString();
+      }
+
+      // If user already exists (400), that's okay - they can still chat
+      if (response.statusCode == 400) {
+        return null; // User already exists, continue
+      }
+
+      return 'REGISTRATION_ERROR_${response.statusCode}';
+    } catch (e) {
+      return 'REGISTRATION_ERROR: ${e.toString()}';
+    }
+  }
+
   /// Send message to backend or mock
   Future<String> sendMessage(String userMessage) async {
     // ---------------- LOCAL MODE ----------------
