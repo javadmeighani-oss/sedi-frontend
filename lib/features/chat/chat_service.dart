@@ -157,10 +157,17 @@ class ChatService {
       }
 
       // Handle 422 (Validation Error) - usually means missing required parameter
+      // This can happen if backend hasn't been restarted after code changes
       if (response.statusCode == 422) {
         final body = jsonDecode(response.body);
         final errorDetail = body['detail']?.toString() ?? 'Validation error';
         print('[ChatService] 422 Error: $errorDetail');
+        
+        // Check if error is about missing name/secret_key (backend not updated)
+        if (errorDetail.contains('name') && errorDetail.contains('secret_key')) {
+          return 'BACKEND_UPDATE_REQUIRED: Backend needs to be restarted. Please contact administrator.';
+        }
+        
         return 'SERVER_ERROR_422: $errorDetail';
       }
 

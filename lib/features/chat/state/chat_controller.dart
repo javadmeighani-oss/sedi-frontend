@@ -198,6 +198,18 @@ class ChatController extends ChangeNotifier {
         return;
       }
 
+      // 4️⃣ Check for backend update required
+      if (response.startsWith('BACKEND_UPDATE_REQUIRED:')) {
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'سرور نیاز به به‌روزرسانی دارد. لطفاً با مدیر سیستم تماس بگیرید.'
+              : currentLanguage == 'ar'
+                  ? 'الخادم يحتاج إلى تحديث. يرجى الاتصال بمدير النظام.'
+                  : 'Server needs to be updated. Please contact administrator.',
+        );
+        return;
+      }
+
       if (response.isEmpty) {
         _addSediMessage(
           currentLanguage == 'fa'
