@@ -44,5 +44,4 @@ jobs:
           name: sedi-frontend-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
-          if-no-files-found: error
 
