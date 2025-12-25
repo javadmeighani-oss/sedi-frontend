@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/auth/auth_service.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/utils/user_preferences.dart';
 
 /// ------------------------------------------------------------
 /// ChatService
@@ -55,27 +56,48 @@ class ChatService {
 
     // ---------------- BACKEND MODE ----------------
     try {
-      final uri = Uri.parse('${AppConfig.baseUrl}/chat');
+      // Get user credentials from UserPreferences
+      final userName = await UserPreferences.getUserName();
+      final userPassword = await UserPreferences.getUserPassword();
+      
+      if (userName == null || userName.isEmpty || userPassword == null || userPassword.isEmpty) {
+        return 'AUTH_REQUIRED';
+      }
+
+      // Get current language
+      final currentLang = await UserPreferences.getUserLanguage();
+
+      // Backend uses /interact/chat with query parameters
+      final uri = Uri.parse('${AppConfig.baseUrl}/interact/chat').replace(
+        queryParameters: {
+          'name': userName,
+          'secret_key': userPassword, // Backend uses secret_key, we use password
+          'message': userMessage,
+          'lang': currentLang,
+        },
+      );
+
       final headers = await _buildHeaders();
 
       final response = await http.post(
         uri,
         headers: headers,
-        body: jsonEncode({'message': userMessage}),
       );
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        return body['reply']?.toString() ?? '';
+        // Backend returns 'message' field, not 'reply'
+        return body['message']?.toString() ?? '';
       }
 
-      if (response.statusCode == 401) {
+      if (response.statusCode == 401 || response.statusCode == 404) {
         return 'AUTH_REQUIRED';
       }
 
       return 'SERVER_ERROR_${response.statusCode}';
-    } catch (_) {
-      return 'NETWORK_ERROR';
+    } catch (e) {
+      // Better error handling for debugging
+      return 'NETWORK_ERROR: ${e.toString()}';
     }
   }
 }
