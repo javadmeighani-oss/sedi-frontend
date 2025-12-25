@@ -1,52 +1,60 @@
+/// ============================================
+/// NotificationCard - Contract-Compliant UI Component
+/// ============================================
+/// 
+/// RESPONSIBILITY:
+/// - Render notification based on contract fields only
+/// - No business logic
+/// - No intelligence
+/// ============================================
+
 import 'package:flutter/material.dart';
+import '../../../data/models/notification.dart';
+import '../../../data/models/notification_feedback.dart';
 
 class NotificationCard extends StatelessWidget {
-  final String title;
-  final String message;
-  final List<String> quickReplies;
-
-  final Function(String reply) onQuickReply;
-  final VoidCallback onLike;
-  final Function(String reason) onDislike;
+  final Notification notification;
+  final Function(NotificationFeedback) onFeedback;
 
   const NotificationCard({
     super.key,
-    required this.title,
-    required this.message,
-    required this.quickReplies,
-    required this.onQuickReply,
-    required this.onLike,
-    required this.onDislike,
+    required this.notification,
+    required this.onFeedback,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Determine visual style based on priority (structure only, no logic)
+    final priorityColor = _getPriorityColor(notification.priority);
+    final priorityBorderColor = _getPriorityBorderColor(notification.priority);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: priorityColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: priorityBorderColor, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // عنوان نوتیف
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          // Title (Contract: optional title)
+          if (notification.title != null) ...[
+            Text(
+              notification.title!,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+          ],
 
-          const SizedBox(height: 6),
-
-          // متن پیام
+          // Message (Contract: required message)
           Text(
-            message,
+            notification.message,
             style: const TextStyle(
               fontSize: 15,
               color: Colors.black87,
@@ -56,25 +64,28 @@ class NotificationCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // پاسخ‌های سریع
-          if (quickReplies.isNotEmpty)
+          // Actions (Contract Section 4)
+          if (notification.actions != null && notification.actions!.isNotEmpty)
             Wrap(
               spacing: 8,
-              children: quickReplies.map((reply) {
+              runSpacing: 8,
+              children: notification.actions!.map((action) {
                 return GestureDetector(
-                  onTap: () => onQuickReply(reply),
+                  onTap: () => _handleAction(context, action),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border.all(color: Colors.orange),
+                      border: Border.all(color: priorityBorderColor),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      reply,
-                      style: const TextStyle(
-                        color: Colors.orange,
+                      action.label,
+                      style: TextStyle(
+                        color: priorityBorderColor,
                         fontSize: 14,
                       ),
                     ),
@@ -85,25 +96,25 @@ class NotificationCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // لایک و دیسلایک
+          // Feedback Actions (Contract Section 5: like/dislike)
           Row(
             children: [
               GestureDetector(
-                onTap: onLike,
-                child: const Icon(Icons.thumb_up_alt_rounded,
-                    color: Colors.green, size: 22),
+                onTap: () => _handleLike(context),
+                child: const Icon(
+                  Icons.thumb_up_alt_rounded,
+                  color: Colors.green,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 16),
               GestureDetector(
-                onTap: () async {
-                  // دیسلایک → پرسش دلیل
-                  final reason = await _askReason(context);
-                  if (reason != null && reason.isNotEmpty) {
-                    onDislike(reason);
-                  }
-                },
-                child: const Icon(Icons.thumb_down_alt_rounded,
-                    color: Colors.red, size: 22),
+                onTap: () => _handleDislike(context),
+                child: const Icon(
+                  Icons.thumb_down_alt_rounded,
+                  color: Colors.red,
+                  size: 22,
+                ),
               ),
             ],
           ),
@@ -112,9 +123,64 @@ class NotificationCard extends StatelessWidget {
     );
   }
 
-  // ---------------------------------------------------------
-  //  پنجرهٔ گرفتن دلیل نارضایتی از کاربر
-  // ---------------------------------------------------------
+  // Helper: Get color based on priority (structure only)
+  Color _getPriorityColor(NotificationPriority priority) {
+    switch (priority) {
+      case NotificationPriority.low:
+        return Colors.blue;
+      case NotificationPriority.normal:
+        return Colors.orange;
+      case NotificationPriority.high:
+        return Colors.orange;
+      case NotificationPriority.urgent:
+        return Colors.red;
+    }
+  }
+
+  Color _getPriorityBorderColor(NotificationPriority priority) {
+    switch (priority) {
+      case NotificationPriority.low:
+        return Colors.blue;
+      case NotificationPriority.normal:
+        return Colors.orange;
+      case NotificationPriority.high:
+        return Colors.deepOrange;
+      case NotificationPriority.urgent:
+        return Colors.red;
+    }
+  }
+
+  // Handle action click (Contract Section 4)
+  void _handleAction(BuildContext context, NotificationAction action) {
+    final feedback = NotificationFeedback.create(
+      notificationId: notification.id,
+      actionId: action.id,
+      reaction: FeedbackReaction.interact,
+    );
+    onFeedback(feedback);
+  }
+
+  // Handle like (Contract Section 5)
+  void _handleLike(BuildContext context) {
+    final feedback = NotificationFeedback.create(
+      notificationId: notification.id,
+      reaction: FeedbackReaction.like,
+    );
+    onFeedback(feedback);
+  }
+
+  // Handle dislike (Contract Section 5)
+  void _handleDislike(BuildContext context) async {
+    final reason = await _askReason(context);
+    final feedback = NotificationFeedback.create(
+      notificationId: notification.id,
+      reaction: FeedbackReaction.dislike,
+      feedbackText: reason,
+    );
+    onFeedback(feedback);
+  }
+
+  // Get feedback text for dislike (Contract Section 5)
   Future<String?> _askReason(BuildContext context) async {
     final controller = TextEditingController();
 

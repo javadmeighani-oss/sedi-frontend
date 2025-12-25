@@ -1,33 +1,41 @@
-import 'package:flutter/material.dart';
-import '../../../data/models/chat_message.dart';
+/// ============================================
+/// NotificationHandler - Contract-Compliant Parser
+/// ============================================
+/// 
+/// RESPONSIBILITY:
+/// - Parse contract-compliant payloads from backend
+/// - No transformation hacks
+/// - No business logic
+/// ============================================
+
+import '../../../data/models/notification.dart';
 
 class NotificationHandler {
-  // ---------------------------------------------------------------------------------
-  // تبدیل پاسخ خام بک‌اند به ChatMessage برای UI
-  // بک‌اند ممکن است ساختار یا فیلدهای متفاوت ارسال کند، اینجا استانداردسازی می‌کنیم
-  // ---------------------------------------------------------------------------------
-  ChatMessage parseIncoming(Map<String, dynamic> json) {
-    final String type = json["type"] ?? "normal";
+  /// Parse notification from contract-compliant JSON
+  /// Contract Section 1
+  Notification parseNotification(Map<String, dynamic> json) {
+    return Notification.fromJson(json);
+  }
 
-    if (type == "notification") {
-      return ChatMessage(
-        id: json["id"] ?? UniqueKey().toString(),
-        text: json["text"] ?? "",
-        isUser: false,
-        type: "notification",
-        title: json["title"] ?? "Sedi",
-        quickReplies: json["quick_replies"] != null
-            ? List<String>.from(json["quick_replies"])
-            : [],
-      );
+  /// Parse list of notifications from API response
+  /// Contract Section 7 - GET /notifications response
+  List<Notification> parseNotificationList(Map<String, dynamic> response) {
+    if (response['ok'] != true) {
+      return [];
     }
 
-    // پیام معمولی چت
-    return ChatMessage(
-      id: json["id"] ?? UniqueKey().toString(),
-      text: json["text"] ?? "",
-      isUser: json["is_user"] ?? false,
-      type: "normal",
-    );
+    final data = response['data'] as Map<String, dynamic>?;
+    if (data == null) {
+      return [];
+    }
+
+    final notifications = data['notifications'] as List<dynamic>?;
+    if (notifications == null) {
+      return [];
+    }
+
+    return notifications
+        .map((n) => Notification.fromJson(n as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -85,7 +85,12 @@ class ChatService {
   }
 
   /// Send message to backend or mock
-  Future<String> sendMessage(String userMessage) async {
+  /// Returns response or 'SECURITY_CHECK_REQUIRED' if suspicious behavior detected
+  Future<String> sendMessage(
+    String userMessage, {
+    String? userName,
+    String? userPassword,
+  }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
       await Future.delayed(
@@ -96,25 +101,26 @@ class ChatService {
 
     // ---------------- BACKEND MODE ----------------
     try {
-      // Get user credentials from UserPreferences
-      final userName = await UserPreferences.getUserName();
-      final userPassword = await UserPreferences.getUserPassword();
-      
-      if (userName == null || userName.isEmpty || userPassword == null || userPassword.isEmpty) {
-        return 'AUTH_REQUIRED';
-      }
-
       // Get current language
       final currentLang = await UserPreferences.getUserLanguage();
 
+      // Build query parameters (name and password are optional for new users)
+      final queryParams = <String, String>{
+        'message': userMessage,
+        'lang': currentLang,
+      };
+
+      // Add credentials if available (not required for initial conversations)
+      if (userName != null && userName.isNotEmpty) {
+        queryParams['name'] = userName;
+      }
+      if (userPassword != null && userPassword.isNotEmpty) {
+        queryParams['secret_key'] = userPassword;
+      }
+
       // Backend uses /interact/chat with query parameters
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/chat').replace(
-        queryParameters: {
-          'name': userName,
-          'secret_key': userPassword, // Backend uses secret_key, we use password
-          'message': userMessage,
-          'lang': currentLang,
-        },
+        queryParameters: queryParams,
       );
 
       final headers = await _buildHeaders();
@@ -126,11 +132,19 @@ class ChatService {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        // Backend returns 'message' field, not 'reply'
+        
+        // Check for security flag in response (backend AI detected suspicious behavior)
+        if (body['requires_security_check'] == true) {
+          return 'SECURITY_CHECK_REQUIRED';
+        }
+        
+        // Backend returns 'message' field
         return body['message']?.toString() ?? '';
       }
 
       if (response.statusCode == 401 || response.statusCode == 404) {
+        // User not found - this is okay for new users, they can chat without registration
+        // Backend will create user automatically or return error
         return 'AUTH_REQUIRED';
       }
 
