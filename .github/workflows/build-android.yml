@@ -1,9 +1,11 @@
 name: Build Android APK
 
+# DISABLED: Using flutter-android.yml instead
+# This workflow is kept for reference but disabled
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+  # push:
+  #   branches: [ "main" ]
+  # workflow_dispatch:
 
 jobs:
   build:
