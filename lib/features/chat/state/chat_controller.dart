@@ -282,6 +282,20 @@ class ChatController extends ChangeNotifier {
     );
     await UserProfileManager.saveProfile(_userProfile);
     
+    // Register user with backend if name is available
+    if (_userProfile.name != null && _userProfile.name!.isNotEmpty) {
+      try {
+        await _chatService.registerUser(
+          _userProfile.name!,
+          _userProfile.securityPassword!,
+          currentLanguage,
+        );
+      } catch (e) {
+        // Registration error is not critical - user can still chat
+        print('[ChatController] Registration error: $e');
+      }
+    }
+    
     conversationState = ConversationState.chatting;
     notifyListeners();
 
@@ -298,6 +312,20 @@ class ChatController extends ChangeNotifier {
   Future<void> _handleNameCollection(String name) async {
     _userProfile = _userProfile.copyWith(name: name);
     await UserProfileManager.saveProfile(_userProfile);
+    
+    // Register user with backend if password is already set
+    if (_userProfile.securityPassword != null && _userProfile.securityPassword!.isNotEmpty) {
+      try {
+        await _chatService.registerUser(
+          _userProfile.name!,
+          _userProfile.securityPassword!,
+          currentLanguage,
+        );
+      } catch (e) {
+        // Registration error is not critical - user can still chat
+        print('[ChatController] Registration error: $e');
+      }
+    }
     
     conversationState = ConversationState.chatting;
     notifyListeners();
