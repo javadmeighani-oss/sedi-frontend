@@ -142,6 +142,11 @@ class ChatService {
       final response = await http.post(
         uri,
         headers: headers,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout - Server may be down');
+        },
       );
 
       if (response.statusCode == 200) {
@@ -191,6 +196,18 @@ class ChatService {
     } catch (e) {
       // Better error handling for debugging
       print('[ChatService] Exception: $e');
+      
+      final errorString = e.toString().toLowerCase();
+      
+      // Check for specific connection errors
+      if (errorString.contains('timeout') || 
+          errorString.contains('connection refused') ||
+          errorString.contains('failed host lookup') ||
+          errorString.contains('network is unreachable') ||
+          errorString.contains('socketexception')) {
+        return 'SERVER_CONNECTION_ERROR: سرور در دسترس نیست. لطفاً اتصال اینترنت را بررسی کنید یا با مدیر سیستم تماس بگیرید.';
+      }
+      
       return 'NETWORK_ERROR: ${e.toString()}';
     }
   }

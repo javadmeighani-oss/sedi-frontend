@@ -210,6 +210,13 @@ class ChatController extends ChangeNotifier {
         return;
       }
 
+      // 4️⃣ Check for server connection error
+      if (response.startsWith('SERVER_CONNECTION_ERROR:')) {
+        final errorMessage = response.replaceFirst('SERVER_CONNECTION_ERROR: ', '');
+        _addSediMessage(errorMessage);
+        return;
+      }
+
       if (response.isEmpty) {
         _addSediMessage(
           currentLanguage == 'fa'
