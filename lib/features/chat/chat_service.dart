@@ -101,29 +101,43 @@ class ChatService {
 
     // ---------------- BACKEND MODE ----------------
     try {
+      // Validate message is not empty
+      if (userMessage.trim().isEmpty) {
+        return 'NETWORK_ERROR: Message cannot be empty';
+      }
+
       // Get current language
       final currentLang = await UserPreferences.getUserLanguage();
 
       // Build query parameters (name and password are optional for new users)
       final queryParams = <String, String>{
-        'message': userMessage,
-        'lang': currentLang,
+        'message': userMessage.trim(), // Ensure trimmed
+        'lang': currentLang.isNotEmpty ? currentLang : 'en', // Default to 'en' if empty
       };
 
       // Add credentials if available (not required for initial conversations)
       if (userName != null && userName.isNotEmpty) {
-        queryParams['name'] = userName;
+        queryParams['name'] = userName.trim();
       }
       if (userPassword != null && userPassword.isNotEmpty) {
-        queryParams['secret_key'] = userPassword;
+        queryParams['secret_key'] = userPassword.trim();
       }
 
       // Backend uses /interact/chat with query parameters
-      final uri = Uri.parse('${AppConfig.baseUrl}/interact/chat').replace(
+      // Use Uri.https or Uri.http to ensure proper encoding
+      final baseUri = Uri.parse(AppConfig.baseUrl);
+      final uri = Uri(
+        scheme: baseUri.scheme,
+        host: baseUri.host,
+        port: baseUri.port,
+        path: '/interact/chat',
         queryParameters: queryParams,
       );
 
       final headers = await _buildHeaders();
+
+      // Debug: Print URL for troubleshooting (remove in production)
+      print('[ChatService] Sending request to: ${uri.toString()}');
 
       final response = await http.post(
         uri,
@@ -142,15 +156,34 @@ class ChatService {
         return body['message']?.toString() ?? '';
       }
 
+      // Handle 422 (Validation Error) - usually means missing required parameter
+      if (response.statusCode == 422) {
+        final body = jsonDecode(response.body);
+        final errorDetail = body['detail']?.toString() ?? 'Validation error';
+        print('[ChatService] 422 Error: $errorDetail');
+        return 'SERVER_ERROR_422: $errorDetail';
+      }
+
       if (response.statusCode == 401 || response.statusCode == 404) {
         // User not found - this is okay for new users, they can chat without registration
         // Backend will create user automatically or return error
         return 'AUTH_REQUIRED';
       }
 
+      // Log error response body for debugging
+      if (response.statusCode != 200) {
+        try {
+          final errorBody = jsonDecode(response.body);
+          print('[ChatService] Error ${response.statusCode}: $errorBody');
+        } catch (_) {
+          print('[ChatService] Error ${response.statusCode}: ${response.body}');
+        }
+      }
+
       return 'SERVER_ERROR_${response.statusCode}';
     } catch (e) {
       // Better error handling for debugging
+      print('[ChatService] Exception: $e');
       return 'NETWORK_ERROR: ${e.toString()}';
     }
   }
