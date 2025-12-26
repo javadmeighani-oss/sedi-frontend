@@ -44,6 +44,80 @@ class ChatService {
     return replies[Random().nextInt(replies.length)];
   }
 
+  /// Get greeting from backend (for new or returning users)
+  /// Returns greeting message or null if backend unavailable
+  Future<String?> getGreeting({
+    String? userName,
+    String? userPassword,
+    String? language,
+  }) async {
+    // ---------------- LOCAL MODE ---------------- 
+    if (AppConfig.useLocalMode) {
+      return null; // No greeting in local mode, use fallback
+    }
+
+    // ---------------- BACKEND MODE ---------------- 
+    try {
+      final currentLang = language ?? await UserPreferences.getUserLanguage();
+      final lang = currentLang.isNotEmpty ? currentLang : 'en';
+
+      // For new users without credentials, we can't use /greeting endpoint
+      // Instead, we'll use /chat with a special greeting message
+      // This allows backend to generate appropriate greeting
+      final queryParams = <String, String>{
+        'message': '__GREETING__', // Special marker for greeting
+        'lang': lang,
+      };
+
+      // Add credentials if available
+      if (userName != null && userName.isNotEmpty) {
+        queryParams['name'] = userName.trim();
+      }
+      if (userPassword != null && userPassword.isNotEmpty) {
+        queryParams['secret_key'] = userPassword.trim();
+      }
+
+      final baseUri = Uri.parse(AppConfig.baseUrl);
+      final uri = Uri(
+        scheme: baseUri.scheme,
+        host: baseUri.host,
+        port: baseUri.port,
+        path: '/interact/chat',
+        queryParameters: queryParams,
+      );
+
+      final headers = await _buildHeaders();
+      
+      final response = await http.post(
+        uri,
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 5), // Shorter timeout for greeting
+        onTimeout: () {
+          throw Exception('Greeting timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        
+        // Safe parsing - handle optional fields
+        final message = body['message'];
+        if (message != null && message.toString().isNotEmpty) {
+          return message.toString();
+        }
+      }
+
+      // If 401/404, user not registered yet - that's okay, use fallback
+      // If other error, also use fallback
+      return null;
+    } catch (e) {
+      // Any error - use fallback greeting
+      print('[ChatService] Greeting error (using fallback): $e');
+      return null;
+    }
+  }
+
   /// Register user with backend (onboarding)
   Future<String?> registerUser(String userName, String password, String language) async {
     // ---------------- LOCAL MODE ----------------

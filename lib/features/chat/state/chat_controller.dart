@@ -86,36 +86,55 @@ class ChatController extends ChangeNotifier {
     // Wait a bit for UI to settle
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // صدی شروع می‌کند به صحبت (proactive)
-    if (_userProfile.name == null) {
-      // کاربر جدید - صدی خودش را معرفی می‌کند
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'سلام! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿'
-            : currentLanguage == 'ar'
-                ? 'مرحباً! أنا صدي، رفيقك الذكي للعناية بالصحة 🌿'
-                : 'Hello! I\'m Sedi, your intelligent health companion 🌿',
+    // Try to get greeting from backend first
+    String? backendGreeting;
+    try {
+      backendGreeting = await _chatService.getGreeting(
+        userName: _userProfile.name,
+        userPassword: _userProfile.securityPassword,
+        language: currentLanguage,
       );
-      
-      await Future.delayed(const Duration(milliseconds: 1500));
-      
-      // ادامه مکالمه برای آشنایی
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خوشحالم که باهام صحبت می‌کنی! می‌خوای باهم بیشتر آشنا بشیم؟'
-            : currentLanguage == 'ar'
-                ? 'سعيد أن أتحدث معك! هل تريد أن نتعرف أكثر؟'
-                : 'I\'m happy to talk with you! Would you like to get to know each other better?',
-      );
+    } catch (e) {
+      // If backend greeting fails, we'll use fallback
+      print('[ChatController] Backend greeting failed: $e');
+    }
+
+    // Use backend greeting if available, otherwise use fallback
+    if (backendGreeting != null && backendGreeting.isNotEmpty) {
+      // Backend provided greeting - use it directly
+      _addSediMessage(backendGreeting);
     } else {
-      // کاربر بازگشته - صدی با نامش خوش‌آمد می‌گوید
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خوش برگشتی ${_userProfile.name} 😊'
-            : currentLanguage == 'ar'
-                ? 'مرحباً بعودتك ${_userProfile.name} 😊'
-                : 'Welcome back ${_userProfile.name} 😊',
-      );
+      // Fallback to hardcoded greeting (only if backend unavailable)
+      if (_userProfile.name == null) {
+        // کاربر جدید - صدی خودش را معرفی می‌کند
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'سلام! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿'
+              : currentLanguage == 'ar'
+                  ? 'مرحباً! أنا صدي، رفيقك الذكي للعناية بالصحة 🌿'
+                  : 'Hello! I\'m Sedi, your intelligent health companion 🌿',
+        );
+        
+        await Future.delayed(const Duration(milliseconds: 1500));
+        
+        // ادامه مکالمه برای آشنایی
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خوشحالم که باهام صحبت می‌کنی! می‌خوای باهم بیشتر آشنا بشیم؟'
+              : currentLanguage == 'ar'
+                  ? 'سعيد أن أتحدث معك! هل تريد أن نتعرف أكثر؟'
+                  : 'I\'m happy to talk with you! Would you like to get to know each other better?',
+        );
+      } else {
+        // کاربر بازگشته - صدی با نامش خوش‌آمد می‌گوید
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خوش برگشتی ${_userProfile.name} 😊'
+              : currentLanguage == 'ar'
+                  ? 'مرحباً بعودتك ${_userProfile.name} 😊'
+                  : 'Welcome back ${_userProfile.name} 😊',
+        );
+      }
     }
 
     conversationState = ConversationState.chatting;
