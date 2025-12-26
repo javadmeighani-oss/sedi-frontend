@@ -116,11 +116,13 @@ class ChatService {
 
       // If 401/404, user not registered yet - that's okay, use fallback
       // If other error, also use fallback
+      print('[ChatService] Greeting failed: Status ${response.statusCode}');
       return null;
     } catch (e) {
       // Any error - use fallback greeting
       print('[ChatService] Greeting error (using fallback): $e');
-      return null;
+      // Return special marker to indicate backend unavailable
+      return 'BACKEND_UNAVAILABLE';
     }
   }
 

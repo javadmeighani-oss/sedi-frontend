@@ -129,6 +129,24 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.chatting;
     notifyListeners();
 
+    // Test backend connection first
+    final isConnected = await _chatService.testConnection();
+    if (!isConnected) {
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
+                'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
+            : currentLanguage == 'ar'
+                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
+                    'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
+                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
+                    'You can still talk to me, but my responses will be predefined.',
+      );
+      // Continue with fallback greeting
+      await _showFallbackGreeting();
+      return;
+    }
+
     // Try to get greeting from backend first
     String? backendGreeting;
     try {
@@ -147,40 +165,74 @@ class ChatController extends ChangeNotifier {
 
     // Use backend greeting if available, otherwise use fallback
     if (backendGreeting != null && backendGreeting.isNotEmpty) {
+      // Check if backend is unavailable
+      if (backendGreeting == 'BACKEND_UNAVAILABLE') {
+        // Backend is not available - show connection error and fallback
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
+                  'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
+              : currentLanguage == 'ar'
+                  ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
+                      'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
+                  : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
+                      'You can still talk to me, but my responses will be predefined.',
+        );
+        await _showFallbackGreeting();
+        return;
+      }
+      
       // Backend provided greeting - use it directly
       _addSediMessage(backendGreeting);
     } else {
-      // Fallback to hardcoded greeting (only if backend unavailable)
-      if (_userProfile.name == null) {
-        // کاربر جدید - صدی خودش را معرفی می‌کند
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'سلام! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿'
-              : currentLanguage == 'ar'
-                  ? 'مرحباً! أنا صدي، رفيقك الذكي للعناية بالصحة 🌿'
-                  : 'Hello! I\'m Sedi, your intelligent health companion 🌿',
-        );
-        
-        await Future.delayed(const Duration(milliseconds: 1500));
-        
-        // ادامه مکالمه برای آشنایی
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'خوشحالم که باهام صحبت می‌کنی! می‌خوای باهم بیشتر آشنا بشیم؟'
-              : currentLanguage == 'ar'
-                  ? 'سعيد أن أتحدث معك! هل تريد أن نتعرف أكثر؟'
-                  : 'I\'m happy to talk with you! Would you like to get to know each other better?',
-        );
-      } else {
-        // کاربر بازگشته - صدی با نامش خوش‌آمد می‌گوید
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'خوش برگشتی ${_userProfile.name} 😊'
-              : currentLanguage == 'ar'
-                  ? 'مرحباً بعودتك ${_userProfile.name} 😊'
-                  : 'Welcome back ${_userProfile.name} 😊',
-        );
-      }
+      // Backend didn't respond - show connection error and fallback
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
+                'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
+            : currentLanguage == 'ar'
+                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
+                    'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
+                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
+                    'You can still talk to me, but my responses will be predefined.',
+      );
+      await _showFallbackGreeting();
+    }
+  }
+
+  /// Show fallback greeting when backend is unavailable
+  Future<void> _showFallbackGreeting() async {
+    if (_userProfile.name == null) {
+      // کاربر جدید - صدی خودش را معرفی می‌کند
+      await Future.delayed(const Duration(milliseconds: 1500));
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'سلام! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿'
+            : currentLanguage == 'ar'
+                ? 'مرحباً! أنا صدي، رفيقك الذكي للعناية بالصحة 🌿'
+                : 'Hello! I\'m Sedi, your intelligent health companion 🌿',
+      );
+      
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      // ادامه مکالمه برای آشنایی
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'خوشحالم که باهام صحبت می‌کنی! می‌خوای باهم بیشتر آشنا بشیم؟'
+            : currentLanguage == 'ar'
+                ? 'سعيد أن أتحدث معك! هل تريد أن نتعرف أكثر؟'
+                : 'I\'m happy to talk with you! Would you like to get to know each other better?',
+      );
+    } else {
+      // کاربر بازگشته - صدی با نامش خوش‌آمد می‌گوید
+      await Future.delayed(const Duration(milliseconds: 1500));
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'خوش برگشتی ${_userProfile.name} 😊'
+            : currentLanguage == 'ar'
+                ? 'مرحباً بعودتك ${_userProfile.name} 😊'
+                : 'Welcome back ${_userProfile.name} 😊',
+      );
     }
   }
 
