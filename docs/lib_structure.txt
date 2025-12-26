@@ -1,0 +1,65 @@
+│           
+├───lib
+│   │   app.dart
+│   │   main.dart
+│   │   
+│   ├───core
+│   │   ├───config
+│   │   │       app_config.dart
+│   │   │       
+│   │   ├───network
+│   │   │       api_client.dart
+│   │   │       
+│   │   └───theme
+│   │           app_theme.dart
+│   │           
+│   ├───data
+│   │   ├───dto
+│   │   │       interact_request.dart
+│   │   │       interact_response.dart
+│   │   │       
+│   │   ├───models
+│   │   │       chat_message.dart
+│   │   │       user_profile.dart
+│   │   │       
+│   │   └───repositories
+│   │           chat_repository.dart
+│   │           
+│   ├───features
+│   │   ├───chat
+│   │   │   │   chat_service.dart
+│   │   │   │   
+│   │   │   ├───presentation
+│   │   │   │   ├───pages
+│   │   │   │   │       chat_page.dart
+│   │   │   │   │       
+│   │   │   │   └───widgets
+│   │   │   │           input_bar.dart
+│   │   │   │           message_bubble.dart
+│   │   │   │           rotary_scrollbar.dart
+│   │   │   │           sedi_header.dart
+│   │   │   │           sedi_ring_anim.dart
+│   │   │   │           
+│   │   │   ├───screens
+│   │   │   │       chat_screen.dart
+│   │   │   │       
+│   │   │   └───state
+│   │   │           chat_controller.dart
+│   │   │           chat_message.dart
+│   │   │           
+│   │   └───notification
+│   │       ├───data
+│   │       │   └───models
+│   │       │           sedi_notification.dart
+│   │       │           
+│   │       ├───logic
+│   │       │       notification_handler.dart
+│   │       │       notification_test.dart
+│   │       │       
+│   │       └───presentation
+│   │           └───widgets
+│   │                   notification_card.dart
+│   │                   
+│   └───utils
+│           time_utils.dart
+│           
