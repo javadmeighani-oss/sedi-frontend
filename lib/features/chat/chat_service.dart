@@ -114,23 +114,26 @@ class ChatService {
         final userId = body['user_id'] as int?;
         
         if (message != null && message.toString().isNotEmpty) {
+          print('[ChatService] Greeting success - message received from backend');
           // Return message with user_id if available (for anonymous users)
           if (userId != null) {
             return 'USER_ID:$userId|MESSAGE:${message.toString()}';
           }
           return message.toString();
+        } else {
+          print('[ChatService] Greeting response empty - message field is null or empty');
+        }
+      } else {
+        // Log error details for debugging
+        print('[ChatService] Greeting failed: Status ${response.statusCode}');
+        try {
+          final errorBody = jsonDecode(response.body);
+          print('[ChatService] Error body: $errorBody');
+        } catch (_) {
+          print('[ChatService] Error body (raw): ${response.body}');
         }
       }
 
-      // Log error details for debugging
-      print('[ChatService] Greeting failed: Status ${response.statusCode}');
-      try {
-        final errorBody = jsonDecode(response.body);
-        print('[ChatService] Error body: $errorBody');
-      } catch (_) {
-        print('[ChatService] Error body (raw): ${response.body}');
-      }
-      
       // If 401/404, user not registered yet - that's okay, use fallback
       // If other error, also use fallback
       return null;
@@ -302,10 +305,11 @@ class ChatService {
       if (response.statusCode == 422) {
         final body = jsonDecode(response.body);
         final errorDetail = body['detail']?.toString() ?? 'Validation error';
-        print('[ChatService] 422 Error: $errorDetail');
+        print('[ChatService] 422 Validation Error: $errorDetail');
         
         // Check if error is about missing name/secret_key (backend not updated)
         if (errorDetail.contains('name') && errorDetail.contains('secret_key')) {
+          print('[ChatService] Backend needs restart - name/secret_key still required');
           return 'BACKEND_UPDATE_REQUIRED: Backend needs to be restarted. Please contact administrator.';
         }
         
@@ -313,8 +317,10 @@ class ChatService {
       }
 
       if (response.statusCode == 401 || response.statusCode == 404) {
+        print('[ChatService] Auth error: Status ${response.statusCode}');
         // User not found - this is okay for new users, they can chat without registration
         // Backend will create user automatically or return error
+        // But with anonymous users support, this shouldn't happen
         return 'AUTH_REQUIRED';
       }
 
