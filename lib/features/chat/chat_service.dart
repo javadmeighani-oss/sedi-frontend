@@ -88,15 +88,23 @@ class ChatService {
 
       final headers = await _buildHeaders();
       
+      print('[ChatService] Greeting request - URL: ${uri.toString()}');
+      print('[ChatService] Greeting request - Headers: $headers');
+      print('[ChatService] Greeting request - Query params: $queryParams');
+      
       final response = await http.post(
         uri,
         headers: headers,
       ).timeout(
-        const Duration(seconds: 5), // Shorter timeout for greeting
+        const Duration(seconds: 10), // Increased timeout for greeting
         onTimeout: () {
+          print('[ChatService] Greeting request timeout after 10 seconds');
           throw Exception('Greeting timeout');
         },
       );
+      
+      print('[ChatService] Greeting response - Status: ${response.statusCode}');
+      print('[ChatService] Greeting response - Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -114,13 +122,23 @@ class ChatService {
         }
       }
 
+      // Log error details for debugging
+      print('[ChatService] Greeting failed: Status ${response.statusCode}');
+      try {
+        final errorBody = jsonDecode(response.body);
+        print('[ChatService] Error body: $errorBody');
+      } catch (_) {
+        print('[ChatService] Error body (raw): ${response.body}');
+      }
+      
       // If 401/404, user not registered yet - that's okay, use fallback
       // If other error, also use fallback
-      print('[ChatService] Greeting failed: Status ${response.statusCode}');
       return null;
     } catch (e) {
       // Any error - use fallback greeting
       print('[ChatService] Greeting error (using fallback): $e');
+      print('[ChatService] Error type: ${e.runtimeType}');
+      print('[ChatService] Full error: ${e.toString()}');
       // Return special marker to indicate backend unavailable
       return 'BACKEND_UNAVAILABLE';
     }
@@ -242,6 +260,8 @@ class ChatService {
 
       // Debug: Print URL for troubleshooting (remove in production)
       print('[ChatService] Sending request to: ${uri.toString()}');
+      print('[ChatService] Headers: $headers');
+      print('[ChatService] Query params: $queryParams');
 
       final response = await http.post(
         uri,
@@ -249,9 +269,13 @@ class ChatService {
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
+          print('[ChatService] Request timeout after 10 seconds');
           throw Exception('Connection timeout - Server may be down');
         },
       );
+      
+      print('[ChatService] Response status: ${response.statusCode}');
+      print('[ChatService] Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);

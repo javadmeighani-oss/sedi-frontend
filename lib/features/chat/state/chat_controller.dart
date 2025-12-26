@@ -129,38 +129,27 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.chatting;
     notifyListeners();
 
-    // Test backend connection first
-    final isConnected = await _chatService.testConnection();
-    if (!isConnected) {
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
-                'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
-            : currentLanguage == 'ar'
-                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
-                    'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
-                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
-                    'You can still talk to me, but my responses will be predefined.',
-      );
-      // Continue with fallback greeting
-      await _showFallbackGreeting();
-      return;
-    }
+    print('[ChatController] Starting greeting with language: $currentLanguage');
+    print('[ChatController] User profile: name=${_userProfile.name}, userId=${_userProfile.userId}');
 
     // Try to get greeting from backend first
     String? backendGreeting;
     try {
+      print('[ChatController] Attempting to get greeting from backend...');
       backendGreeting = await _chatService.getGreeting(
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
         language: currentLanguage,
       );
+      print('[ChatController] Backend greeting received: ${backendGreeting != null ? "Yes" : "No"}');
       
       // Parse user_id if present
       backendGreeting = _parseResponse(backendGreeting);
+      print('[ChatController] Parsed greeting: ${backendGreeting?.substring(0, backendGreeting.length > 50 ? 50 : backendGreeting.length)}...');
     } catch (e) {
       // If backend greeting fails, we'll use fallback
-      print('[ChatController] Backend greeting failed: $e');
+      print('[ChatController] Backend greeting failed with exception: $e');
+      print('[ChatController] Exception type: ${e.runtimeType}');
     }
 
     // Use backend greeting if available, otherwise use fallback
