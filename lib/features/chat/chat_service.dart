@@ -264,10 +264,13 @@ class ChatService {
 
       final headers = await _buildHeaders();
 
-      // Debug: Print URL for troubleshooting (remove in production)
-      print('[ChatService] Sending request to: ${uri.toString()}');
+      // Debug: Print URL for troubleshooting (TEMPORARY - for verification)
+      print('[ChatService] ===== SENDING TO BACKEND =====');
+      print('[ChatService] URL: ${uri.toString()}');
+      print('[ChatService] Method: POST');
       print('[ChatService] Headers: $headers');
       print('[ChatService] Query params: $queryParams');
+      print('[ChatService] Message: "$userMessage"');
 
       final response = await http.post(
         uri,
@@ -280,8 +283,15 @@ class ChatService {
         },
       );
       
-      print('[ChatService] Response status: ${response.statusCode}');
+      print('[ChatService] ===== BACKEND RESPONSE =====');
+      print('[ChatService] Status: ${response.statusCode}');
       print('[ChatService] Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        print('[ChatService] ✅ SUCCESS - Backend responded');
+      } else {
+        print('[ChatService] ❌ ERROR - Status ${response.statusCode}');
+      }
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);

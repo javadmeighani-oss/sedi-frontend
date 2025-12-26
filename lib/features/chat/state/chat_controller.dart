@@ -152,78 +152,42 @@ class ChatController extends ChangeNotifier {
       print('[ChatController] Exception type: ${e.runtimeType}');
     }
 
-    // Use backend greeting if available, otherwise use fallback
+    // Use backend greeting if available, otherwise show error (NO FALLBACK)
     if (backendGreeting != null && backendGreeting.isNotEmpty) {
       // Check if backend is unavailable
       if (backendGreeting == 'BACKEND_UNAVAILABLE') {
-        // Backend is not available - show connection error and fallback
+        // Backend is not available - show error only, NO fallback greeting
+        print('[ChatController] ERROR: Backend unavailable - showing error state only');
         _addSediMessage(
           currentLanguage == 'fa'
-              ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
-                  'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
+              ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
               : currentLanguage == 'ar'
-                  ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
-                      'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
-                  : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
-                      'You can still talk to me, but my responses will be predefined.',
+                  ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
+                  : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
         );
-        await _showFallbackGreeting();
-        return;
+        return; // STOP - do not show any fallback greeting
       }
       
       // Backend provided greeting - use it directly
+      print('[ChatController] Using backend greeting (length: ${backendGreeting.length})');
       _addSediMessage(backendGreeting);
     } else {
-      // Backend didn't respond - show connection error and fallback
+      // Backend didn't respond - show error only, NO fallback greeting
+      print('[ChatController] ERROR: Backend greeting returned null - showing error state only');
       _addSediMessage(
         currentLanguage == 'fa'
-            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید یا بعداً دوباره تلاش کنید. 😔\n\n'
-                'در حال حاضر می‌توانید با من صحبت کنید اما پاسخ‌های من از پیش تعریف شده هستند.'
+            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
             : currentLanguage == 'ar'
-                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت أو المحاولة مرة أخرى لاحقًا. 😔\n\n'
-                    'يمكنك التحدث معي الآن ولكن ردودي محددة مسبقًا.'
-                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection or try again later. 😔\n\n'
-                    'You can still talk to me, but my responses will be predefined.',
+                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
+                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
       );
-      await _showFallbackGreeting();
+      // STOP - do not show any fallback greeting
     }
   }
 
-  /// Show fallback greeting when backend is unavailable
-  Future<void> _showFallbackGreeting() async {
-    if (_userProfile.name == null) {
-      // کاربر جدید - صدی خودش را معرفی می‌کند
-      await Future.delayed(const Duration(milliseconds: 1500));
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'سلام! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿'
-            : currentLanguage == 'ar'
-                ? 'مرحباً! أنا صدي، رفيقك الذكي للعناية بالصحة 🌿'
-                : 'Hello! I\'m Sedi, your intelligent health companion 🌿',
-      );
-      
-      await Future.delayed(const Duration(milliseconds: 1500));
-      
-      // ادامه مکالمه برای آشنایی
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خوشحالم که باهام صحبت می‌کنی! می‌خوای باهم بیشتر آشنا بشیم؟'
-            : currentLanguage == 'ar'
-                ? 'سعيد أن أتحدث معك! هل تريد أن نتعرف أكثر؟'
-                : 'I\'m happy to talk with you! Would you like to get to know each other better?',
-      );
-    } else {
-      // کاربر بازگشته - صدی با نامش خوش‌آمد می‌گوید
-      await Future.delayed(const Duration(milliseconds: 1500));
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خوش برگشتی ${_userProfile.name} 😊'
-            : currentLanguage == 'ar'
-                ? 'مرحباً بعودتك ${_userProfile.name} 😊'
-                : 'Welcome back ${_userProfile.name} 😊',
-      );
-    }
-  }
+  // REMOVED: _showFallbackGreeting() - No fallback greetings allowed
+  // All greetings MUST come from backend Conversation Brain
+  // If backend is unavailable, only error message is shown
 
   /// Parse response to extract user_id and return clean message
   String _parseResponse(String? response) {
@@ -314,7 +278,7 @@ class ChatController extends ChangeNotifier {
     // ---------------------------
     if (conversationState == ConversationState.askingName) {
       await _handleNameCollection(trimmed);
-      // Continue to normal chat after name
+      return; // Prevent duplicate message - name is collected, don't add as chat message
     }
 
     // ---------------------------
@@ -340,12 +304,17 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 3️⃣ Send to backend (may return security flag)
+      // 3️⃣ Send to backend (ALWAYS - no short-circuit, no mock)
+      print('[ChatController] Sending message to backend: "${trimmed.substring(0, trimmed.length > 50 ? 50 : trimmed.length)}..."');
+      print('[ChatController] User: name=${_userProfile.name}, userId=${_userProfile.userId}, lang=$currentLanguage');
+      
       final response = await _chatService.sendMessage(
         trimmed,
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
       );
+      
+      print('[ChatController] Backend response received: ${response.substring(0, response.length > 100 ? 100 : response.length)}...');
 
       // 4️⃣ Check for security requirements
       if (response == 'SECURITY_CHECK_REQUIRED') {
@@ -383,9 +352,12 @@ class ChatController extends ChangeNotifier {
       } else {
         // Parse response to extract user_id and get clean message
         final messageToDisplay = _parseResponse(response);
+        print('[ChatController] Parsed message to display (length: ${messageToDisplay.length})');
         _addSediMessage(messageToDisplay);
         
         // 5️⃣ Check if we should ask for name (AI-driven, after a few messages)
+        // NOTE: This is frontend-driven, but backend Conversation Brain may also ask
+        // Backend is the authority - frontend only suggests
         if (_userProfile.name == null && _userProfile.conversationCount >= 2) {
           await _maybeAskForName();
         }
@@ -395,13 +367,16 @@ class ChatController extends ChangeNotifier {
           await _maybeAskForSecurityPassword();
         }
       }
-    } catch (_) {
+    } catch (e) {
+      // Log error details for debugging
+      print('[ChatController] ERROR sending message: $e');
+      print('[ChatController] Error type: ${e.runtimeType}');
       _addSediMessage(
         currentLanguage == 'fa'
-            ? 'خطا در ارسال پیام'
+            ? 'خطا در ارسال پیام به سرور. لطفاً دوباره تلاش کنید.'
             : currentLanguage == 'ar'
-                ? 'خطأ في إرسال الرسالة'
-                : 'Error sending message',
+                ? 'خطأ في إرسال الرسالة إلى الخادم. يرجى المحاولة مرة أخرى.'
+                : 'Error sending message to server. Please try again.',
       );
     }
   }
