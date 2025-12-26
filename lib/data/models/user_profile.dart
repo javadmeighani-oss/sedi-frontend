@@ -12,6 +12,7 @@ class UserProfile {
   // Basic Information
   final String? name; // User's name (for familiarity, optional)
   final String? securityPassword; // Security password (for suspicious behavior verification)
+  final int? userId; // Backend user ID (for anonymous users and registration)
   
   // Preferences
   final String preferredLanguage; // 'en', 'fa', 'ar'
@@ -28,6 +29,7 @@ class UserProfile {
   UserProfile({
     this.name,
     this.securityPassword,
+    this.userId,
     this.preferredLanguage = 'en',
     this.hasSecurityPassword = false,
     this.securityPasswordSetAt,
@@ -41,6 +43,7 @@ class UserProfile {
     return UserProfile(
       name: json['name'] as String?,
       securityPassword: json['security_password'] as String?,
+      userId: json['user_id'] as int?,
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
       hasSecurityPassword: json['has_security_password'] as bool? ?? false,
       securityPasswordSetAt: json['security_password_set_at'] != null
@@ -57,6 +60,7 @@ class UserProfile {
     return {
       if (name != null) 'name': name,
       if (securityPassword != null) 'security_password': securityPassword,
+      if (userId != null) 'user_id': userId,
       'preferred_language': preferredLanguage,
       'has_security_password': hasSecurityPassword,
       if (securityPasswordSetAt != null)
@@ -71,6 +75,7 @@ class UserProfile {
   UserProfile copyWith({
     String? name,
     String? securityPassword,
+    int? userId,
     String? preferredLanguage,
     bool? hasSecurityPassword,
     DateTime? securityPasswordSetAt,
@@ -81,6 +86,7 @@ class UserProfile {
     return UserProfile(
       name: name ?? this.name,
       securityPassword: securityPassword ?? this.securityPassword,
+      userId: userId ?? this.userId,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       hasSecurityPassword: hasSecurityPassword ?? this.hasSecurityPassword,
       securityPasswordSetAt: securityPasswordSetAt ?? this.securityPasswordSetAt,

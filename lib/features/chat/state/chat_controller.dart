@@ -245,7 +245,23 @@ class ChatController extends ChangeNotifier {
                   : 'Connection issue occurred.',
         );
       } else {
-        _addSediMessage(response);
+        // Check if response contains user_id (for anonymous users)
+        String messageToDisplay = response;
+        if (response.startsWith('USER_ID:')) {
+          final parts = response.split('|MESSAGE:');
+          if (parts.length == 2) {
+            final userIdStr = parts[0].replaceFirst('USER_ID:', '');
+            final userId = int.tryParse(userIdStr);
+            if (userId != null && _userProfile.userId == null) {
+              // Save user_id for anonymous user
+              _userProfile = _userProfile.copyWith(userId: userId);
+              await UserProfileManager.saveProfile(_userProfile);
+            }
+            messageToDisplay = parts[1];
+          }
+        }
+        
+        _addSediMessage(messageToDisplay);
         
         // 5️⃣ Check if we should ask for name (AI-driven, after a few messages)
         if (_userProfile.name == null && _userProfile.conversationCount >= 2) {
@@ -320,14 +336,22 @@ class ChatController extends ChangeNotifier {
     );
     await UserProfileManager.saveProfile(_userProfile);
     
-    // Register user with backend if name is available
+    // Register user with backend if name is already set
+    // If user_id exists (anonymous user), upgrade it; otherwise create new user
     if (_userProfile.name != null && _userProfile.name!.isNotEmpty) {
       try {
-        await _chatService.registerUser(
+        final result = await _chatService.registerUser(
           _userProfile.name!,
           _userProfile.securityPassword!,
           currentLanguage,
+          existingUserId: _userProfile.userId, // Upgrade anonymous user if exists
         );
+        
+        // Update user_id if returned
+        if (result['user_id'] != null) {
+          _userProfile = _userProfile.copyWith(userId: result['user_id'] as int);
+          await UserProfileManager.saveProfile(_userProfile);
+        }
       } catch (e) {
         // Registration error is not critical - user can still chat
         print('[ChatController] Registration error: $e');
@@ -336,7 +360,7 @@ class ChatController extends ChangeNotifier {
     
     conversationState = ConversationState.chatting;
     notifyListeners();
-
+    
     _addSediMessage(
       currentLanguage == 'fa'
           ? 'عالی! رمز امنیتی شما تنظیم شد. حالا می‌تونیم با اطمینان بیشتر ادامه بدیم 😊'

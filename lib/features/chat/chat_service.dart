@@ -103,7 +103,13 @@ class ChatService {
         
         // Safe parsing - handle optional fields
         final message = body['message'];
+        final userId = body['user_id'] as int?;
+        
         if (message != null && message.toString().isNotEmpty) {
+          // Return message with user_id if available (for anonymous users)
+          if (userId != null) {
+            return 'USER_ID:$userId|MESSAGE:${message.toString()}';
+          }
           return message.toString();
         }
       }
@@ -119,20 +125,33 @@ class ChatService {
   }
 
   /// Register user with backend (onboarding)
-  Future<String?> registerUser(String userName, String password, String language) async {
+  /// Returns tuple: (message, user_id) or (error, null)
+  Future<Map<String, dynamic>> registerUser(
+    String userName,
+    String password,
+    String language, {
+    int? existingUserId, // For upgrading anonymous users
+  }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
-      return null; // No registration needed in local mode
+      return {'message': null, 'user_id': null}; // No registration needed in local mode
     }
 
     // ---------------- BACKEND MODE ----------------
     try {
+      final queryParams = <String, String>{
+        'name': userName,
+        'secret_key': password,
+        'lang': language,
+      };
+      
+      // Add user_id if upgrading anonymous user
+      if (existingUserId != null) {
+        queryParams['user_id'] = existingUserId.toString();
+      }
+
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/introduce').replace(
-        queryParameters: {
-          'name': userName,
-          'secret_key': password,
-          'lang': language,
-        },
+        queryParameters: queryParams,
       );
 
       final headers = await _buildHeaders();
@@ -144,17 +163,26 @@ class ChatService {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        return body['message']?.toString();
+        return {
+          'message': body['message']?.toString(),
+          'user_id': body['user_id'] as int?,
+        };
       }
 
       // If user already exists (400), that's okay - they can still chat
       if (response.statusCode == 400) {
-        return null; // User already exists, continue
+        return {'message': null, 'user_id': null}; // User already exists, continue
       }
 
-      return 'REGISTRATION_ERROR_${response.statusCode}';
+      return {
+        'message': 'REGISTRATION_ERROR_${response.statusCode}',
+        'user_id': null,
+      };
     } catch (e) {
-      return 'REGISTRATION_ERROR: ${e.toString()}';
+      return {
+        'message': 'REGISTRATION_ERROR: ${e.toString()}',
+        'user_id': null,
+      };
     }
   }
 
@@ -231,8 +259,16 @@ class ChatService {
           return 'SECURITY_CHECK_REQUIRED';
         }
         
-        // Backend returns 'message' field
-        return body['message']?.toString() ?? '';
+        // Backend returns 'message' field and 'user_id' (for anonymous users)
+        final message = body['message']?.toString() ?? '';
+        final userId = body['user_id'] as int?;
+        
+        // Return message with user_id if available (for anonymous users)
+        if (userId != null && message.isNotEmpty) {
+          return 'USER_ID:$userId|MESSAGE:$message';
+        }
+        
+        return message;
       }
 
       // Handle 422 (Validation Error) - usually means missing required parameter
