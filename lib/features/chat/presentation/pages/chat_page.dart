@@ -7,7 +7,6 @@ import '../../state/chat_controller.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
-import '../widgets/language_selection_dialog.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
 
@@ -43,44 +42,13 @@ class _ChatPageState extends State<ChatPage> {
     // Add listener to update UI when timer changes
     _controller.addListener(_onControllerChanged);
     _controller.initialize();
-    
-    // Show language selection dialog when asking for language
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkLanguageSelection();
-    });
-  }
-
-  void _checkLanguageSelection() {
-    if (mounted && _controller.conversationState == ConversationState.askingLanguage) {
-      _showLanguageDialog();
-    }
-  }
-
-  void _showLanguageDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => LanguageSelectionDialog(
-        onLanguageSelected: (language) {
-          _controller.handleLanguageSelection(language);
-        },
-      ),
-    );
   }
 
   void _onControllerChanged() {
     if (mounted) {
       setState(() {
-        // Check if we need to show language dialog
-        if (_controller.conversationState == ConversationState.askingLanguage) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _controller.conversationState == ConversationState.askingLanguage) {
-              _showLanguageDialog();
-            }
-          });
-        }
-      }); // Update UI (including timer display)
+        // Update UI (including timer display)
+      });
     }
   }
 

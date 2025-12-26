@@ -1,12 +1,12 @@
 /// ============================================
-/// ChatController - State Management
+/// ChatController - Display Layer Only
 /// ============================================
 /// 
-/// CONTRACT:
-/// - فقط state management
-/// - بدون UI
-/// - بدون animation
-/// - بدون import widget
+/// RESPONSIBILITY:
+/// - فقط نمایش پاسخ‌های backend
+/// - ارسال پیام کاربر به backend
+/// - هیچ تصمیم‌گیری یا logic ندارد
+/// - همه متن‌ها از backend می‌آیند
 /// ============================================
 
 import '../../../../core/utils/language_detector.dart';
@@ -18,12 +18,8 @@ import '../chat_service.dart';
 import 'package:flutter/foundation.dart';
 
 enum ConversationState {
-  initializing, // صدی در حال شروع صحبت
-  askingLanguage, // در حال پرسیدن زبان از کاربر
+  initializing, // در حال دریافت greeting از backend
   chatting, // مکالمه عادی
-  askingName, // در حال پرسیدن نام (طبیعی در مکالمه)
-  askingSecurityPassword, // در حال پرسیدن رمز امنیتی (بعد از آشنایی)
-  verifyingSecurity, // در حال بررسی رمز (رفتار مشکوک)
 }
 
 class ChatController extends ChangeNotifier {
@@ -43,9 +39,6 @@ class ChatController extends ChangeNotifier {
   
   // User Profile
   UserProfile _userProfile = UserProfile();
-  
-  // Security
-  bool _isSecurityCheckActive = false; // آیا در حال بررسی امنیتی هستیم؟
 
   // ===============================
   // Voice Recording
@@ -78,86 +71,50 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.initializing;
     notifyListeners();
 
-    // Start proactive conversation - صدی ابتدا صحبت می‌کند
-    await _startProactiveConversation();
+    // Get greeting from backend ONLY - no frontend logic
+    await _getGreetingFromBackend();
   }
 
-  /// Start proactive conversation (صدی ابتدا صحبت می‌کند)
-  Future<void> _startProactiveConversation() async {
+  /// Get greeting from backend - NO frontend logic
+  Future<void> _getGreetingFromBackend() async {
     // Wait a bit for UI to settle
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Check if language is already set (returning user)
-    final savedLang = await UserPreferences.getUserLanguage();
-    if (savedLang != 'en' || _userProfile.preferredLanguage != 'en') {
-      // Language already set - proceed with greeting
-      currentLanguage = savedLang != 'en' ? savedLang : _userProfile.preferredLanguage;
-      await _sendGreeting();
-    } else {
-      // New user - ask for language first
-      await _askForLanguage();
-    }
-  }
+    print('[ChatController] Requesting greeting from backend...');
+    print('[ChatController] User: name=${_userProfile.name}, userId=${_userProfile.userId}, lang=$currentLanguage');
 
-  /// Ask user to select their preferred language
-  Future<void> _askForLanguage() async {
-    conversationState = ConversationState.askingLanguage;
-    notifyListeners();
-
-    // Show greeting in English first (default language)
-    _addSediMessage(
-      'Hello! I\'m Sedi, your intelligent health companion 🌿\n\n'
-      'What language would you like to use?\n'
-      'چه زبانی را ترجیح می‌دهید؟\n'
-      'ما هي اللغة التي تفضلها؟',
-    );
-  }
-
-  /// Handle language selection
-  Future<void> handleLanguageSelection(String language) async {
-    currentLanguage = language;
-    _userProfile = _userProfile.copyWith(preferredLanguage: language);
-    await UserPreferences.saveUserLanguage(language);
-    await UserProfileManager.saveProfile(_userProfile);
-
-    // Send greeting in selected language
-    await _sendGreeting();
-  }
-
-  /// Send greeting after language is selected
-  Future<void> _sendGreeting() async {
-    conversationState = ConversationState.chatting;
-    notifyListeners();
-
-    print('[ChatController] Starting greeting with language: $currentLanguage');
-    print('[ChatController] User profile: name=${_userProfile.name}, userId=${_userProfile.userId}');
-
-    // Try to get greeting from backend first
-    String? backendGreeting;
     try {
-      print('[ChatController] Attempting to get greeting from backend...');
-      backendGreeting = await _chatService.getGreeting(
+      final greeting = await _chatService.getGreeting(
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
         language: currentLanguage,
       );
-      print('[ChatController] Backend greeting received: ${backendGreeting != null ? "Yes" : "No"}');
-      
-      // Parse user_id if present
-      backendGreeting = _parseResponse(backendGreeting);
-      print('[ChatController] Parsed greeting: ${backendGreeting?.substring(0, backendGreeting.length > 50 ? 50 : backendGreeting.length)}...');
-    } catch (e) {
-      // If backend greeting fails, we'll use fallback
-      print('[ChatController] Backend greeting failed with exception: $e');
-      print('[ChatController] Exception type: ${e.runtimeType}');
-    }
 
-    // Use backend greeting if available, otherwise show error (NO FALLBACK)
-    if (backendGreeting != null && backendGreeting.isNotEmpty) {
-      // Check if backend is unavailable
-      if (backendGreeting == 'BACKEND_UNAVAILABLE') {
-        // Backend is not available - show error only, NO fallback greeting
-        print('[ChatController] ERROR: Backend unavailable - showing error state only');
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+
+      if (greeting != null && greeting.isNotEmpty) {
+        // Check if backend is unavailable
+        if (greeting == 'BACKEND_UNAVAILABLE') {
+          print('[ChatController] ERROR: Backend unavailable');
+          // Show error state - NO greeting, NO fallback
+          _addSediMessage(
+            currentLanguage == 'fa'
+                ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
+                : currentLanguage == 'ar'
+                    ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
+                    : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
+          );
+          return;
+        }
+
+        // Backend provided greeting - display it
+        final messageToDisplay = _parseResponse(greeting);
+        print('[ChatController] Displaying backend greeting (length: ${messageToDisplay.length})');
+        _addSediMessage(messageToDisplay);
+      } else {
+        // Backend didn't respond - show error only
+        print('[ChatController] ERROR: Backend greeting returned null');
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
@@ -165,29 +122,20 @@ class ChatController extends ChangeNotifier {
                   ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
                   : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
         );
-        return; // STOP - do not show any fallback greeting
       }
-      
-      // Backend provided greeting - use it directly
-      print('[ChatController] Using backend greeting (length: ${backendGreeting.length})');
-      _addSediMessage(backendGreeting);
-    } else {
-      // Backend didn't respond - show error only, NO fallback greeting
-      print('[ChatController] ERROR: Backend greeting returned null - showing error state only');
+    } catch (e) {
+      print('[ChatController] ERROR getting greeting: $e');
+      conversationState = ConversationState.chatting;
+      notifyListeners();
       _addSediMessage(
         currentLanguage == 'fa'
-            ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
+            ? 'خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.'
             : currentLanguage == 'ar'
-                ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
-                : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
+                ? 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
+                : 'Error connecting to server. Please try again.',
       );
-      // STOP - do not show any fallback greeting
     }
   }
-
-  // REMOVED: _showFallbackGreeting() - No fallback greetings allowed
-  // All greetings MUST come from backend Conversation Brain
-  // If backend is unavailable, only error message is shown
 
   /// Parse response to extract user_id and return clean message
   String _parseResponse(String? response) {
@@ -215,77 +163,22 @@ class ChatController extends ChangeNotifier {
   // User Text Message
   // ===============================
 
+  /// Send user message to backend and display response
+  /// NO frontend logic - backend decides everything
   Future<void> sendUserMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
-    // ---------------------------
-    // Language Selection (first time)
-    // ---------------------------
-    if (conversationState == ConversationState.askingLanguage) {
-      // Check if user selected a language by text
-      String? selectedLang;
-      if (trimmed.toLowerCase().contains('english') || 
-          trimmed.toLowerCase().contains('انگلیسی') ||
-          trimmed.toLowerCase() == 'en') {
-        selectedLang = 'en';
-      } else if (trimmed.toLowerCase().contains('فارسی') || 
-                 trimmed.toLowerCase().contains('persian') ||
-                 trimmed.toLowerCase() == 'fa') {
-        selectedLang = 'fa';
-      } else if (trimmed.toLowerCase().contains('عربی') || 
-                 trimmed.toLowerCase().contains('arabic') ||
-                 trimmed.toLowerCase() == 'ar') {
-        selectedLang = 'ar';
-      }
-      
-      if (selectedLang != null) {
-        await handleLanguageSelection(selectedLang);
-        return;
-      }
-      // If no language detected, continue to normal chat (will use current language)
-      conversationState = ConversationState.chatting;
-      notifyListeners();
-    }
-
-    // Detect language from user message (for dynamic switching)
+    // Detect language from user message (for sending to backend)
     final detected = LanguageDetector.detectLanguage(trimmed);
-    if (detected != currentLanguage && conversationState == ConversationState.chatting) {
+    if (detected != currentLanguage) {
       currentLanguage = detected;
       _userProfile = _userProfile.copyWith(preferredLanguage: currentLanguage);
       await UserPreferences.saveUserLanguage(currentLanguage);
       await UserProfileManager.saveProfile(_userProfile);
     }
 
-    // ---------------------------
-    // Security Verification (if needed)
-    // ---------------------------
-    if (conversationState == ConversationState.verifyingSecurity) {
-      await _handleSecurityVerification(trimmed);
-      return;
-    }
-
-    // ---------------------------
-    // Security Password Setup (after familiarity)
-    // ---------------------------
-    if (conversationState == ConversationState.askingSecurityPassword) {
-      await _handleSecurityPasswordSetup(trimmed);
-      return;
-    }
-
-    // ---------------------------
-    // Name Collection (natural in conversation - AI-driven)
-    // ---------------------------
-    if (conversationState == ConversationState.askingName) {
-      await _handleNameCollection(trimmed);
-      return; // Prevent duplicate message - name is collected, don't add as chat message
-    }
-
-    // ---------------------------
-    // Normal Chat
-    // ---------------------------
-
-    // 1️⃣ Add user message
+    // 1️⃣ Add user message to UI
     messages.add(
       ChatMessage(
         text: trimmed,
@@ -304,8 +197,9 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 3️⃣ Send to backend (ALWAYS - no short-circuit, no mock)
-      print('[ChatController] Sending message to backend: "${trimmed.substring(0, trimmed.length > 50 ? 50 : trimmed.length)}..."');
+      // 3️⃣ Send to backend - backend decides everything
+      print('[ChatController] ===== SENDING TO BACKEND =====');
+      print('[ChatController] Message: "${trimmed.substring(0, trimmed.length > 50 ? 50 : trimmed.length)}..."');
       print('[ChatController] User: name=${_userProfile.name}, userId=${_userProfile.userId}, lang=$currentLanguage');
       
       final response = await _chatService.sendMessage(
@@ -314,58 +208,72 @@ class ChatController extends ChangeNotifier {
         userPassword: _userProfile.securityPassword,
       );
       
-      print('[ChatController] Backend response received: ${response.substring(0, response.length > 100 ? 100 : response.length)}...');
+      print('[ChatController] ===== BACKEND RESPONSE =====');
+      print('[ChatController] Response: ${response.substring(0, response.length > 100 ? 100 : response.length)}...');
 
-      // 4️⃣ Check for security requirements
+      // 4️⃣ Handle special backend responses
       if (response == 'SECURITY_CHECK_REQUIRED') {
-        await _triggerSecurityCheck();
+        // Backend requested security check - show backend's message
+        // Frontend doesn't decide what to show - backend will send the message
+        print('[ChatController] Backend requested security check');
+        // Don't show anything - backend will send the actual message in next response
         return;
       }
 
-      // 4️⃣ Check for backend update required
       if (response.startsWith('BACKEND_UPDATE_REQUIRED:')) {
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'سرور نیاز به به‌روزرسانی دارد. لطفاً با مدیر سیستم تماس بگیرید.'
-              : currentLanguage == 'ar'
-                  ? 'الخادم يحتاج إلى تحديث. يرجى الاتصال بمدير النظام.'
-                  : 'Server needs to be updated. Please contact administrator.',
-        );
+        final errorMessage = response.replaceFirst('BACKEND_UPDATE_REQUIRED: ', '');
+        _addSediMessage(errorMessage);
         return;
       }
 
-      // 4️⃣ Check for server connection error
       if (response.startsWith('SERVER_CONNECTION_ERROR:')) {
         final errorMessage = response.replaceFirst('SERVER_CONNECTION_ERROR: ', '');
         _addSediMessage(errorMessage);
         return;
       }
 
+      if (response.startsWith('AUTH_REQUIRED')) {
+        // Backend requires auth - show error
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'نیاز به احراز هویت است. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'يجب التحقق من الهوية. يرجى المحاولة مرة أخرى.'
+                  : 'Authentication required. Please try again.',
+        );
+        return;
+      }
+
+      if (response.startsWith('SERVER_ERROR_') || response.startsWith('NETWORK_ERROR:')) {
+        // Backend error - show error
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
+                  : 'Error connecting to server. Please try again.',
+        );
+        return;
+      }
+
+      // 5️⃣ Display backend response - NO frontend logic
       if (response.isEmpty) {
         _addSediMessage(
           currentLanguage == 'fa'
-              ? 'مشکلی در ارتباط پیش آمد.'
+              ? 'پاسخ خالی از سرور دریافت شد.'
               : currentLanguage == 'ar'
-                  ? 'حدثت مشكلة في الاتصال.'
-                  : 'Connection issue occurred.',
+                  ? 'تم استلام رد فارغ من الخادم.'
+                  : 'Empty response from server.',
         );
       } else {
-        // Parse response to extract user_id and get clean message
+        // Parse and display backend message
         final messageToDisplay = _parseResponse(response);
-        print('[ChatController] Parsed message to display (length: ${messageToDisplay.length})');
+        print('[ChatController] Displaying backend message (length: ${messageToDisplay.length})');
         _addSediMessage(messageToDisplay);
         
-        // 5️⃣ Check if we should ask for name (AI-driven, after a few messages)
-        // NOTE: This is frontend-driven, but backend Conversation Brain may also ask
-        // Backend is the authority - frontend only suggests
-        if (_userProfile.name == null && _userProfile.conversationCount >= 2) {
-          await _maybeAskForName();
-        }
-        
-        // 6️⃣ Check if we should ask for security password (after familiarity)
-        if (_userProfile.needsSecurityPassword) {
-          await _maybeAskForSecurityPassword();
-        }
+        // NO frontend logic here - backend Conversation Brain decides everything
+        // NO asking for name, password, etc. from frontend
+        // Backend will send those messages if needed
       }
     } catch (e) {
       // Log error details for debugging
@@ -381,186 +289,8 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  /// Handle security verification (when suspicious behavior detected)
-  Future<void> _handleSecurityVerification(String password) async {
-    if (_userProfile.securityPassword == null) {
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'رمز امنیتی تنظیم نشده است. لطفاً ابتدا رمز را تنظیم کنید.'
-            : currentLanguage == 'ar'
-                ? 'لم يتم تعيين كلمة المرور الأمنية. يرجى تعيينها أولاً.'
-                : 'Security password not set. Please set it first.',
-      );
-      conversationState = ConversationState.chatting;
-      notifyListeners();
-      return;
-    }
-
-    if (password == _userProfile.securityPassword) {
-      // Password correct - clear security check
-      _userProfile = _userProfile.copyWith(requiresSecurityCheck: false);
-      await UserProfileManager.saveProfile(_userProfile);
-      _isSecurityCheckActive = false;
-      conversationState = ConversationState.chatting;
-      notifyListeners();
-
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'احراز هویت موفق بود. خوش برگشتی! 😊'
-            : currentLanguage == 'ar'
-                ? 'تم التحقق بنجاح. أهلاً بعودتك! 😊'
-                : 'Verification successful. Welcome back! 😊',
-      );
-    } else {
-      // Password incorrect
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'رمز اشتباه است. لطفاً دوباره تلاش کنید.'
-            : currentLanguage == 'ar'
-                ? 'كلمة المرور خاطئة. يرجى المحاولة مرة أخرى.'
-                : 'Incorrect password. Please try again.',
-      );
-      // Keep in verification state
-    }
-  }
-
-  /// Handle security password setup (after familiarity)
-  Future<void> _handleSecurityPasswordSetup(String password) async {
-    _userProfile = _userProfile.copyWith(
-      securityPassword: password,
-      hasSecurityPassword: true,
-      securityPasswordSetAt: DateTime.now(),
-    );
-    await UserProfileManager.saveProfile(_userProfile);
-    
-    // Register user with backend if name is already set
-    // If user_id exists (anonymous user), upgrade it; otherwise create new user
-    if (_userProfile.name != null && _userProfile.name!.isNotEmpty) {
-      try {
-        final result = await _chatService.registerUser(
-          _userProfile.name!,
-          _userProfile.securityPassword!,
-          currentLanguage,
-          existingUserId: _userProfile.userId, // Upgrade anonymous user if exists
-        );
-        
-        // Update user_id if returned
-        if (result['user_id'] != null) {
-          _userProfile = _userProfile.copyWith(userId: result['user_id'] as int);
-          await UserProfileManager.saveProfile(_userProfile);
-        }
-      } catch (e) {
-        // Registration error is not critical - user can still chat
-        print('[ChatController] Registration error: $e');
-      }
-    }
-    
-    conversationState = ConversationState.chatting;
-    notifyListeners();
-    
-    _addSediMessage(
-      currentLanguage == 'fa'
-          ? 'عالی! رمز امنیتی شما تنظیم شد. حالا می‌تونیم با اطمینان بیشتر ادامه بدیم 😊'
-          : currentLanguage == 'ar'
-              ? 'رائع! تم تعيين كلمة المرور الأمنية. الآن يمكننا المتابعة بثقة أكبر 😊'
-              : 'Great! Your security password is set. Now we can continue with more confidence 😊',
-    );
-  }
-
-  /// Handle name collection (natural in conversation)
-  Future<void> _handleNameCollection(String name) async {
-    _userProfile = _userProfile.copyWith(name: name);
-    await UserProfileManager.saveProfile(_userProfile);
-    
-    // Register user with backend if password is already set
-    if (_userProfile.securityPassword != null && _userProfile.securityPassword!.isNotEmpty) {
-      try {
-        await _chatService.registerUser(
-          _userProfile.name!,
-          _userProfile.securityPassword!,
-          currentLanguage,
-        );
-      } catch (e) {
-        // Registration error is not critical - user can still chat
-        print('[ChatController] Registration error: $e');
-      }
-    }
-    
-    conversationState = ConversationState.chatting;
-    notifyListeners();
-
-    _addSediMessage(
-      currentLanguage == 'fa'
-          ? 'خوشحالم که با تو آشنا شدم $name! 😊'
-          : currentLanguage == 'ar'
-              ? 'سعيد أن أتعرف عليك $name! 😊'
-              : 'Nice to meet you $name! 😊',
-    );
-  }
-
-  /// Maybe ask for name (AI-driven, natural in conversation)
-  Future<void> _maybeAskForName() async {
-    if (_userProfile.name != null) return; // Already has name
-    
-    conversationState = ConversationState.askingName;
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 1000));
-    
-    _addSediMessage(
-      currentLanguage == 'fa'
-          ? 'می‌خوای بگی اسمت چیه؟ دوست دارم با اسمت صدا بزنم 😊'
-          : currentLanguage == 'ar'
-              ? 'هل تريد أن تخبرني باسمك؟ أحب أن أناديك باسمك 😊'
-              : 'Would you like to tell me your name? I\'d love to call you by name 😊',
-    );
-  }
-
-  /// Maybe ask for security password (after familiarity)
-  Future<void> _maybeAskForSecurityPassword() async {
-    if (_userProfile.hasSecurityPassword) return; // Already has password
-    
-    conversationState = ConversationState.askingSecurityPassword;
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 1000));
-    
-    _addSediMessage(
-      currentLanguage == 'fa'
-          ? 'حالا که باهم بیشتر آشنا شدیم، برای امنیت بیشتر بهتره یک رمز امنیتی تنظیم کنیم. اگر روزی رفتار مشکوکی ببینم، ازت رمز رو می‌پرسم. می‌خوای یک رمز انتخاب کنی؟'
-          : currentLanguage == 'ar'
-              ? 'الآن بعد أن تعرفنا أكثر، للأمان أكثر، من الأفضل أن نضع كلمة مرور أمنية. إذا رأيت سلوكًا مشبوهًا يومًا ما، سأسألك عن كلمة المرور. هل تريد اختيار كلمة مرور؟'
-              : 'Now that we know each other better, for better security, it\'s good to set a security password. If I ever notice suspicious behavior, I\'ll ask you for the password. Would you like to choose a password?',
-    );
-  }
-
-  /// Trigger security check (when suspicious behavior detected)
-  Future<void> _triggerSecurityCheck() async {
-    if (!_userProfile.hasSecurityPassword) {
-      // No password set yet - can't verify
-      return;
-    }
-
-    _isSecurityCheckActive = true;
-    _userProfile = _userProfile.copyWith(requiresSecurityCheck: true);
-    await UserProfileManager.saveProfile(_userProfile);
-    
-    conversationState = ConversationState.verifyingSecurity;
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 1000));
-    
-    _addSediMessage(
-      currentLanguage == 'fa'
-          ? 'برای اطمینان از هویت شما، لطفاً رمز امنیتی را وارد کنید:'
-          : currentLanguage == 'ar'
-              ? 'للتحقق من هويتك، يرجى إدخال كلمة المرور الأمنية:'
-              : 'To verify your identity, please enter your security password:',
-    );
-  }
-
   // ===============================
-  // Sedi Message
+  // Sedi Message (Display Only)
   // ===============================
 
   void _addSediMessage(String text) {
@@ -602,7 +332,10 @@ class ChatController extends ChangeNotifier {
     isThinking = true;
     notifyListeners();
 
+    // Send voice message to backend - backend decides response
     Future.delayed(const Duration(seconds: 2), () {
+      // Backend should process voice and send response
+      // For now, just show a placeholder - backend will handle this
       _addSediMessage(
         currentLanguage == 'fa'
             ? 'پیام صوتی شما دریافت شد.'
