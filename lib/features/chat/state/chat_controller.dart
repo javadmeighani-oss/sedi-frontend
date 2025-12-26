@@ -206,6 +206,7 @@ class ChatController extends ChangeNotifier {
         trimmed,
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
+        language: currentLanguage, // Send current language to backend
       );
       
       print('[ChatController] ===== BACKEND RESPONSE =====');
@@ -258,6 +259,7 @@ class ChatController extends ChangeNotifier {
 
       // 5️⃣ Display backend response - NO frontend logic
       if (response.isEmpty) {
+        print('[ChatController] ⚠️ WARNING: Empty response from backend');
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'پاسخ خالی از سرور دریافت شد.'
@@ -268,7 +270,15 @@ class ChatController extends ChangeNotifier {
       } else {
         // Parse and display backend message
         final messageToDisplay = _parseResponse(response);
-        print('[ChatController] Displaying backend message (length: ${messageToDisplay.length})');
+        print('[ChatController] ✅ Displaying backend message');
+        print('[ChatController] Original response length: ${response.length}');
+        print('[ChatController] Parsed message length: ${messageToDisplay.length}');
+        print('[ChatController] Message preview: ${messageToDisplay.substring(0, messageToDisplay.length > 100 ? 100 : messageToDisplay.length)}...');
+        
+        if (messageToDisplay.isEmpty) {
+          print('[ChatController] ⚠️ WARNING: Parsed message is empty!');
+        }
+        
         _addSediMessage(messageToDisplay);
         
         // NO frontend logic here - backend Conversation Brain decides everything

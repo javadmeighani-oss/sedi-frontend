@@ -218,6 +218,7 @@ class ChatService {
     String userMessage, {
     String? userName,
     String? userPassword,
+    String? language, // Language from ChatController (currentLanguage)
   }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
@@ -234,8 +235,13 @@ class ChatService {
         return 'NETWORK_ERROR: Message cannot be empty';
       }
 
-      // Get current language
-      final currentLang = await UserPreferences.getUserLanguage();
+      // Get current language - prefer provided language, fallback to UserPreferences
+      String currentLang;
+      if (language != null && language.isNotEmpty) {
+        currentLang = language;
+      } else {
+        currentLang = await UserPreferences.getUserLanguage();
+      }
 
       // Build query parameters (name and password are optional for new users)
       final queryParams = <String, String>{
@@ -296,8 +302,12 @@ class ChatService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         
+        print('[ChatService] Response body keys: ${body.keys.toList()}');
+        print('[ChatService] Response body: $body');
+        
         // Check for security flag in response (backend AI detected suspicious behavior)
         if (body['requires_security_check'] == true) {
+          print('[ChatService] ⚠️ Security check required');
           return 'SECURITY_CHECK_REQUIRED';
         }
         
@@ -305,11 +315,21 @@ class ChatService {
         final message = body['message']?.toString() ?? '';
         final userId = body['user_id'] as int?;
         
+        print('[ChatService] Parsed message: "$message"');
+        print('[ChatService] Parsed user_id: $userId');
+        
+        if (message.isEmpty) {
+          print('[ChatService] ⚠️ WARNING: Backend returned empty message!');
+          print('[ChatService] Full response body: $body');
+        }
+        
         // Return message with user_id if available (for anonymous users)
         if (userId != null && message.isNotEmpty) {
+          print('[ChatService] Returning message with user_id: $userId');
           return 'USER_ID:$userId|MESSAGE:$message';
         }
         
+        print('[ChatService] Returning message only (no user_id)');
         return message;
       }
 
