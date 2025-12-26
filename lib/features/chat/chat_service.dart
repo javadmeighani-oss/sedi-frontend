@@ -113,15 +113,18 @@ class ChatService {
         final message = body['message'];
         final userId = body['user_id'] as int?;
         
+        print('[ChatService] Greeting success - message received from backend');
+        print('[ChatService] Message length: ${message?.toString().length ?? 0}');
+        print('[ChatService] User ID: $userId');
+        
         if (message != null && message.toString().isNotEmpty) {
-          print('[ChatService] Greeting success - message received from backend');
           // Return message with user_id if available (for anonymous users)
           if (userId != null) {
             return 'USER_ID:$userId|MESSAGE:${message.toString()}';
           }
           return message.toString();
         } else {
-          print('[ChatService] Greeting response empty - message field is null or empty');
+          print('[ChatService] Warning: Backend returned empty message in greeting');
         }
       } else {
         // Log error details for debugging
