@@ -323,4 +323,46 @@ class ChatService {
       return 'NETWORK_ERROR: ${e.toString()}';
     }
   }
+
+  /// Test backend connection
+  Future<bool> testConnection() async {
+    if (AppConfig.useLocalMode) {
+      return false; // No connection test in local mode
+    }
+
+    try {
+      final baseUri = Uri.parse(AppConfig.baseUrl);
+      final uri = Uri(
+        scheme: baseUri.scheme,
+        host: baseUri.host,
+        port: baseUri.port,
+        path: '/interact/chat',
+        queryParameters: {
+          'message': '__CONNECTION_TEST__',
+          'lang': 'en',
+        },
+      );
+      
+      final headers = await _buildHeaders();
+      
+      final response = await http.post(
+        uri,
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw Exception('Connection timeout');
+        },
+      );
+
+      // Backend is reachable if we get any response (even errors mean server is up)
+      return response.statusCode == 200 || 
+             response.statusCode == 401 || 
+             response.statusCode == 422 ||
+             response.statusCode == 400;
+    } catch (e) {
+      print('[ChatService] Connection test failed: $e');
+      return false;
+    }
+  }
 }
