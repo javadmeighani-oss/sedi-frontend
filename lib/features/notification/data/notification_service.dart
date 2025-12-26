@@ -1,7 +1,7 @@
 /// ============================================
 /// NotificationService - Contract-Compliant API Client
 /// ============================================
-/// 
+///
 /// RESPONSIBILITY:
 /// - Send/receive contract-compliant payloads
 /// - No transformation
@@ -10,7 +10,6 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../data/models/notification.dart';
 import '../../../data/models/notification_feedback.dart';
 import '../../../core/config/app_config.dart';
 
@@ -28,8 +27,8 @@ class NotificationService {
   }) async {
     try {
       // Support both /notifications and /notifications/ (contract-compliant)
-      final uri = Uri.parse('$baseUrl/notifications/')
-          .replace(queryParameters: {
+      final uri =
+          Uri.parse('$baseUrl/notifications/').replace(queryParameters: {
         'user_id': userId.toString(),
         'limit': limit.toString(),
         'offset': offset.toString(),
@@ -42,7 +41,10 @@ class NotificationService {
       } else {
         return {
           'ok': false,
-          'error': {'code': 'HTTP_ERROR', 'message': 'Failed to fetch notifications'}
+          'error': {
+            'code': 'HTTP_ERROR',
+            'message': 'Failed to fetch notifications'
+          }
         };
       }
     } catch (e) {
@@ -54,7 +56,8 @@ class NotificationService {
   }
 
   /// POST /notifications/feedback (Contract Section 5)
-  Future<Map<String, dynamic>> submitFeedback(NotificationFeedback feedback) async {
+  Future<Map<String, dynamic>> submitFeedback(
+      NotificationFeedback feedback) async {
     try {
       final uri = Uri.parse('$baseUrl/notifications/feedback');
       final body = json.encode(feedback.toJson());
@@ -70,7 +73,10 @@ class NotificationService {
       } else {
         return {
           'ok': false,
-          'error': {'code': 'HTTP_ERROR', 'message': 'Failed to submit feedback'}
+          'error': {
+            'code': 'HTTP_ERROR',
+            'message': 'Failed to submit feedback'
+          }
         };
       }
     } catch (e) {
@@ -81,4 +87,3 @@ class NotificationService {
     }
   }
 }
-

@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 
 enum ConversationState {
   initializing, // صدی در حال شروع صحبت
+  askingLanguage, // در حال پرسیدن زبان از کاربر
   chatting, // مکالمه عادی
   askingName, // در حال پرسیدن نام (طبیعی در مکالمه)
   askingSecurityPassword, // در حال پرسیدن رمز امنیتی (بعد از آشنایی)
@@ -86,6 +87,48 @@ class ChatController extends ChangeNotifier {
     // Wait a bit for UI to settle
     await Future.delayed(const Duration(milliseconds: 800));
 
+    // Check if language is already set (returning user)
+    final savedLang = await UserPreferences.getUserLanguage();
+    if (savedLang != 'en' || _userProfile.preferredLanguage != 'en') {
+      // Language already set - proceed with greeting
+      currentLanguage = savedLang != 'en' ? savedLang : _userProfile.preferredLanguage;
+      await _sendGreeting();
+    } else {
+      // New user - ask for language first
+      await _askForLanguage();
+    }
+  }
+
+  /// Ask user to select their preferred language
+  Future<void> _askForLanguage() async {
+    conversationState = ConversationState.askingLanguage;
+    notifyListeners();
+
+    // Show greeting in English first (default language)
+    _addSediMessage(
+      'Hello! I\'m Sedi, your intelligent health companion 🌿\n\n'
+      'What language would you like to use?\n'
+      'چه زبانی را ترجیح می‌دهید؟\n'
+      'ما هي اللغة التي تفضلها؟',
+    );
+  }
+
+  /// Handle language selection
+  Future<void> handleLanguageSelection(String language) async {
+    currentLanguage = language;
+    _userProfile = _userProfile.copyWith(preferredLanguage: language);
+    await UserPreferences.saveUserLanguage(language);
+    await UserProfileManager.saveProfile(_userProfile);
+
+    // Send greeting in selected language
+    await _sendGreeting();
+  }
+
+  /// Send greeting after language is selected
+  Future<void> _sendGreeting() async {
+    conversationState = ConversationState.chatting;
+    notifyListeners();
+
     // Try to get greeting from backend first
     String? backendGreeting;
     try {
@@ -94,6 +137,9 @@ class ChatController extends ChangeNotifier {
         userPassword: _userProfile.securityPassword,
         language: currentLanguage,
       );
+      
+      // Parse user_id if present
+      backendGreeting = _parseResponse(backendGreeting);
     } catch (e) {
       // If backend greeting fails, we'll use fallback
       print('[ChatController] Backend greeting failed: $e');
@@ -136,9 +182,28 @@ class ChatController extends ChangeNotifier {
         );
       }
     }
+  }
 
-    conversationState = ConversationState.chatting;
-    notifyListeners();
+  /// Parse response to extract user_id and return clean message
+  String _parseResponse(String? response) {
+    if (response == null || response.isEmpty) return '';
+    
+    // Check if response contains user_id (for anonymous users)
+    if (response.startsWith('USER_ID:')) {
+      final parts = response.split('|MESSAGE:');
+      if (parts.length == 2) {
+        final userIdStr = parts[0].replaceFirst('USER_ID:', '');
+        final userId = int.tryParse(userIdStr);
+        if (userId != null && _userProfile.userId == null) {
+          // Save user_id for anonymous user
+          _userProfile = _userProfile.copyWith(userId: userId);
+          UserProfileManager.saveProfile(_userProfile);
+        }
+        return parts[1]; // Return clean message without USER_ID prefix
+      }
+    }
+    
+    return response; // Return as-is if no USER_ID prefix
   }
 
   // ===============================
@@ -149,11 +214,41 @@ class ChatController extends ChangeNotifier {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
-    // Detect language
+    // ---------------------------
+    // Language Selection (first time)
+    // ---------------------------
+    if (conversationState == ConversationState.askingLanguage) {
+      // Check if user selected a language by text
+      String? selectedLang;
+      if (trimmed.toLowerCase().contains('english') || 
+          trimmed.toLowerCase().contains('انگلیسی') ||
+          trimmed.toLowerCase() == 'en') {
+        selectedLang = 'en';
+      } else if (trimmed.toLowerCase().contains('فارسی') || 
+                 trimmed.toLowerCase().contains('persian') ||
+                 trimmed.toLowerCase() == 'fa') {
+        selectedLang = 'fa';
+      } else if (trimmed.toLowerCase().contains('عربی') || 
+                 trimmed.toLowerCase().contains('arabic') ||
+                 trimmed.toLowerCase() == 'ar') {
+        selectedLang = 'ar';
+      }
+      
+      if (selectedLang != null) {
+        await handleLanguageSelection(selectedLang);
+        return;
+      }
+      // If no language detected, continue to normal chat (will use current language)
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+    }
+
+    // Detect language from user message (for dynamic switching)
     final detected = LanguageDetector.detectLanguage(trimmed);
-    if (detected != currentLanguage) {
+    if (detected != currentLanguage && conversationState == ConversationState.chatting) {
       currentLanguage = detected;
       _userProfile = _userProfile.copyWith(preferredLanguage: currentLanguage);
+      await UserPreferences.saveUserLanguage(currentLanguage);
       await UserProfileManager.saveProfile(_userProfile);
     }
 
@@ -245,22 +340,8 @@ class ChatController extends ChangeNotifier {
                   : 'Connection issue occurred.',
         );
       } else {
-        // Check if response contains user_id (for anonymous users)
-        String messageToDisplay = response;
-        if (response.startsWith('USER_ID:')) {
-          final parts = response.split('|MESSAGE:');
-          if (parts.length == 2) {
-            final userIdStr = parts[0].replaceFirst('USER_ID:', '');
-            final userId = int.tryParse(userIdStr);
-            if (userId != null && _userProfile.userId == null) {
-              // Save user_id for anonymous user
-              _userProfile = _userProfile.copyWith(userId: userId);
-              await UserProfileManager.saveProfile(_userProfile);
-            }
-            messageToDisplay = parts[1];
-          }
-        }
-        
+        // Parse response to extract user_id and get clean message
+        final messageToDisplay = _parseResponse(response);
         _addSediMessage(messageToDisplay);
         
         // 5️⃣ Check if we should ask for name (AI-driven, after a few messages)
