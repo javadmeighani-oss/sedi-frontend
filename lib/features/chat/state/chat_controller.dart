@@ -207,6 +207,7 @@ class ChatController extends ChangeNotifier {
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
         language: currentLanguage, // Send current language to backend
+        userId: _userProfile.userId, // CRITICAL: Send user_id to maintain conversation continuity
       );
       
       print('[ChatController] ===== BACKEND RESPONSE =====');

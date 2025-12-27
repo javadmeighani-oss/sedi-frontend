@@ -219,6 +219,7 @@ class ChatService {
     String? userName,
     String? userPassword,
     String? language, // Language from ChatController (currentLanguage)
+    int? userId, // CRITICAL: user_id from previous response to maintain conversation continuity
   }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
@@ -248,6 +249,12 @@ class ChatService {
         'message': userMessage.trim(), // Ensure trimmed
         'lang': currentLang.isNotEmpty ? currentLang : 'en', // Default to 'en' if empty
       };
+
+      // CRITICAL: Add user_id if available (maintains conversation continuity)
+      if (userId != null) {
+        queryParams['user_id'] = userId.toString();
+        print('[ChatService] Adding user_id to request: $userId');
+      }
 
       // Add credentials if available (not required for initial conversations)
       if (userName != null && userName.isNotEmpty) {
