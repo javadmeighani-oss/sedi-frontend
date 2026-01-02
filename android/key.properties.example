@@ -1,0 +1,9 @@
+# Example key.properties file
+# Copy this file to key.properties and fill in your keystore details
+# DO NOT commit key.properties to git!
+
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=sedi
+storeFile=../sedi-release-key.jks
+
