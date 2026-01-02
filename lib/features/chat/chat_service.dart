@@ -92,16 +92,39 @@ class ChatService {
       print('[ChatService] Greeting request - Headers: $headers');
       print('[ChatService] Greeting request - Query params: $queryParams');
       
-      final response = await http.post(
-        uri,
-        headers: headers,
-      ).timeout(
-        const Duration(seconds: 10), // Increased timeout for greeting
-        onTimeout: () {
-          print('[ChatService] Greeting request timeout after 10 seconds');
-          throw Exception('Greeting timeout');
-        },
-      );
+      // Retry mechanism for greeting
+      http.Response? response;
+      int retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount < maxRetries) {
+        try {
+          response = await http.post(
+            uri,
+            headers: headers,
+          ).timeout(
+            const Duration(seconds: 15), // Increased timeout for greeting
+            onTimeout: () {
+              print('[ChatService] Greeting request timeout after 15 seconds (attempt ${retryCount + 1})');
+              throw Exception('Greeting timeout');
+            },
+          );
+          break; // Success, exit retry loop
+        } catch (e) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            print('[ChatService] All greeting retry attempts failed');
+            rethrow; // Re-throw the last error
+          }
+          print('[ChatService] Greeting retry attempt $retryCount/$maxRetries after error: $e');
+          await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+        }
+      }
+      
+      if (response == null) {
+        print('[ChatService] Failed to get greeting response after $maxRetries attempts');
+        return 'BACKEND_UNAVAILABLE';
+      }
       
       print('[ChatService] Greeting response - Status: ${response.statusCode}');
       print('[ChatService] Greeting response - Body: ${response.body}');
@@ -141,9 +164,21 @@ class ChatService {
       // If other error, also use fallback
       return null;
     } catch (e) {
-      // Any error - use fallback greeting
-      print('[ChatService] Greeting error (using fallback): $e');
+      // Any error - return BACKEND_UNAVAILABLE to show error message
+      print('[ChatService] Greeting error: $e');
       print('[ChatService] Error type: ${e.runtimeType}');
+      
+      // Check for connection errors
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('timeout') || 
+          errorString.contains('connection refused') ||
+          errorString.contains('failed host lookup') ||
+          errorString.contains('network is unreachable') ||
+          errorString.contains('socketexception') ||
+          errorString.contains('connection reset') ||
+          errorString.contains('no route to host')) {
+        return 'BACKEND_UNAVAILABLE';
+      }
       print('[ChatService] Full error: ${e.toString()}');
       // Return special marker to indicate backend unavailable
       return 'BACKEND_UNAVAILABLE';
@@ -285,16 +320,38 @@ class ChatService {
       print('[ChatService] Query params: $queryParams');
       print('[ChatService] Message: "$userMessage"');
 
-      final response = await http.post(
-        uri,
-        headers: headers,
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          print('[ChatService] Request timeout after 10 seconds');
-          throw Exception('Connection timeout - Server may be down');
-        },
-      );
+      // Retry mechanism for network issues
+      http.Response? response;
+      int retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          response = await http.post(
+            uri,
+            headers: headers,
+          ).timeout(
+            const Duration(seconds: 15), // Increased timeout
+            onTimeout: () {
+              print('[ChatService] Request timeout after 15 seconds (attempt ${retryCount + 1})');
+              throw Exception('Connection timeout - Server may be down');
+            },
+          );
+          break; // Success, exit retry loop
+        } catch (e) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            print('[ChatService] All retry attempts failed');
+            rethrow; // Re-throw the last error
+          }
+          print('[ChatService] Retry attempt $retryCount/$maxRetries after error: $e');
+          await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+        }
+      }
+      
+      if (response == null) {
+        throw Exception('Failed to get response after $maxRetries attempts');
+      }
       
       print('[ChatService] ===== BACKEND RESPONSE =====');
       print('[ChatService] Status: ${response.statusCode}');
@@ -386,8 +443,11 @@ class ChatService {
           errorString.contains('connection refused') ||
           errorString.contains('failed host lookup') ||
           errorString.contains('network is unreachable') ||
-          errorString.contains('socketexception')) {
-        return 'SERVER_CONNECTION_ERROR: سرور در دسترس نیست. لطفاً اتصال اینترنت را بررسی کنید یا با مدیر سیستم تماس بگیرید.';
+          errorString.contains('socketexception') ||
+          errorString.contains('connection reset') ||
+          errorString.contains('no route to host')) {
+        // Return error message based on language (will be handled by controller)
+        return 'SERVER_CONNECTION_ERROR: Unable to connect to server. Please check your internet connection and try again.';
       }
       
       return 'NETWORK_ERROR: ${e.toString()}';
