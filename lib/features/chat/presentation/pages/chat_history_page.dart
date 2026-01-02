@@ -18,35 +18,87 @@ class ChatHistoryPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppTheme.backgroundWhite,
-        foregroundColor: AppTheme.primaryBlack,
-        title: const Text(
-          'Chat History',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ================= TOP BAR (Icons on top-left) =================
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  // Chat history icon (left)
+                  IconButton(
+                    icon: const Icon(Icons.history),
+                    color: AppTheme.primaryBlack,
+                    onPressed: () {
+                      // Already on history page
+                    },
+                  ),
+                  // Vital signs icon (left, next to history)
+                  IconButton(
+                    icon: const Icon(Icons.favorite_border),
+                    color: AppTheme.primaryBlack,
+                    onPressed: () {
+                      // Later: daily health status
+                    },
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+
+            // ================= CHAT HISTORY LIST =================
+            Expanded(
+              child: Stack(
+                children: [
+                  ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: history.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: AppTheme.metalGrey.withOpacity(0.3),
+                    ),
+                    itemBuilder: (context, index) {
+                      final day = history[index];
+                      return _HistoryDayTile(
+                        day: day,
+                        onTap: () {
+                          // Later: load selected chat session
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+
+                  // ================= BACK TO LATEST CHAT BUTTON =================
+                  // Icon: white down arrow in black circle (left side, above input area)
+                  Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context); // Return to latest chat
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryBlack,
+                        ),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppTheme.backgroundWhite,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        centerTitle: true,
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        itemCount: history.length,
-        separatorBuilder: (_, __) => Divider(
-          height: 1,
-          color: AppTheme.metalGrey.withOpacity(0.3),
-        ),
-        itemBuilder: (context, index) {
-          final day = history[index];
-          return _HistoryDayTile(
-            day: day,
-            onTap: () {
-              // Later: load selected chat session
-              Navigator.pop(context);
-            },
-          );
-        },
       ),
     );
   }

@@ -188,11 +188,11 @@ class _ChatPageState extends State<ChatPage> {
 
                 // ================= HEADER =================
                 Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 20),
+                  padding: const EdgeInsets.only(top: 2.4, bottom: 16), // 20% higher (top: 12 * 0.2 = 2.4, reduced bottom: 20 * 0.8 = 16)
                   child: SediHeader(
                     isThinking: _controller.isThinking,
                     isAlert: _controller.isAlert,
-                    size: 168,
+                    size: 134.4, // 20% smaller (168 * 0.8 = 134.4)
                   ),
                 ),
 
@@ -204,9 +204,10 @@ class _ChatPageState extends State<ChatPage> {
                       ListView.builder(
                         controller: _scrollController,
                         reverse: true, // آخرین پیام در پایین
-                        padding: const EdgeInsets.symmetric(
+                        physics: const AlwaysScrollableScrollPhysics(), // Enable manual scrolling
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 8,
+                          vertical: 9.6, // 20% more space (8 * 1.2 = 9.6)
                         ),
                         itemCount: _controller.messages.length > 1
                             ? _controller.messages.length - 1
@@ -223,19 +224,15 @@ class _ChatPageState extends State<ChatPage> {
                         },
                       ),
 
-                      // دکمه بازگشت به آخرین پیام (سمت راست پایین)
+                      // دکمه بازگشت به آخرین پیام (سمت چپ پایین، بالای چت باکس)
                       if (_scrollController.hasClients &&
                           _scrollController.offset > 100)
                         Positioned(
-                          right: 16,
-                          bottom: 16,
-                          child: FloatingActionButton.small(
-                            backgroundColor: AppTheme.pistachioGreen,
-                            onPressed: _scrollToBottom,
-                            child: const Icon(
-                              Icons.arrow_downward_rounded,
-                              color: AppTheme.backgroundWhite,
-                            ),
+                          left: 16,
+                          bottom: 100, // Position above input bar
+                          child: _ScrollToBottomButton(
+                            scrollController: _scrollController,
+                            onTap: _scrollToBottom,
                           ),
                         ),
                     ],
@@ -245,8 +242,10 @@ class _ChatPageState extends State<ChatPage> {
                 // ================= آخرین پیام (همیشه دیده می‌شود) =================
                 if (_controller.messages.isNotEmpty)
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 9.6, // 20% more space (8 * 1.2 = 9.6)
+                    ),
                     child: MessageBubble(
                       message: _controller.messages.last.text,
                       isSedi: _controller.messages.last.isSedi,
@@ -254,8 +253,8 @@ class _ChatPageState extends State<ChatPage> {
                   ),
 
                 // ================= SPACER FOR INPUT BAR =================
-                // Add space at bottom so content doesn't go under InputBar
-                SizedBox(height: keyboardHeight > 0 ? 0 : 80),
+                // Add space at bottom so content doesn't go under InputBar (20% more: 80 * 1.2 = 96)
+                SizedBox(height: keyboardHeight > 0 ? 0 : 96),
               ],
             ),
 
@@ -278,6 +277,85 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ============================================
+/// ScrollToBottomButton - دکمه برگشت به آخرین چت
+/// ============================================
+/// 
+/// آیکن مثلث برعکس سفید داخل کادر دایره‌ای مشکی
+/// با کلیک رنگ کادر دایره‌ای به خاکستری تغییر می‌کند
+/// ============================================
+class _ScrollToBottomButton extends StatefulWidget {
+  final ScrollController scrollController;
+  final VoidCallback onTap;
+
+  const _ScrollToBottomButton({
+    required this.scrollController,
+    required this.onTap,
+  });
+
+  @override
+  State<_ScrollToBottomButton> createState() => _ScrollToBottomButtonState();
+}
+
+class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleTap() {
+    setState(() {
+      _isPressed = true;
+    });
+    widget.onTap();
+    // Reset pressed state after animation
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() {
+          _isPressed = false;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _isPressed
+              ? AppTheme.metalGrey // Grey when pressed
+              : AppTheme.primaryBlack, // Black when not pressed
+        ),
+        child: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppTheme.backgroundWhite,
+          size: 24,
         ),
       ),
     );

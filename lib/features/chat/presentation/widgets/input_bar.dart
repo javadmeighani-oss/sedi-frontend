@@ -78,12 +78,12 @@ class _InputBarState extends State<InputBar> {
     // Height reduced by 20%: 112.0 * 0.8 = 89.6 ≈ 90.0
     const height = 90.0;
 
-    // Calculate width: 2.5x the original width
-    // Original: screenWidth - 16 (8px margin on each side)
-    // New: screenWidth - 6 (3px margin on each side) ≈ 2.5x wider
+    // Calculate width: 10% smaller than current
+    // Current: screenWidth - 6 (3px margin on each side)
+    // New: (screenWidth - 6) * 0.9 (10% smaller)
     final screenWidth = MediaQuery.of(context).size.width;
     final containerWidth =
-        screenWidth - 6; // 2.5x wider than original (screenWidth - 16)
+        (screenWidth - 6) * 0.9; // 10% smaller than current
 
     // Remove SafeArea from InputBar - ChatPage handles it
     return Container(
