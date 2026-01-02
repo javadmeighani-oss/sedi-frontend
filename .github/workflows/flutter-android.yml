@@ -36,7 +36,15 @@ jobs:
         run: flutter doctor -v
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release --verbose || {
+            echo "First build attempt failed, retrying..."
+            sleep 10
+            flutter clean
+            flutter pub get
+            flutter build apk --release
+          }
+        timeout-minutes: 30
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
