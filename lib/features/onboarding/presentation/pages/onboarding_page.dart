@@ -72,14 +72,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // - At least 6 characters
     // - Only uppercase Latin letters (A-Z) and English numbers (0-9)
     final hasMinLength = password.length >= 6;
-    final hasOnlyValidChars = password.contains(RegExp(r'^[A-Z0-9]+$'));
+    final hasOnlyValidChars = password.isEmpty || RegExp(r'^[A-Z0-9]+$').hasMatch(password);
     final hasLetters = password.contains(RegExp(r'[A-Z]'));
     final hasNumbers = password.contains(RegExp(r'[0-9]'));
     
-    setState(() {
-      _isPasswordValid = hasMinLength && hasOnlyValidChars && hasLetters && hasNumbers;
-      _validateForm();
-    });
+    final isValid = hasMinLength && hasOnlyValidChars && hasLetters && hasNumbers;
+    
+    if (mounted) {
+      setState(() {
+        _isPasswordValid = isValid;
+        _validateForm();
+      });
+    }
   }
 
   void _validateForm() {
