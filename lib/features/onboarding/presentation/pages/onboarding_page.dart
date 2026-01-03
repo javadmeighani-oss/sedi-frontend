@@ -163,7 +163,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطا: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
