@@ -83,6 +83,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final isValid = hasMinLength && hasOnlyValidChars && hasLetters && hasNumbers;
     
+    print('[OnboardingPage] _validatePassword - password: "${password.replaceAll(RegExp(r'.'), '*')}" (length: ${password.length}), valid: $isValid');
+    print('[OnboardingPage] _validatePassword - hasMinLength: $hasMinLength, hasOnlyValidChars: $hasOnlyValidChars, hasLetters: $hasLetters, hasNumbers: $hasNumbers');
+    
     if (mounted) {
       setState(() {
         _isPasswordValid = isValid;
@@ -92,9 +95,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _validateForm() {
-    final nameValid = _nameController.text.trim().isNotEmpty && 
-                     _nameController.text.trim().length >= 2;
+    final nameText = _nameController.text.trim();
+    final nameValid = nameText.isNotEmpty && nameText.length >= 2;
     final isValid = nameValid && _isPasswordValid;
+    
+    print('[OnboardingPage] _validateForm - name: "$nameText" (valid: $nameValid), password valid: $_isPasswordValid, form valid: $isValid');
     
     if (mounted) {
       setState(() {
