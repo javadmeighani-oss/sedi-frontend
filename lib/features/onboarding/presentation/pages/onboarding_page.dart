@@ -206,6 +206,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Name input
                   _buildNameSection(),
@@ -215,7 +216,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   _buildPasswordSection(),
                   const SizedBox(height: 16),
                   
-                  // Submit button
+                  // Submit button - ensure it's fully inside the container
                   _buildSubmitButton(),
                 ],
               ),

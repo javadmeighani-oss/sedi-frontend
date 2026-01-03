@@ -314,12 +314,18 @@ class _ChatPageState extends State<ChatPage> {
             
             // ================= ONBOARDING OVERLAY =================
             if (_showOnboarding)
-              OnboardingPage(
-                onComplete: () {
-                  _hideOnboarding();
-                  // Re-initialize controller with initial message if needed
-                  _controller.initialize(initialMessage: null);
-                },
+              // Full screen overlay with blur/opacity for ChatPage
+              Positioned.fill(
+                child: Container(
+                  color: AppTheme.primaryBlack.withOpacity(0.6), // Dark overlay to make ChatPage faded
+                  child: OnboardingPage(
+                    onComplete: () {
+                      _hideOnboarding();
+                      // Re-initialize controller with initial message if needed
+                      _controller.initialize(initialMessage: null);
+                    },
+                  ),
+                ),
               ),
           ],
         ),
