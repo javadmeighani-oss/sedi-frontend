@@ -114,13 +114,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
     print('[OnboardingPage] Name: ${_nameController.text}');
     print('[OnboardingPage] Password length: ${_passwordController.text.length}');
     
-    if (!_formKey.currentState!.validate()) {
-      print('[OnboardingPage] Form validation failed');
+    // Validate form state first
+    final formValid = _formKey.currentState?.validate() ?? false;
+    print('[OnboardingPage] FormState validation: $formValid');
+    
+    if (!formValid) {
+      print('[OnboardingPage] FormState validation failed');
       return;
     }
     
     if (!_isFormValid) {
-      print('[OnboardingPage] Form is not valid');
+      print('[OnboardingPage] Custom validation failed - _isFormValid: $_isFormValid');
       return;
     }
 
