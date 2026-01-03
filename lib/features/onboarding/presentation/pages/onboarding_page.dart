@@ -451,8 +451,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final isEnabled = _isFormValid && !_isSubmitting;
     
-    print('[OnboardingPage] _buildSubmitButton - isEnabled: $isEnabled, _isFormValid: $_isFormValid, _isSubmitting: $_isSubmitting');
-    
     return Material(
       color: Colors.transparent,
       child: InkWell(
