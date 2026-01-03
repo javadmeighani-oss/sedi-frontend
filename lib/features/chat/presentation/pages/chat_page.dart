@@ -41,6 +41,8 @@ class _ChatPageState extends State<ChatPage> {
     _controller = ChatController();
     // Add listener to update UI when timer changes
     _controller.addListener(_onControllerChanged);
+    // Auto-scroll to bottom when new message arrives
+    _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize();
   }
 
@@ -50,6 +52,16 @@ class _ChatPageState extends State<ChatPage> {
         // Update UI (including timer display)
       });
     }
+  }
+
+  void _scrollToBottomOnNewMessage() {
+    // Scroll to bottom when new message is added
+    // Use WidgetsBinding to ensure scroll happens after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollToBottom();
+      }
+    });
   }
 
   @override
