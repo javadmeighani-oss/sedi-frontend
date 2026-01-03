@@ -60,7 +60,7 @@ class ChatController extends ChangeNotifier {
   // Initialization
   // ===============================
 
-  Future<void> initialize() async {
+  Future<void> initialize({String? initialMessage}) async {
     if (_initialized) return;
     _initialized = true;
 
@@ -71,7 +71,15 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.initializing;
     notifyListeners();
 
-    // Get greeting from backend ONLY - no frontend logic
+    // If initial message provided (from onboarding), use it
+    if (initialMessage != null && initialMessage.isNotEmpty) {
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+      _addSediMessage(initialMessage);
+      return;
+    }
+
+    // Otherwise, get greeting from backend
     await _getGreetingFromBackend();
   }
 

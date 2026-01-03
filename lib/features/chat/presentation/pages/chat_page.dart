@@ -21,7 +21,9 @@ import 'chat_history_page.dart';
 /// - دکمه بازگشت به آخرین پیام (سمت راست پایین)
 /// ============================================
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final String? initialMessage;
+  
+  const ChatPage({super.key, this.initialMessage});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -43,7 +45,7 @@ class _ChatPageState extends State<ChatPage> {
     _controller.addListener(_onControllerChanged);
     // Auto-scroll to bottom when new message arrives
     _controller.addListener(_scrollToBottomOnNewMessage);
-    _controller.initialize();
+    _controller.initialize(initialMessage: widget.initialMessage);
   }
 
   void _onControllerChanged() {

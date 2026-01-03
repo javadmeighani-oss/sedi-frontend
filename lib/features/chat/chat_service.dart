@@ -185,7 +185,88 @@ class ChatService {
     }
   }
 
-  /// Register user with backend (onboarding)
+  /// Setup onboarding - create user with name, password, and language
+  /// Returns: (message, user_id, language, name) or (error, null, null, null)
+  Future<Map<String, dynamic>> setupOnboarding(
+    String userName,
+    String password,
+    String language,
+  ) async {
+    // ---------------- LOCAL MODE ----------------
+    if (AppConfig.useLocalMode) {
+      return {
+        'message': 'Welcome! This is local mode.',
+        'user_id': null,
+        'language': language,
+        'name': userName,
+      };
+    }
+
+    // ---------------- BACKEND MODE ----------------
+    try {
+      final queryParams = <String, String>{
+        'name': userName,
+        'password': password,
+        'language': language,
+      };
+
+      final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding').replace(
+        queryParameters: queryParams,
+      );
+
+      final headers = await _buildHeaders();
+
+      print('[ChatService] Onboarding request - URL: ${uri.toString()}');
+      print('[ChatService] Onboarding request - Params: $queryParams');
+
+      final response = await http.post(
+        uri,
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Onboarding timeout');
+        },
+      );
+
+      print('[ChatService] Onboarding response - Status: ${response.statusCode}');
+      print('[ChatService] Onboarding response - Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return {
+          'message': body['message']?.toString() ?? '',
+          'user_id': body['user_id'] as int?,
+          'language': body['language']?.toString() ?? language,
+          'name': body['name']?.toString() ?? userName,
+        };
+      }
+
+      // Parse error message
+      String errorMessage = 'REGISTRATION_ERROR_${response.statusCode}';
+      try {
+        final errorBody = jsonDecode(response.body);
+        errorMessage = errorBody['detail']?.toString() ?? errorMessage;
+      } catch (_) {}
+
+      return {
+        'message': errorMessage,
+        'user_id': null,
+        'language': null,
+        'name': null,
+      };
+    } catch (e) {
+      print('[ChatService] Onboarding error: $e');
+      return {
+        'message': 'REGISTRATION_ERROR: ${e.toString()}',
+        'user_id': null,
+        'language': null,
+        'name': null,
+      };
+    }
+  }
+
+  /// Register user with backend (onboarding) - DEPRECATED, use setupOnboarding
   /// Returns tuple: (message, user_id) or (error, null)
   Future<Map<String, dynamic>> registerUser(
     String userName,
@@ -193,58 +274,12 @@ class ChatService {
     String language, {
     int? existingUserId, // For upgrading anonymous users
   }) async {
-    // ---------------- LOCAL MODE ----------------
-    if (AppConfig.useLocalMode) {
-      return {'message': null, 'user_id': null}; // No registration needed in local mode
-    }
-
-    // ---------------- BACKEND MODE ----------------
-    try {
-      final queryParams = <String, String>{
-        'name': userName,
-        'secret_key': password,
-        'lang': language,
-      };
-      
-      // Add user_id if upgrading anonymous user
-      if (existingUserId != null) {
-        queryParams['user_id'] = existingUserId.toString();
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}/interact/introduce').replace(
-        queryParameters: queryParams,
-      );
-
-      final headers = await _buildHeaders();
-
-      final response = await http.post(
-        uri,
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return {
-          'message': body['message']?.toString(),
-          'user_id': body['user_id'] as int?,
-        };
-      }
-
-      // If user already exists (400), that's okay - they can still chat
-      if (response.statusCode == 400) {
-        return {'message': null, 'user_id': null}; // User already exists, continue
-      }
-
-      return {
-        'message': 'REGISTRATION_ERROR_${response.statusCode}',
-        'user_id': null,
-      };
-    } catch (e) {
-      return {
-        'message': 'REGISTRATION_ERROR: ${e.toString()}',
-        'user_id': null,
-      };
-    }
+    // Use new onboarding endpoint
+    final result = await setupOnboarding(userName, password, language);
+    return {
+      'message': result['message'],
+      'user_id': result['user_id'],
+    };
   }
 
   /// Send message to backend or mock

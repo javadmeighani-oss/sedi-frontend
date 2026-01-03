@@ -6,11 +6,17 @@ on:
       - main
       - master
       - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-android.yml'
   pull_request:
     branches:
       - main
       - master
       - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-android.yml'
   workflow_dispatch:
 
 jobs:
@@ -34,15 +40,22 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
       
-      - name: Get dependencies
-        run: flutter pub get
+      - name: Get Flutter dependencies
+        run: |
+          cd frontend
+          flutter pub get
+      
+      - name: Verify Flutter installation
+        run: flutter doctor -v
       
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          cd frontend
+          flutter build apk --release
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sedi-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
