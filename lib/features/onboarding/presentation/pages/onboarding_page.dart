@@ -21,7 +21,9 @@ import '../../../chat/presentation/pages/chat_page.dart';
 /// ============================================
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  final VoidCallback? onComplete;
+  
+  const OnboardingPage({super.key, this.onComplete});
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -149,15 +151,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
 
-      // Navigate to chat page with initial message
+      // Close onboarding overlay and show initial message
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => ChatPage(
-              initialMessage: result['message']?.toString(),
-            ),
-          ),
-        );
+        // Find ChatPage in the widget tree and update it
+        Navigator.of(context).pop(); // Close onboarding overlay
+        
+        // Show initial message in ChatPage
+        // The ChatPage will handle showing the initial message
+        // We need to trigger a rebuild of ChatPage
+        final chatPageState = context.findAncestorStateOfType<_ChatPageState>();
+        if (chatPageState != null) {
+          chatPageState._controller.initialize(
+            initialMessage: result['message']?.toString(),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -185,7 +192,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final containerHeight = screenSize.height * 0.3;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite, // White background to prevent black overlay from showing through
+      backgroundColor: Colors.transparent, // Transparent to show ChatPage behind
       body: Center(
         // Onboarding form - Small container (30% of screen height)
         child: Container(

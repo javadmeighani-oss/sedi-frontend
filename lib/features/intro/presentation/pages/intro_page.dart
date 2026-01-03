@@ -123,24 +123,10 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   Future<void> _navigateToNextPage() async {
-    // Check if user has completed onboarding
-    final profile = await UserProfileManager.loadProfile();
-    final hasCompletedOnboarding = profile.name != null && 
-                                    profile.name!.isNotEmpty &&
-                                    profile.securityPassword != null &&
-                                    profile.securityPassword!.isNotEmpty;
-    
-    if (hasCompletedOnboarding) {
-      // User has completed onboarding, go to chat
-      Navigator.of(context).pushReplacement(
-        _createCubeTransitionRouteToChat(),
-      );
-    } else {
-      // User needs to complete onboarding
-      Navigator.of(context).pushReplacement(
-        _createCubeTransitionRouteToOnboarding(),
-      );
-    }
+    // Always navigate to ChatPage - it will show OnboardingPage as overlay if needed
+    Navigator.of(context).pushReplacement(
+      _createCubeTransitionRouteToChat(),
+    );
   }
   
   PageRouteBuilder _createCubeTransitionRouteToOnboarding() {
