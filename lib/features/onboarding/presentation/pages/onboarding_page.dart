@@ -57,6 +57,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.initState();
     _nameController.addListener(_validateForm);
     _passwordController.addListener(_validatePassword);
+    // Initial validation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _validateForm();
+      _validatePassword();
+    });
   }
 
   @override
@@ -99,7 +104,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() || !_isFormValid) {
+    print('[OnboardingPage] _submitForm called');
+    print('[OnboardingPage] Form valid: $_isFormValid');
+    print('[OnboardingPage] Name: ${_nameController.text}');
+    print('[OnboardingPage] Password length: ${_passwordController.text.length}');
+    
+    if (!_formKey.currentState!.validate()) {
+      print('[OnboardingPage] Form validation failed');
+      return;
+    }
+    
+    if (!_isFormValid) {
+      print('[OnboardingPage] Form is not valid');
       return;
     }
 
