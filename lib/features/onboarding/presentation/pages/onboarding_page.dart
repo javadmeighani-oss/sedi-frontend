@@ -245,6 +245,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Name input
                           _buildNameSection(),
@@ -412,41 +413,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final isEnabled = _isFormValid && !_isSubmitting;
     
-    return Center(
-      child: GestureDetector(
-        onTap: isEnabled ? () {
-          print('[OnboardingPage] Submit button tapped, form valid: $_isFormValid');
+    return GestureDetector(
+      onTap: () {
+        print('[OnboardingPage] Submit button tapped');
+        print('[OnboardingPage] Form valid: $_isFormValid');
+        print('[OnboardingPage] Submitting: $_isSubmitting');
+        print('[OnboardingPage] Name: "${_nameController.text}"');
+        print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
+        print('[OnboardingPage] Password valid: $_isPasswordValid');
+        
+        if (isEnabled) {
+          print('[OnboardingPage] Calling _submitForm');
           _submitForm();
-        } : () {
-          print('[OnboardingPage] Submit button tapped but disabled - form valid: $_isFormValid, submitting: $_isSubmitting');
-        },
-        behavior: HitTestBehavior.opaque, // Important: allows tap even when disabled
-        child: Container(
-          width: buttonSize,
-          height: buttonSize,
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? AppTheme.primaryBlack // Black when valid
-                : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
-            shape: BoxShape.circle,
-          ),
-          child: _isSubmitting
-              ? const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
-                    ),
-                  ),
-                )
-              : Icon(
-                  Icons.check,
-                  color: AppTheme.backgroundWhite, // Always white checkmark
-                  size: iconSize,
-                ),
+        } else {
+          print('[OnboardingPage] Button is disabled, not submitting');
+        }
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: buttonSize,
+        height: buttonSize,
+        decoration: BoxDecoration(
+          color: isEnabled
+              ? AppTheme.primaryBlack // Black when valid
+              : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
+          shape: BoxShape.circle,
         ),
+        child: _isSubmitting
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.check,
+                color: AppTheme.backgroundWhite, // Always white checkmark
+                size: iconSize,
+              ),
       ),
     );
   }
