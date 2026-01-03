@@ -185,7 +185,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final containerHeight = screenSize.height * 0.3;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.backgroundWhite, // White background to prevent black overlay from showing through
       body: Center(
         // Onboarding form - Small container (30% of screen height)
         child: Container(
