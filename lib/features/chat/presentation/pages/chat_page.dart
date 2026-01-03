@@ -56,6 +56,7 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     _backPressTimer?.cancel(); // Cancel timer if active
     _controller.removeListener(_onControllerChanged); // Remove listener
+    _controller.removeListener(_scrollToBottomOnNewMessage); // Remove scroll listener
     _scrollController.dispose();
     _controller.dispose();
     super.dispose();
@@ -200,26 +201,31 @@ class _ChatPageState extends State<ChatPage> {
                 Expanded(
                   child: Stack(
                     children: [
-                      // لیست پیام‌های قبلی (اسکرول دستی)
+                      // لیست تمام پیام‌ها (همه در یک لیست)
                       ListView.builder(
                         controller: _scrollController,
                         reverse: true, // آخرین پیام در پایین
                         physics: const AlwaysScrollableScrollPhysics(), // Enable manual scrolling
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 9.6, // 20% more space (8 * 1.2 = 9.6)
+                        padding: EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          top: 9.6, // 20% more space (8 * 1.2 = 9.6)
+                          bottom: keyboardHeight > 0 
+                              ? 100 // Space for input bar when keyboard is open
+                              : 100, // Space for input bar when keyboard is closed
                         ),
-                        itemCount: _controller.messages.length > 1
-                            ? _controller.messages.length - 1
-                            : 0,
+                        itemCount: _controller.messages.length,
                         itemBuilder: (context, index) {
                           // از آخر به اول (چون reverse: true)
                           final reverseIndex =
-                              _controller.messages.length - 2 - index;
+                              _controller.messages.length - 1 - index;
                           final msg = _controller.messages[reverseIndex];
-                          return MessageBubble(
-                            message: msg.text,
-                            isSedi: msg.isSedi,
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 9.6),
+                            child: MessageBubble(
+                              message: msg.text,
+                              isSedi: msg.isSedi,
+                            ),
                           );
                         },
                       ),
@@ -229,7 +235,9 @@ class _ChatPageState extends State<ChatPage> {
                           _scrollController.offset > 100)
                         Positioned(
                           left: 16,
-                          bottom: 100, // Position above input bar
+                          bottom: keyboardHeight > 0 
+                              ? keyboardHeight + 60 // Position above input bar when keyboard is open
+                              : 100, // Position above input bar when keyboard is closed
                           child: _ScrollToBottomButton(
                             scrollController: _scrollController,
                             onTap: _scrollToBottom,
@@ -238,23 +246,6 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                 ),
-
-                // ================= آخرین پیام (همیشه دیده می‌شود) =================
-                if (_controller.messages.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 9.6, // 20% more space (8 * 1.2 = 9.6)
-                    ),
-                    child: MessageBubble(
-                      message: _controller.messages.last.text,
-                      isSedi: _controller.messages.last.isSedi,
-                    ),
-                  ),
-
-                // ================= SPACER FOR INPUT BAR =================
-                // Add space at bottom so content doesn't go under InputBar (20% more: 80 * 1.2 = 96)
-                SizedBox(height: keyboardHeight > 0 ? 0 : 96),
               ],
             ),
 
