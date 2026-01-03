@@ -337,14 +337,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: TextFormField(
           controller: _passwordController,
           decoration: InputDecoration(
-            hintText: 'رمز امنیتی را وارد کنید',
+            hintText: 'رمز امنیتی (حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی)',
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             suffixIcon: _isPasswordValid
                 ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
                 : null,
-            helperText: 'حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی پشتیبانی می‌شود',
-            helperMaxLines: 2,
           ),
           obscureText: true,
           textDirection: TextDirection.ltr,
