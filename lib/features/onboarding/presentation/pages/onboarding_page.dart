@@ -394,18 +394,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Icon size: 28 * 1.2 = 33.6 ≈ 34
     const iconSize = 34.0;
     
+    final isEnabled = _isFormValid && !_isSubmitting;
+    
     return Center(
-      child: InkWell(
-        onTap: _isFormValid && !_isSubmitting ? () {
+      child: GestureDetector(
+        onTap: isEnabled ? () {
           print('[OnboardingPage] Submit button tapped, form valid: $_isFormValid');
           _submitForm();
-        } : null,
-        borderRadius: BorderRadius.circular(buttonSize / 2),
+        } : () {
+          print('[OnboardingPage] Submit button tapped but disabled - form valid: $_isFormValid, submitting: $_isSubmitting');
+        },
+        behavior: HitTestBehavior.opaque, // Important: allows tap even when disabled
         child: Container(
           width: buttonSize,
           height: buttonSize,
           decoration: BoxDecoration(
-            color: _isFormValid && !_isSubmitting
+            color: isEnabled
                 ? AppTheme.primaryBlack // Black when valid
                 : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
             shape: BoxShape.circle,
