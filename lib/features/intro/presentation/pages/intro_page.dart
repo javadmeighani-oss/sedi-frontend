@@ -191,7 +191,7 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     final introPageState = this;
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const ChatPage(initialMessage: null);
+        return ChatPage();
       },
       transitionDuration: const Duration(milliseconds: 600),
       reverseTransitionDuration: const Duration(milliseconds: 600),
