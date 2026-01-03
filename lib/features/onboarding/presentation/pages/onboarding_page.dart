@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../data/models/user_profile.dart';
@@ -12,9 +13,10 @@ import '../../../chat/presentation/pages/chat_page.dart';
 /// ============================================
 /// 
 /// RESPONSIBILITY:
-/// - دریافت زبان، نام و رمز از کاربر
+/// - دریافت نام و رمز از کاربر
+/// - زبان از تنظیمات سیستم تشخیص داده می‌شود
 /// - طراحی: ترنسپرنت پایین، رنگ خاکستری
-/// - سه کادر مستطیلی مشکی با داخل خاکستری ترنسپرنت
+/// - دو کادر مستطیلی مشکی با داخل خاکستری ترنسپرنت
 /// - آیکن تایید در پایین
 /// ============================================
 
@@ -28,7 +30,6 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   // Form controllers
   final _formKey = GlobalKey<FormState>();
-  String _selectedLanguage = 'fa'; // Default: Persian
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
   
@@ -36,6 +37,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _isPasswordValid = false;
   bool _isFormValid = false;
   bool _isSubmitting = false;
+
+  /// Get system language or default to 'fa'
+  String _getSystemLanguage() {
+    final locale = ui.PlatformDispatcher.instance.locale;
+    final languageCode = locale.languageCode.toLowerCase();
+    
+    // Map system language to our supported languages
+    if (languageCode == 'fa' || languageCode == 'ar') {
+      return languageCode;
+    }
+    // Default to Persian for other languages
+    return 'fa';
+  }
 
   @override
   void initState() {
@@ -87,11 +101,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
     try {
       final chatService = ChatService();
       
+      // Get system language
+      final systemLanguage = _getSystemLanguage();
+      
       // Setup onboarding with backend
       final result = await chatService.setupOnboarding(
         _nameController.text.trim(),
         _passwordController.text,
-        _selectedLanguage,
+        systemLanguage,
       );
 
       if (result['user_id'] == null && !AppConfig.useLocalMode) {
@@ -106,12 +123,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         }
         return;
       }
-
+      
       // Save user profile locally
       final profile = UserProfile(
         name: result['name']?.toString() ?? _nameController.text.trim(),
         securityPassword: _passwordController.text,
-        preferredLanguage: result['language']?.toString() ?? _selectedLanguage,
+        preferredLanguage: result['language']?.toString() ?? systemLanguage,
         userId: result['user_id'] as int?,
         hasSecurityPassword: true,
         securityPasswordSetAt: DateTime.now(),
@@ -195,10 +212,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Language selection
-                      _buildLanguageSection(),
-                      const SizedBox(height: 12),
-                      
                       // Name input
                       _buildNameSection(),
                       const SizedBox(height: 12),
@@ -216,70 +229,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLanguageSection() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: AppTheme.primaryBlack, // Black border
-          width: 1.5,
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: RadioListTile<String>(
-                title: const Text('فارسی'),
-                value: 'fa',
-                groupValue: _selectedLanguage,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-                },
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                dense: true,
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<String>(
-                title: const Text('English'),
-                value: 'en',
-                groupValue: _selectedLanguage,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-                },
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                dense: true,
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<String>(
-                title: const Text('العربية'),
-                value: 'ar',
-                groupValue: _selectedLanguage,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-                },
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                dense: true,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
