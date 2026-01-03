@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow HTTP traffic for backend server -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">91.107.168.130</domain>
+    </domain-config>
+    
+    <!-- Allow all HTTP traffic for development (can be restricted in production) -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+

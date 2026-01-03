@@ -434,22 +434,38 @@ class ChatService {
       return 'SERVER_ERROR_${response.statusCode}';
     } catch (e) {
       // Better error handling for debugging
-      print('[ChatService] Exception: $e');
+      print('[ChatService] ===== EXCEPTION CAUGHT =====');
+      print('[ChatService] Exception type: ${e.runtimeType}');
+      print('[ChatService] Exception message: $e');
+      print('[ChatService] Stack trace: ${StackTrace.current}');
       
       final errorString = e.toString().toLowerCase();
       
       // Check for specific connection errors
-      if (errorString.contains('timeout') || 
-          errorString.contains('connection refused') ||
-          errorString.contains('failed host lookup') ||
-          errorString.contains('network is unreachable') ||
-          errorString.contains('socketexception') ||
-          errorString.contains('connection reset') ||
-          errorString.contains('no route to host')) {
-        // Return error message based on language (will be handled by controller)
-        return 'SERVER_CONNECTION_ERROR: Unable to connect to server. Please check your internet connection and try again.';
+      if (errorString.contains('timeout')) {
+        print('[ChatService] ❌ Connection timeout - Server may be down or slow');
+        return 'SERVER_CONNECTION_ERROR: Connection timeout. The server may be down or slow. Please try again.';
+      } else if (errorString.contains('connection refused')) {
+        print('[ChatService] ❌ Connection refused - Server is not accepting connections');
+        return 'SERVER_CONNECTION_ERROR: Connection refused. The server may be down. Please check your internet connection and try again.';
+      } else if (errorString.contains('failed host lookup') || errorString.contains('name resolution')) {
+        print('[ChatService] ❌ DNS resolution failed - Cannot resolve hostname');
+        return 'SERVER_CONNECTION_ERROR: Cannot resolve server address. Please check your internet connection and try again.';
+      } else if (errorString.contains('network is unreachable')) {
+        print('[ChatService] ❌ Network unreachable - No internet connection');
+        return 'SERVER_CONNECTION_ERROR: Network unreachable. Please check your internet connection and try again.';
+      } else if (errorString.contains('socketexception') || errorString.contains('socket')) {
+        print('[ChatService] ❌ Socket exception - Network error');
+        return 'SERVER_CONNECTION_ERROR: Network error. Please check your internet connection and try again.';
+      } else if (errorString.contains('connection reset')) {
+        print('[ChatService] ❌ Connection reset - Server closed connection');
+        return 'SERVER_CONNECTION_ERROR: Connection reset. The server closed the connection. Please try again.';
+      } else if (errorString.contains('no route to host')) {
+        print('[ChatService] ❌ No route to host - Cannot reach server');
+        return 'SERVER_CONNECTION_ERROR: Cannot reach server. Please check your internet connection and try again.';
       }
       
+      print('[ChatService] ❌ Unknown network error: $e');
       return 'NETWORK_ERROR: ${e.toString()}';
     }
   }
