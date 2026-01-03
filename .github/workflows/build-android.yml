@@ -6,17 +6,11 @@ on:
       - main
       - master
       - develop
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/build-android.yml'
   pull_request:
     branches:
       - main
       - master
       - develop
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/build-android.yml'
   workflow_dispatch:
 
 jobs:
