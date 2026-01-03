@@ -205,37 +205,41 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: Center(
                 // Onboarding form - Small container (30% of screen height)
                 child: Container(
-          width: containerWidth,
-          constraints: BoxConstraints(
-            maxHeight: containerHeight,
-            minHeight: 280, // Increased to ensure submit button is fully inside (240 + 40 for button)
-          ),
-          decoration: BoxDecoration(
-            color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Name input
-                  _buildNameSection(),
-                  const SizedBox(height: 12),
-                  
-                  // Password input
-                  _buildPasswordSection(),
-                  const SizedBox(height: 16),
-                  
-                  // Submit button - ensure it's fully inside the container
-                  _buildSubmitButton(),
-                ],
+                  width: containerWidth,
+                  constraints: BoxConstraints(
+                    maxHeight: containerHeight,
+                    minHeight: 280, // Increased to ensure submit button is fully inside (240 + 40 for button)
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Name input
+                          _buildNameSection(),
+                          const SizedBox(height: 12),
+                          
+                          // Password input
+                          _buildPasswordSection(),
+                          const SizedBox(height: 16),
+                          
+                          // Submit button - ensure it's fully inside the container
+                          _buildSubmitButton(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
