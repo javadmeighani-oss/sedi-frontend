@@ -55,16 +55,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final password = _passwordController.text;
     // Password requirements:
     // - At least 6 characters
-    // - Contains letters
-    // - Contains numbers
-    // - Contains at least one uppercase letter
+    // - Only uppercase Latin letters (A-Z) and English numbers (0-9)
     final hasMinLength = password.length >= 6;
-    final hasLetters = password.contains(RegExp(r'[a-zA-Z]'));
+    final hasOnlyValidChars = password.contains(RegExp(r'^[A-Z0-9]+$'));
+    final hasLetters = password.contains(RegExp(r'[A-Z]'));
     final hasNumbers = password.contains(RegExp(r'[0-9]'));
-    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
     
     setState(() {
-      _isPasswordValid = hasMinLength && hasLetters && hasNumbers && hasUppercase;
+      _isPasswordValid = hasMinLength && hasOnlyValidChars && hasLetters && hasNumbers;
       _validateForm();
     });
   }
@@ -171,7 +169,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           // Background with transparency
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3), // Grey transparent
+              color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
             ),
           ),
           // Onboarding form
@@ -179,26 +177,32 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Language selection
-                      _buildLanguageSection(),
-                      const SizedBox(height: 24),
-                      
-                      // Name input
-                      _buildNameSection(),
-                      const SizedBox(height: 24),
-                      
-                      // Password input
-                      _buildPasswordSection(),
-                      const SizedBox(height: 32),
-                      
-                      // Submit button
-                      _buildSubmitButton(),
-                    ],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Language selection
+                          _buildLanguageSection(),
+                          const SizedBox(height: 20),
+                          
+                          // Name input
+                          _buildNameSection(),
+                          const SizedBox(height: 20),
+                          
+                          // Password input
+                          _buildPasswordSection(),
+                          const SizedBox(height: 24),
+                          
+                          // Submit button
+                          _buildSubmitButton(),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -231,10 +235,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             color: AppTheme.primaryBlack, // Black box
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
-          child: Container(
+            child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.2), // Grey transparent inside
+              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
             ),
             child: Row(
@@ -308,10 +312,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             color: AppTheme.primaryBlack, // Black box
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
-          child: Container(
+            child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.2), // Grey transparent inside
+              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
             ),
             child: TextFormField(
@@ -358,7 +362,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'حداقل 6 کاراکتر، شامل حروف، اعداد و یک حرف بزرگ',
+                'حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی پشتیبانی می‌شود',
                 style: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -373,10 +377,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             color: AppTheme.primaryBlack, // Black box
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
-          child: Container(
+            child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.2), // Grey transparent inside
+              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
             ),
             child: TextFormField(
@@ -386,11 +390,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 suffixIcon: _isPasswordValid
-                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen)
                     : null,
               ),
               obscureText: true,
               textDirection: TextDirection.ltr,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
+              ],
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'لطفاً رمز امنیتی را وارد کنید';
@@ -398,14 +405,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 if (value.length < 6) {
                   return 'رمز باید حداقل 6 کاراکتر باشد';
                 }
-                if (!value.contains(RegExp(r'[a-zA-Z]'))) {
-                  return 'رمز باید شامل حروف باشد';
+                if (!value.contains(RegExp(r'[A-Z]'))) {
+                  return 'رمز باید شامل حروف لاتین بزرگ باشد';
                 }
                 if (!value.contains(RegExp(r'[0-9]'))) {
-                  return 'رمز باید شامل اعداد باشد';
+                  return 'رمز باید شامل اعداد انگلیسی باشد';
                 }
-                if (!value.contains(RegExp(r'[A-Z]'))) {
-                  return 'رمز باید شامل حداقل یک حرف بزرگ باشد';
+                if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
+                  return 'رمز باید فقط شامل حروف لاتین بزرگ و اعداد انگلیسی باشد';
                 }
                 return null;
               },
@@ -423,7 +430,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       decoration: BoxDecoration(
         color: _isFormValid && !_isSubmitting
             ? AppTheme.primaryBlack // Black when valid
-            : Colors.grey, // Grey when invalid or submitting
+            : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
       child: Material(
@@ -438,12 +445,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
                     ),
                   )
                 : Icon(
                     Icons.check,
-                    color: _isFormValid ? Colors.white : Colors.grey.shade300,
+                    color: _isFormValid ? AppTheme.backgroundWhite : AppTheme.metalGrey,
                     size: 28,
                   ),
           ),
