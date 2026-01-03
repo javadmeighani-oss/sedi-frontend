@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../onboarding/presentation/pages/onboarding_page.dart';
+import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 
 /// ============================================
