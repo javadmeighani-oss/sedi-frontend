@@ -9,8 +9,6 @@ import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'chat_history_page.dart';
-import '../../../onboarding/presentation/pages/onboarding_page.dart';
-import '../../../../core/utils/user_profile_manager.dart';
 
 /// ============================================
 /// ChatPage - صفحه اصلی چت
@@ -38,9 +36,6 @@ class _ChatPageState extends State<ChatPage> {
   // Double tap to exit variables
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
-  
-  // Onboarding overlay state
-  bool _showOnboarding = false;
 
   @override
   void initState() {
@@ -51,32 +46,6 @@ class _ChatPageState extends State<ChatPage> {
     // Auto-scroll to bottom when new message arrives
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage);
-    
-    // Check if onboarding is needed
-    _checkOnboardingStatus();
-  }
-  
-  Future<void> _checkOnboardingStatus() async {
-    final profile = await UserProfileManager.loadProfile();
-    final hasCompletedOnboarding = profile.name != null && 
-                                    profile.name!.isNotEmpty &&
-                                    profile.securityPassword != null &&
-                                    profile.securityPassword!.isNotEmpty;
-    
-    if (!hasCompletedOnboarding) {
-      // Show onboarding overlay
-      if (mounted) {
-        setState(() {
-          _showOnboarding = true;
-        });
-      }
-    }
-  }
-  
-  void _hideOnboarding() {
-    setState(() {
-      _showOnboarding = false;
-    });
   }
 
   void _onControllerChanged() {
@@ -312,21 +281,6 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
             
-            // ================= ONBOARDING OVERLAY =================
-            if (_showOnboarding)
-              // Full screen overlay with blur/opacity for ChatPage
-              Positioned.fill(
-                child: Container(
-                  color: AppTheme.primaryBlack.withOpacity(0.6), // Dark overlay to make ChatPage faded
-                  child: OnboardingPage(
-                    onComplete: () {
-                      _hideOnboarding();
-                      // Re-initialize controller with initial message if needed
-                      _controller.initialize(initialMessage: null);
-                    },
-                  ),
-                ),
-              ),
           ],
         ),
         ),

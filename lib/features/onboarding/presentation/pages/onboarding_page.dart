@@ -7,6 +7,7 @@ import '../../../../data/models/user_profile.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../chat/chat_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
+import '../../../chat/presentation/widgets/sedi_header.dart';
 
 /// ============================================
 /// OnboardingPage - صفحه تنظیمات اولیه
@@ -21,9 +22,7 @@ import '../../../chat/presentation/pages/chat_page.dart';
 /// ============================================
 
 class OnboardingPage extends StatefulWidget {
-  final VoidCallback? onComplete;
-  
-  const OnboardingPage({super.key, this.onComplete});
+  const OnboardingPage({super.key});
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -151,15 +150,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
 
-      // Close onboarding overlay and notify parent
+      // Navigate to ChatPage with initial message
       if (mounted) {
-        // Call callback if provided
-        widget.onComplete?.call();
-        
-        // Also try to pop if we're in a dialog/overlay
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              initialMessage: result['message']?.toString(),
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -187,10 +186,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final containerHeight = screenSize.height * 0.3;
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Transparent to show ChatPage behind
-      body: Center(
-        // Onboarding form - Small container (30% of screen height)
-        child: Container(
+      backgroundColor: AppTheme.backgroundWhite, // White background like ChatPage
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ================= HEADER (Sedi Logo) =================
+            Padding(
+              padding: const EdgeInsets.only(top: 20, bottom: 16),
+              child: SediHeader(
+                isThinking: false,
+                isAlert: false,
+                size: 134.4, // Same size as ChatPage (20% smaller: 168 * 0.8 = 134.4)
+              ),
+            ),
+            
+            // ================= ONBOARDING FORM =================
+            Expanded(
+              child: Center(
+                // Onboarding form - Small container (30% of screen height)
+                child: Container(
           width: containerWidth,
           constraints: BoxConstraints(
             maxHeight: containerHeight,
