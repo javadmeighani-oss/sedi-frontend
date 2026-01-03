@@ -194,7 +194,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           width: containerWidth,
           constraints: BoxConstraints(
             maxHeight: containerHeight,
-            minHeight: 240, // Minimum height for small screens (200 * 1.2)
+            minHeight: 280, // Increased to ensure submit button is fully inside (240 + 40 for button)
           ),
           decoration: BoxDecoration(
             color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
