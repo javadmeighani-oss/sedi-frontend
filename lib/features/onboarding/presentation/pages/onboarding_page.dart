@@ -162,6 +162,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final containerWidth = screenSize.width * 0.9; // 90% of screen width
+    final containerHeight = screenSize.height * 0.25; // 25% of screen height (1/4)
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -169,40 +173,43 @@ class _OnboardingPageState extends State<OnboardingPage> {
           // Background with transparency
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+              color: AppTheme.primaryBlack.withOpacity(0.3), // Dark overlay
             ),
           ),
-          // Onboarding form
-          SafeArea(
-            child: Center(
+          // Onboarding form - Small container (1/4 of screen)
+          Center(
+            child: Container(
+              width: containerWidth,
+              constraints: BoxConstraints(
+                maxHeight: containerHeight,
+                minHeight: 200, // Minimum height for small screens
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Language selection
-                          _buildLanguageSection(),
-                          const SizedBox(height: 20),
-                          
-                          // Name input
-                          _buildNameSection(),
-                          const SizedBox(height: 20),
-                          
-                          // Password input
-                          _buildPasswordSection(),
-                          const SizedBox(height: 24),
-                          
-                          // Submit button
-                          _buildSubmitButton(),
-                        ],
-                      ),
-                    ),
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Language selection
+                      _buildLanguageSection(),
+                      const SizedBox(height: 12),
+                      
+                      // Name input
+                      _buildNameSection(),
+                      const SizedBox(height: 12),
+                      
+                      // Password input
+                      _buildPasswordSection(),
+                      const SizedBox(height: 16),
+                      
+                      // Submit button
+                      _buildSubmitButton(),
+                    ],
                   ),
                 ),
               ),
@@ -214,247 +221,189 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _buildLanguageSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, right: 4),
-          child: Text(
-            'زبان تعاملی',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: AppTheme.primaryBlack, // Black border
+          width: 1.5,
         ),
-        // Language selection box
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.primaryBlack, // Black box
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-            child: Container(
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('فارسی'),
-                    value: 'fa',
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('English'),
-                    value: 'en',
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('العربية'),
-                    value: 'ar',
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
         ),
-      ],
+        child: Row(
+          children: [
+            Expanded(
+              child: RadioListTile<String>(
+                title: const Text('فارسی'),
+                value: 'fa',
+                groupValue: _selectedLanguage,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLanguage = value!;
+                  });
+                },
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                dense: true,
+              ),
+            ),
+            Expanded(
+              child: RadioListTile<String>(
+                title: const Text('English'),
+                value: 'en',
+                groupValue: _selectedLanguage,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLanguage = value!;
+                  });
+                },
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                dense: true,
+              ),
+            ),
+            Expanded(
+              child: RadioListTile<String>(
+                title: const Text('العربية'),
+                value: 'ar',
+                groupValue: _selectedLanguage,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLanguage = value!;
+                  });
+                },
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                dense: true,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildNameSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, right: 4),
-          child: Text(
-            'نام کاربر',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: AppTheme.primaryBlack, // Black border
+          width: 1.5,
         ),
-        // Name input box
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.primaryBlack, // Black box
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-            child: Container(
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
-            ),
-            child: TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                hintText: 'نام خود را وارد کنید',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-              textDirection: TextDirection.rtl,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'لطفاً نام خود را وارد کنید';
-                }
-                if (value.trim().length < 2) {
-                  return 'نام باید حداقل 2 کاراکتر باشد';
-                }
-                return null;
-              },
-            ),
-          ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
         ),
-      ],
+        child: TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            hintText: 'نام خود را وارد کنید',
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          textDirection: TextDirection.rtl,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'لطفاً نام خود را وارد کنید';
+            }
+            if (value.trim().length < 2) {
+              return 'نام باید حداقل 2 کاراکتر باشد';
+            }
+            return null;
+          },
+        ),
+      ),
     );
   }
 
   Widget _buildPasswordSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label with requirements
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, right: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'رمز امنیتی',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی پشتیبانی می‌شود',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: AppTheme.primaryBlack, // Black border
+          width: 1.5,
         ),
-        // Password input box
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.primaryBlack, // Black box
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-            child: Container(
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 2),
-            ),
-            child: TextFormField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                hintText: 'رمز امنیتی را وارد کنید',
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                suffixIcon: _isPasswordValid
-                    ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen)
-                    : null,
-              ),
-              obscureText: true,
-              textDirection: TextDirection.ltr,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'لطفاً رمز امنیتی را وارد کنید';
-                }
-                if (value.length < 6) {
-                  return 'رمز باید حداقل 6 کاراکتر باشد';
-                }
-                if (!value.contains(RegExp(r'[A-Z]'))) {
-                  return 'رمز باید شامل حروف لاتین بزرگ باشد';
-                }
-                if (!value.contains(RegExp(r'[0-9]'))) {
-                  return 'رمز باید شامل اعداد انگلیسی باشد';
-                }
-                if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
-                  return 'رمز باید فقط شامل حروف لاتین بزرگ و اعداد انگلیسی باشد';
-                }
-                return null;
-              },
-            ),
-          ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
         ),
-      ],
+        child: TextFormField(
+          controller: _passwordController,
+          decoration: InputDecoration(
+            hintText: 'رمز امنیتی را وارد کنید',
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            suffixIcon: _isPasswordValid
+                ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
+                : null,
+            helperText: 'حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی پشتیبانی می‌شود',
+            helperMaxLines: 2,
+          ),
+          obscureText: true,
+          textDirection: TextDirection.ltr,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
+          ],
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'لطفاً رمز امنیتی را وارد کنید';
+            }
+            if (value.length < 6) {
+              return 'رمز باید حداقل 6 کاراکتر باشد';
+            }
+            if (!value.contains(RegExp(r'[A-Z]'))) {
+              return 'رمز باید شامل حروف لاتین بزرگ باشد';
+            }
+            if (!value.contains(RegExp(r'[0-9]'))) {
+              return 'رمز باید شامل اعداد انگلیسی باشد';
+            }
+            if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
+              return 'رمز باید فقط شامل حروف لاتین بزرگ و اعداد انگلیسی باشد';
+            }
+            return null;
+          },
+        ),
+      ),
     );
   }
 
   Widget _buildSubmitButton() {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: _isFormValid && !_isSubmitting
-            ? AppTheme.primaryBlack // Black when valid
-            : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isFormValid && !_isSubmitting ? _submitForm : null,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          child: Center(
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
-                    ),
-                  )
-                : Icon(
-                    Icons.check,
-                    color: _isFormValid ? AppTheme.backgroundWhite : AppTheme.metalGrey,
-                    size: 28,
-                  ),
-          ),
+    return GestureDetector(
+      onTap: _isFormValid && !_isSubmitting ? _submitForm : null,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: _isFormValid && !_isSubmitting
+              ? AppTheme.primaryBlack // Black when valid
+              : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
+          shape: BoxShape.circle,
         ),
+        child: _isSubmitting
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.check,
+                color: _isFormValid
+                    ? AppTheme.backgroundWhite
+                    : AppTheme.metalGrey.withOpacity(0.5),
+                size: 28,
+              ),
       ),
     );
   }
