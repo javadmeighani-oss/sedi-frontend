@@ -182,8 +182,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final containerWidth = screenSize.width * 0.9; // 90% of screen width
-    // 20% more height: 0.25 * 1.2 = 0.3 (30% of screen height)
-    final containerHeight = screenSize.height * 0.3;
+    // 20% more height from bottom: 0.3 * 1.2 = 0.36 (36% of screen height)
+    final containerHeight = screenSize.height * 0.36;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite, // White background like ChatPage
@@ -208,7 +208,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   width: containerWidth,
                   constraints: BoxConstraints(
                     maxHeight: containerHeight,
-                    minHeight: 280, // Increased to ensure submit button is fully inside (240 + 40 for button)
+                    minHeight: 336, // Increased to ensure submit button is fully inside (280 * 1.2 = 336)
                   ),
                   decoration: BoxDecoration(
                     color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
@@ -228,10 +228,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           
                           // Password input
                           _buildPasswordSection(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20), // More space before button
                           
                           // Submit button - ensure it's fully inside the container
                           _buildSubmitButton(),
+                          const SizedBox(height: 8), // Space at bottom to ensure button is inside
                         ],
                       ),
                     ),
@@ -387,7 +388,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     return Center(
       child: GestureDetector(
-        onTap: _isFormValid && !_isSubmitting ? _submitForm : null,
+        onTap: _isFormValid && !_isSubmitting ? () {
+          print('[OnboardingPage] Submit button tapped, form valid: $_isFormValid');
+          _submitForm();
+        } : () {
+          print('[OnboardingPage] Submit button tapped but form invalid or submitting');
+        },
         child: Container(
           width: buttonSize,
           height: buttonSize,
@@ -410,9 +416,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 )
               : Icon(
                   Icons.check,
-                  color: _isFormValid
-                      ? AppTheme.backgroundWhite // White checkmark when valid
-                      : AppTheme.metalGrey.withOpacity(0.5),
+                  color: AppTheme.backgroundWhite, // Always white checkmark
                   size: iconSize,
                 ),
         ),
