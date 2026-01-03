@@ -83,11 +83,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _validateForm() {
-    setState(() {
-      _isFormValid = _nameController.text.trim().isNotEmpty && 
-                     _nameController.text.trim().length >= 2 &&
-                     _isPasswordValid;
-    });
+    final nameValid = _nameController.text.trim().isNotEmpty && 
+                     _nameController.text.trim().length >= 2;
+    final isValid = nameValid && _isPasswordValid;
+    
+    if (mounted) {
+      setState(() {
+        _isFormValid = isValid;
+      });
+    }
   }
 
   Future<void> _submitForm() async {
@@ -214,7 +218,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
-                  child: SingleChildScrollView(
+                  child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Form(
                       key: _formKey,
@@ -387,13 +391,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
     const iconSize = 34.0;
     
     return Center(
-      child: GestureDetector(
+      child: InkWell(
         onTap: _isFormValid && !_isSubmitting ? () {
           print('[OnboardingPage] Submit button tapped, form valid: $_isFormValid');
           _submitForm();
-        } : () {
-          print('[OnboardingPage] Submit button tapped but form invalid or submitting');
-        },
+        } : null,
+        borderRadius: BorderRadius.circular(buttonSize / 2),
         child: Container(
           width: buttonSize,
           height: buttonSize,
