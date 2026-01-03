@@ -181,17 +181,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final containerWidth = screenSize.width * 0.9; // 90% of screen width
-    final containerHeight = screenSize.height * 0.25; // 25% of screen height (1/4)
+    // 20% more height: 0.25 * 1.2 = 0.3 (30% of screen height)
+    final containerHeight = screenSize.height * 0.3;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Center(
-        // Onboarding form - Small container (1/4 of screen)
+        // Onboarding form - Small container (30% of screen height)
         child: Container(
           width: containerWidth,
           constraints: BoxConstraints(
             maxHeight: containerHeight,
-            minHeight: 200, // Minimum height for small screens
+            minHeight: 240, // Minimum height for small screens (200 * 1.2)
           ),
           decoration: BoxDecoration(
             color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
@@ -224,100 +225,136 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _buildNameSection() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: AppTheme.primaryBlack, // Black border
-          width: 1.5,
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
-        ),
-        child: TextFormField(
-          controller: _nameController,
-          decoration: const InputDecoration(
-            hintText: 'Enter your name',
-            hintStyle: TextStyle(color: AppTheme.textPrimary),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label above the input field
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4),
+          child: Text(
+            'Name',
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 16,
-          ),
-          textDirection: TextDirection.ltr,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter your name';
-            }
-            if (value.trim().length < 2) {
-              return 'Name must be at least 2 characters';
-            }
-            return null;
-          },
         ),
-      ),
+        // Input field
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppTheme.primaryBlack, // Black border
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
+            ),
+            child: TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                hintText: 'Enter your name',
+                hintStyle: TextStyle(color: AppTheme.textPrimary),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
+              ),
+              textDirection: TextDirection.ltr,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
+                }
+                if (value.trim().length < 2) {
+                  return 'Name must be at least 2 characters';
+                }
+                return null;
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildPasswordSection() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: AppTheme.primaryBlack, // Black border
-          width: 1.5,
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
-        ),
-        child: TextFormField(
-          controller: _passwordController,
-          decoration: InputDecoration(
-            hintText: 'Security password (min 6 chars, uppercase letters and numbers)',
-            hintStyle: const TextStyle(color: AppTheme.textPrimary),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            suffixIcon: _isPasswordValid
-                ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
-                : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label above the input field
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4),
+          child: Text(
+            'Security password (minimum 6 characters, uppercase Latin letters and numbers)',
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 16,
-          ),
-          obscureText: true,
-          textDirection: TextDirection.ltr,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
-          ],
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter security password';
-            }
-            if (value.length < 6) {
-              return 'Password must be at least 6 characters';
-            }
-            if (!value.contains(RegExp(r'[A-Z]'))) {
-              return 'Password must contain uppercase letters';
-            }
-            if (!value.contains(RegExp(r'[0-9]'))) {
-              return 'Password must contain numbers';
-            }
-            if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
-              return 'Password must only contain uppercase letters and numbers';
-            }
-            return null;
-          },
         ),
-      ),
+        // Input field
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppTheme.primaryBlack, // Black border
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.metalGrey.withOpacity(0.2), // Grey transparent inside from theme
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
+            ),
+            child: TextFormField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                hintText: 'Enter security password',
+                hintStyle: const TextStyle(color: AppTheme.textPrimary),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                suffixIcon: _isPasswordValid
+                    ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
+                    : null,
+              ),
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
+              ),
+              obscureText: true,
+              textDirection: TextDirection.ltr,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
+              ],
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter security password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                if (!value.contains(RegExp(r'[A-Z]'))) {
+                  return 'Password must contain uppercase letters';
+                }
+                if (!value.contains(RegExp(r'[0-9]'))) {
+                  return 'Password must contain numbers';
+                }
+                if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
+                  return 'Password must only contain uppercase letters and numbers';
+                }
+                return null;
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -353,7 +390,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               : Icon(
                   Icons.check,
                   color: _isFormValid
-                      ? AppTheme.backgroundWhite
+                      ? AppTheme.backgroundWhite // White checkmark when valid
                       : AppTheme.metalGrey.withOpacity(0.5),
                   size: iconSize,
                 ),
