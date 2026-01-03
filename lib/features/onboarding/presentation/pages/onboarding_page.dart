@@ -116,7 +116,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']?.toString() ?? 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.'),
+              content: Text(result['message']?.toString() ?? 'Error registering information. Please try again.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -141,7 +141,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('خطا در ذخیره اطلاعات محلی. لطفاً دوباره تلاش کنید.'),
+              content: Text('Error saving local information. Please try again.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -185,50 +185,40 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // Background with transparency
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlack.withOpacity(0.3), // Dark overlay
-            ),
+      body: Center(
+        // Onboarding form - Small container (1/4 of screen)
+        child: Container(
+          width: containerWidth,
+          constraints: BoxConstraints(
+            maxHeight: containerHeight,
+            minHeight: 200, // Minimum height for small screens
           ),
-          // Onboarding form - Small container (1/4 of screen)
-          Center(
-            child: Container(
-              width: containerWidth,
-              constraints: BoxConstraints(
-                maxHeight: containerHeight,
-                minHeight: 200, // Minimum height for small screens
-              ),
-              decoration: BoxDecoration(
-                color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Name input
-                      _buildNameSection(),
-                      const SizedBox(height: 12),
-                      
-                      // Password input
-                      _buildPasswordSection(),
-                      const SizedBox(height: 16),
-                      
-                      // Submit button
-                      _buildSubmitButton(),
-                    ],
-                  ),
-                ),
+          decoration: BoxDecoration(
+            color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Name input
+                  _buildNameSection(),
+                  const SizedBox(height: 12),
+                  
+                  // Password input
+                  _buildPasswordSection(),
+                  const SizedBox(height: 16),
+                  
+                  // Submit button
+                  _buildSubmitButton(),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -250,17 +240,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: TextFormField(
           controller: _nameController,
           decoration: const InputDecoration(
-            hintText: 'نام خود را وارد کنید',
+            hintText: 'Enter your name',
+            hintStyle: TextStyle(color: AppTheme.textPrimary),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          textDirection: TextDirection.rtl,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 16,
+          ),
+          textDirection: TextDirection.ltr,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'لطفاً نام خود را وارد کنید';
+              return 'Please enter your name';
             }
             if (value.trim().length < 2) {
-              return 'نام باید حداقل 2 کاراکتر باشد';
+              return 'Name must be at least 2 characters';
             }
             return null;
           },
@@ -286,12 +281,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: TextFormField(
           controller: _passwordController,
           decoration: InputDecoration(
-            hintText: 'رمز امنیتی (حداقل 6 کاراکتر، حروف لاتین بزرگ و اعداد انگلیسی)',
+            hintText: 'Security password (min 6 chars, uppercase letters and numbers)',
+            hintStyle: const TextStyle(color: AppTheme.textPrimary),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             suffixIcon: _isPasswordValid
                 ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
                 : null,
+          ),
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 16,
           ),
           obscureText: true,
           textDirection: TextDirection.ltr,
@@ -300,19 +300,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'لطفاً رمز امنیتی را وارد کنید';
+              return 'Please enter security password';
             }
             if (value.length < 6) {
-              return 'رمز باید حداقل 6 کاراکتر باشد';
+              return 'Password must be at least 6 characters';
             }
             if (!value.contains(RegExp(r'[A-Z]'))) {
-              return 'رمز باید شامل حروف لاتین بزرگ باشد';
+              return 'Password must contain uppercase letters';
             }
             if (!value.contains(RegExp(r'[0-9]'))) {
-              return 'رمز باید شامل اعداد انگلیسی باشد';
+              return 'Password must contain numbers';
             }
             if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
-              return 'رمز باید فقط شامل حروف لاتین بزرگ و اعداد انگلیسی باشد';
+              return 'Password must only contain uppercase letters and numbers';
             }
             return null;
           },
@@ -322,35 +322,42 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _buildSubmitButton() {
-    return GestureDetector(
-      onTap: _isFormValid && !_isSubmitting ? _submitForm : null,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: _isFormValid && !_isSubmitting
-              ? AppTheme.primaryBlack // Black when valid
-              : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
-          shape: BoxShape.circle,
-        ),
-        child: _isSubmitting
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+    // 20% larger: 48 * 1.2 = 57.6 ≈ 58
+    const buttonSize = 58.0;
+    // Icon size: 28 * 1.2 = 33.6 ≈ 34
+    const iconSize = 34.0;
+    
+    return Center(
+      child: GestureDetector(
+        onTap: _isFormValid && !_isSubmitting ? _submitForm : null,
+        child: Container(
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(
+            color: _isFormValid && !_isSubmitting
+                ? AppTheme.primaryBlack // Black when valid
+                : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
+            shape: BoxShape.circle,
+          ),
+          child: _isSubmitting
+              ? const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                    ),
                   ),
+                )
+              : Icon(
+                  Icons.check,
+                  color: _isFormValid
+                      ? AppTheme.backgroundWhite
+                      : AppTheme.metalGrey.withOpacity(0.5),
+                  size: iconSize,
                 ),
-              )
-            : Icon(
-                Icons.check,
-                color: _isFormValid
-                    ? AppTheme.backgroundWhite
-                    : AppTheme.metalGrey.withOpacity(0.5),
-                size: 28,
-              ),
+        ),
       ),
     );
   }
