@@ -109,12 +109,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _submitForm() async {
-    print('[OnboardingPage] _submitForm called');
+    print('[OnboardingPage] ========== _submitForm START ==========');
     print('[OnboardingPage] Form valid: $_isFormValid');
-    print('[OnboardingPage] Name: ${_nameController.text}');
-    print('[OnboardingPage] Password length: ${_passwordController.text.length}');
+    print('[OnboardingPage] Submitting: $_isSubmitting');
+    print('[OnboardingPage] Name: "${_nameController.text.trim()}"');
+    print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
+    print('[OnboardingPage] Password valid: $_isPasswordValid');
     
-    // Validate form state first
+    // Prevent double submission
+    if (_isSubmitting) {
+      print('[OnboardingPage] Already submitting, ignoring tap');
+      return;
+    }
+    
+    // Check custom validation first (faster)
+    if (!_isFormValid) {
+      print('[OnboardingPage] Custom validation failed - _isFormValid: $_isFormValid');
+      // Try to validate form state to show error messages
+      _formKey.currentState?.validate();
+      return;
+    }
+    
+    // Validate form state (for error messages)
     final formValid = _formKey.currentState?.validate() ?? false;
     print('[OnboardingPage] FormState validation: $formValid');
     
@@ -122,15 +138,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
       print('[OnboardingPage] FormState validation failed');
       return;
     }
-    
-    if (!_isFormValid) {
-      print('[OnboardingPage] Custom validation failed - _isFormValid: $_isFormValid');
-      return;
-    }
 
+    // Set submitting state
+    if (!mounted) return;
     setState(() {
       _isSubmitting = true;
     });
+    print('[OnboardingPage] Set _isSubmitting = true');
 
     try {
       final chatService = ChatService();
@@ -184,31 +198,46 @@ class _OnboardingPageState extends State<OnboardingPage> {
       }
 
       // Navigate to ChatPage with initial message
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => ChatPage(
-              initialMessage: result['message']?.toString(),
-            ),
-          ),
-        );
+      print('[OnboardingPage] Preparing to navigate to ChatPage');
+      print('[OnboardingPage] Initial message: ${result['message']?.toString()}');
+      
+      if (!mounted) {
+        print('[OnboardingPage] Widget not mounted, cannot navigate');
+        return;
       }
-    } catch (e) {
+      
+      // Navigate to ChatPage
+      print('[OnboardingPage] Navigating to ChatPage...');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ChatPage(
+            initialMessage: result['message']?.toString(),
+          ),
+        ),
+      );
+      print('[OnboardingPage] Navigation completed');
+    } catch (e, stackTrace) {
+      print('[OnboardingPage] ERROR in _submitForm: $e');
+      print('[OnboardingPage] Stack trace: $stackTrace');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
-    } finally {
+      
+      // Reset submitting state on error
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
       }
     }
+    print('[OnboardingPage] ========== _submitForm END ==========');
   }
 
   @override
@@ -422,48 +451,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final isEnabled = _isFormValid && !_isSubmitting;
     
-    return GestureDetector(
-      onTap: () {
-        print('[OnboardingPage] Submit button tapped');
-        print('[OnboardingPage] Form valid: $_isFormValid');
-        print('[OnboardingPage] Submitting: $_isSubmitting');
-        print('[OnboardingPage] Name: "${_nameController.text}"');
-        print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
-        print('[OnboardingPage] Password valid: $_isPasswordValid');
-        
-        if (isEnabled) {
-          print('[OnboardingPage] Calling _submitForm');
+    print('[OnboardingPage] _buildSubmitButton - isEnabled: $isEnabled, _isFormValid: $_isFormValid, _isSubmitting: $_isSubmitting');
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isEnabled ? () {
+          print('[OnboardingPage] ========== Submit button TAPPED ==========');
+          print('[OnboardingPage] Form valid: $_isFormValid');
+          print('[OnboardingPage] Submitting: $_isSubmitting');
+          print('[OnboardingPage] Name: "${_nameController.text.trim()}"');
+          print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
+          print('[OnboardingPage] Password valid: $_isPasswordValid');
+          print('[OnboardingPage] Calling _submitForm...');
           _submitForm();
-        } else {
-          print('[OnboardingPage] Button is disabled, not submitting');
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: buttonSize,
-        height: buttonSize,
-        decoration: BoxDecoration(
-          color: isEnabled
-              ? AppTheme.primaryBlack // Black when valid
-              : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
-          shape: BoxShape.circle,
-        ),
-        child: _isSubmitting
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+        } : null,
+        borderRadius: BorderRadius.circular(buttonSize / 2),
+        child: Container(
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(
+            color: isEnabled
+                ? AppTheme.primaryBlack // Black when valid
+                : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
+            shape: BoxShape.circle,
+          ),
+          child: _isSubmitting
+              ? const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                    ),
                   ),
+                )
+              : Icon(
+                  Icons.check,
+                  color: AppTheme.backgroundWhite, // Always white checkmark
+                  size: iconSize,
                 ),
-              )
-            : Icon(
-                Icons.check,
-                color: AppTheme.backgroundWhite, // Always white checkmark
-                size: iconSize,
-              ),
+        ),
       ),
     );
   }
