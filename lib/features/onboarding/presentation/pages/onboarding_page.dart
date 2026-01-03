@@ -151,19 +151,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
 
-      // Close onboarding overlay and show initial message
+      // Close onboarding overlay and notify parent
       if (mounted) {
-        // Find ChatPage in the widget tree and update it
-        Navigator.of(context).pop(); // Close onboarding overlay
+        // Call callback if provided
+        widget.onComplete?.call();
         
-        // Show initial message in ChatPage
-        // The ChatPage will handle showing the initial message
-        // We need to trigger a rebuild of ChatPage
-        final chatPageState = context.findAncestorStateOfType<_ChatPageState>();
-        if (chatPageState != null) {
-          chatPageState._controller.initialize(
-            initialMessage: result['message']?.toString(),
-          );
+        // Also try to pop if we're in a dialog/overlay
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
       }
     } catch (e) {
