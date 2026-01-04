@@ -3,8 +3,15 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        // Add mirror repositories as fallback
+        // Add multiple mirror repositories as fallback for network issues
         maven { url 'https://repo1.maven.org/maven2' }
+        maven { url 'https://jcenter.bintray.com' }
+        maven { url 'https://plugins.gradle.org/m2/' }
+        // Retry configuration
+        maven {
+            url 'https://repo.maven.apache.org/maven2'
+            allowInsecureProtocol = false
+        }
     }
 
     dependencies {
@@ -17,8 +24,15 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        // Add mirror repositories as fallback
+        // Add multiple mirror repositories as fallback for network issues
         maven { url 'https://repo1.maven.org/maven2' }
+        maven { url 'https://jcenter.bintray.com' }
+        maven { url 'https://plugins.gradle.org/m2/' }
+        // Retry configuration
+        maven {
+            url 'https://repo.maven.apache.org/maven2'
+            allowInsecureProtocol = false
+        }
     }
 }
 
