@@ -35,15 +35,19 @@ jobs:
           channel: 'stable'
       
       - name: Get Flutter dependencies
+        working-directory: ./frontend
         run: flutter pub get
       
       - name: Verify Flutter installation
+        working-directory: ./frontend
         run: flutter doctor -v
       
       - name: Clean build
+        working-directory: ./frontend
         run: flutter clean
       
       - name: Build APK with retry
+        working-directory: ./frontend
         run: |
           max_attempts=3
           attempt=1
@@ -54,8 +58,9 @@ jobs:
               exit 0
             else
               if [ $attempt -lt $max_attempts ]; then
-                echo "Build failed, retrying in 10 seconds..."
-                sleep 10
+                echo "Build failed, cleaning and retrying in 15 seconds..."
+                flutter clean
+                sleep 15
               fi
               attempt=$((attempt + 1))
             fi
@@ -67,5 +72,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sedi-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30

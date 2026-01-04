@@ -2,16 +2,14 @@ buildscript {
     ext.kotlin_version = '1.9.23'
     repositories {
         google()
-        mavenCentral()
-        // Add multiple mirror repositories as fallback for network issues
+        // Use repo1.maven.org instead of repo.maven.apache.org (which returns 403)
         maven { url 'https://repo1.maven.org/maven2' }
-        maven { url 'https://jcenter.bintray.com' }
+        mavenCentral()
         maven { url 'https://plugins.gradle.org/m2/' }
-        // Retry configuration
-        maven {
-            url 'https://repo.maven.apache.org/maven2'
-            allowInsecureProtocol = false
-        }
+        // Additional mirrors as fallback
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 
     dependencies {
@@ -23,16 +21,14 @@ buildscript {
 allprojects {
     repositories {
         google()
-        mavenCentral()
-        // Add multiple mirror repositories as fallback for network issues
+        // Use repo1.maven.org instead of repo.maven.apache.org (which returns 403)
         maven { url 'https://repo1.maven.org/maven2' }
-        maven { url 'https://jcenter.bintray.com' }
+        mavenCentral()
         maven { url 'https://plugins.gradle.org/m2/' }
-        // Retry configuration
-        maven {
-            url 'https://repo.maven.apache.org/maven2'
-            allowInsecureProtocol = false
-        }
+        // Additional mirrors as fallback
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
     }
 }
 
