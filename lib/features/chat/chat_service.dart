@@ -242,12 +242,40 @@ class ChatService {
       print('[ChatService] Onboarding response - Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return {
-          'message': body['message']?.toString() ?? '',
-          'user_id': body['user_id'] as int?,
-          'language': body['language']?.toString() ?? language,
-        };
+        try {
+          final body = jsonDecode(response.body);
+          print('[ChatService] Parsed response body: $body');
+          print('[ChatService] user_id: ${body['user_id']}, type: ${body['user_id'].runtimeType}');
+          print('[ChatService] message: ${body['message']}');
+          print('[ChatService] language: ${body['language']}');
+          
+          final userId = body['user_id'];
+          // Handle both int and string user_id
+          int? userIdInt;
+          if (userId is int) {
+            userIdInt = userId;
+          } else if (userId is String) {
+            userIdInt = int.tryParse(userId);
+          } else if (userId != null) {
+            userIdInt = int.tryParse(userId.toString());
+          }
+          
+          print('[ChatService] Final user_id: $userIdInt');
+          
+          return {
+            'message': body['message']?.toString() ?? '',
+            'user_id': userIdInt,
+            'language': body['language']?.toString() ?? language,
+          };
+        } catch (e) {
+          print('[ChatService] ERROR parsing response body: $e');
+          print('[ChatService] Response body (raw): ${response.body}');
+          return {
+            'message': 'Error parsing server response. Please try again.',
+            'user_id': null,
+            'language': null,
+          };
+        }
       }
 
       // Parse error message - provide user-friendly messages
@@ -255,7 +283,7 @@ class ChatService {
       try {
         final errorBody = jsonDecode(response.body);
         final detail = errorBody['detail']?.toString() ?? '';
-        
+
         // Use backend error detail if available, otherwise use status code
         if (detail.isNotEmpty) {
           errorMessage = detail;
@@ -263,7 +291,8 @@ class ChatService {
           // Map status codes to user-friendly messages
           switch (response.statusCode) {
             case 400:
-              errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+              errorMessage =
+                  'Invalid request. Please check your password (minimum 6 characters).';
               break;
             case 401:
               errorMessage = 'Authentication failed. Please try again.';
@@ -278,7 +307,8 @@ class ChatService {
               errorMessage = 'Server error. Please try again later.';
               break;
             case 503:
-              errorMessage = 'Service temporarily unavailable. Please try again later.';
+              errorMessage =
+                  'Service temporarily unavailable. Please try again later.';
               break;
             default:
               errorMessage = 'Registration failed. Please try again.';
@@ -288,7 +318,8 @@ class ChatService {
         // If can't parse error body, use status code
         switch (response.statusCode) {
           case 400:
-            errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+            errorMessage =
+                'Invalid request. Please check your password (minimum 6 characters).';
             break;
           case 500:
             errorMessage = 'Server error. Please try again later.';
@@ -298,7 +329,8 @@ class ChatService {
         }
       }
 
-      print('[ChatService] Onboarding error: Status ${response.statusCode}, Message: $errorMessage');
+      print(
+          '[ChatService] Onboarding error: Status ${response.statusCode}, Message: $errorMessage');
       return {
         'message': errorMessage,
         'user_id': null,
@@ -307,23 +339,26 @@ class ChatService {
     } catch (e) {
       print('[ChatService] Onboarding exception: $e');
       print('[ChatService] Exception type: ${e.runtimeType}');
-      
+
       // Provide user-friendly error messages based on exception type
       String errorMessage;
       final errorString = e.toString().toLowerCase();
-      
+
       if (errorString.contains('timeout')) {
-        errorMessage = 'Connection timeout. Please check your internet connection and try again.';
-      } else if (errorString.contains('connection refused') || 
-                 errorString.contains('failed host lookup') ||
-                 errorString.contains('socketexception')) {
-        errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
+        errorMessage =
+            'Connection timeout. Please check your internet connection and try again.';
+      } else if (errorString.contains('connection refused') ||
+          errorString.contains('failed host lookup') ||
+          errorString.contains('socketexception')) {
+        errorMessage =
+            'Cannot connect to server. Please check your internet connection and try again.';
       } else if (errorString.contains('network')) {
-        errorMessage = 'Network error. Please check your internet connection and try again.';
+        errorMessage =
+            'Network error. Please check your internet connection and try again.';
       } else {
         errorMessage = 'Registration failed. Please try again.';
       }
-      
+
       return {
         'message': errorMessage,
         'user_id': null,

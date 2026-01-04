@@ -234,11 +234,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final systemLanguage = _getSystemLanguage();
       
       // Setup onboarding with backend (name no longer sent to backend)
+      print('[OnboardingPage] Calling setupOnboarding...');
+      print('[OnboardingPage] Password length: ${_passwordController.text.length}');
+      print('[OnboardingPage] Language: $systemLanguage');
+      
       final result = await chatService.setupOnboarding(
         _passwordController.text,
         systemLanguage,
       );
+      
+      print('[OnboardingPage] setupOnboarding result: $result');
+      print('[OnboardingPage] user_id: ${result['user_id']}');
+      print('[OnboardingPage] message: ${result['message']}');
+      print('[OnboardingPage] useLocalMode: ${AppConfig.useLocalMode}');
 
+      // Check if onboarding was successful
+      // In local mode, user_id can be null (that's okay)
+      // In backend mode, user_id must not be null for success
       if (result['user_id'] == null && !AppConfig.useLocalMode) {
         // Backend error - show error message and reset state
         if (mounted) {
