@@ -57,11 +57,47 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.initState();
     _nameController.addListener(_validateForm);
     _passwordController.addListener(_validatePassword);
+    // Check if user has already completed onboarding
+    _checkOnboardingStatus();
     // Initial validation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _validateForm();
       _validatePassword();
     });
+  }
+
+  /// Check if user has already completed onboarding
+  /// If yes, navigate directly to ChatPage
+  Future<void> _checkOnboardingStatus() async {
+    try {
+      final profile = await UserProfileManager.loadProfile();
+      
+      final hasName = profile.name != null && profile.name!.isNotEmpty;
+      final hasPassword = profile.securityPassword != null && 
+                          profile.securityPassword!.isNotEmpty;
+      final isVerified = profile.isVerified || profile.hasSecurityPassword;
+      
+      final hasCompletedOnboarding = hasName && hasPassword && isVerified;
+      
+      print('[OnboardingPage] Checking if onboarding already completed:');
+      print('[OnboardingPage] - hasName: $hasName');
+      print('[OnboardingPage] - hasPassword: $hasPassword');
+      print('[OnboardingPage] - isVerified: $isVerified');
+      print('[OnboardingPage] - hasCompletedOnboarding: $hasCompletedOnboarding');
+      
+      if (hasCompletedOnboarding && mounted) {
+        print('[OnboardingPage] ✅ Onboarding already completed - navigating to ChatPage');
+        // User has already completed onboarding, navigate to ChatPage
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const ChatPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('[OnboardingPage] Error checking onboarding status: $e');
+      // If error, continue with onboarding page
+    }
   }
 
   @override

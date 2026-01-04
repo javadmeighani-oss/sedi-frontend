@@ -124,19 +124,34 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
 
   Future<void> _navigateToNextPage() async {
     // Check if user has completed onboarding
+    // Onboarding is complete if:
+    // 1. Name is provided and not empty
+    // 2. Security password is provided and not empty
+    // 3. User is verified (isVerified = true) OR hasSecurityPassword = true
     final profile = await UserProfileManager.loadProfile();
-    final hasCompletedOnboarding = profile.name != null && 
-                                    profile.name!.isNotEmpty &&
-                                    profile.securityPassword != null &&
-                                    profile.securityPassword!.isNotEmpty;
+    
+    final hasName = profile.name != null && profile.name!.isNotEmpty;
+    final hasPassword = profile.securityPassword != null && 
+                        profile.securityPassword!.isNotEmpty;
+    final isVerified = profile.isVerified || profile.hasSecurityPassword;
+    
+    final hasCompletedOnboarding = hasName && hasPassword && isVerified;
+    
+    print('[IntroPage] Checking onboarding status:');
+    print('[IntroPage] - hasName: $hasName (${profile.name})');
+    print('[IntroPage] - hasPassword: $hasPassword (${profile.securityPassword != null ? "***" : "null"})');
+    print('[IntroPage] - isVerified: $isVerified (isVerified: ${profile.isVerified}, hasSecurityPassword: ${profile.hasSecurityPassword})');
+    print('[IntroPage] - hasCompletedOnboarding: $hasCompletedOnboarding');
     
     if (hasCompletedOnboarding) {
-      // User has completed onboarding, go to chat
+      // User has completed onboarding, go directly to chat
+      print('[IntroPage] ✅ Onboarding completed - navigating to ChatPage');
       Navigator.of(context).pushReplacement(
         _createCubeTransitionRouteToChat(),
       );
     } else {
       // User needs to complete onboarding first
+      print('[IntroPage] ⚠️ Onboarding not completed - navigating to OnboardingPage');
       Navigator.of(context).pushReplacement(
         _createCubeTransitionRouteToOnboarding(),
       );
