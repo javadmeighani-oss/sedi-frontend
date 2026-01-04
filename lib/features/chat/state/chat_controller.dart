@@ -117,7 +117,8 @@ class ChatController extends ChangeNotifier {
         }
 
         // Backend provided greeting - display it
-        final messageToDisplay = _parseResponse(greeting);
+        final parsed = _parseResponse(greeting);
+        final messageToDisplay = parsed['message'] as String;
         print('[ChatController] Displaying backend greeting (length: ${messageToDisplay.length})');
         _addSediMessage(messageToDisplay);
       } else {
