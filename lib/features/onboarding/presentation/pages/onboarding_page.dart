@@ -254,80 +254,66 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final containerWidth = screenSize.width * 0.9; // 90% of screen width
-    // Reduced height to prevent keyboard from covering the form
-    // Calculate available height: screen height - keyboard - header - padding
-    final availableHeight = screenSize.height - keyboardHeight - 200; // Reserve space for header and padding
-    final containerHeight = availableHeight * 0.4; // 40% of available height (reduced from 36% of screen)
+    // Fixed container height to prevent shrinking when keyboard opens
+    final containerHeight = 320.0; // Fixed height to prevent background from shrinking
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite, // White background like ChatPage
-      resizeToAvoidBottomInset: true, // Allow resizing when keyboard appears
+      resizeToAvoidBottomInset: false, // Prevent background from shrinking when keyboard opens
       body: SafeArea(
-        child: SingleChildScrollView(
-          // Allow scrolling when keyboard appears
-          padding: EdgeInsets.only(bottom: keyboardHeight > 0 ? 20 : 0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: screenSize.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+        child: Column(
+          children: [
+            // ================= HEADER (Sedi Logo) =================
+            Padding(
+              padding: const EdgeInsets.only(top: 20, bottom: 16),
+              child: SediHeader(
+                isThinking: false,
+                isAlert: false,
+                size: 134.4, // Same size as ChatPage (20% smaller: 168 * 0.8 = 134.4)
+              ),
             ),
-            child: Column(
-              children: [
-                // ================= HEADER (Sedi Logo) =================
-                Padding(
-                  padding: const EdgeInsets.only(top: 20, bottom: 16),
-                  child: SediHeader(
-                    isThinking: false,
-                    isAlert: false,
-                    size: 134.4, // Same size as ChatPage (20% smaller: 168 * 0.8 = 134.4)
+            
+            // ================= ONBOARDING FORM =================
+            Expanded(
+              child: Center(
+                // Onboarding form - Fixed height container
+                child: Container(
+                  width: containerWidth,
+                  height: containerHeight, // Fixed height
+                  decoration: BoxDecoration(
+                    color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
-                ),
-                
-                // ================= ONBOARDING FORM =================
-                Expanded(
-                  child: Center(
-                    // Onboarding form - Reduced height container
-                    child: Container(
-                      width: containerWidth,
-                      constraints: BoxConstraints(
-                        maxHeight: containerHeight,
-                        minHeight: 280, // Reduced minimum height
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Name input
-                              _buildNameSection(),
-                              const SizedBox(height: 12),
-                              
-                              // Password input
-                              _buildPasswordSection(),
-                              const SizedBox(height: 20), // More space before button
-                              
-                              // Submit button - ensure it's fully inside the container
-                              _buildSubmitButton(),
-                              const SizedBox(height: 8), // Space at bottom to ensure button is inside
-                            ],
-                          ),
-                        ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Name input
+                          _buildNameSection(),
+                          const SizedBox(height: 12),
+                          
+                          // Password input
+                          _buildPasswordSection(),
+                          
+                          // Spacer to push button to bottom
+                          const Spacer(),
+                          
+                          // Submit button - positioned at bottom center
+                          _buildSubmitButton(),
+                          const SizedBox(height: 8), // Space at bottom to ensure button is inside
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -365,14 +351,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             child: TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Enter your name',
-                hintStyle: TextStyle(color: AppTheme.textPrimary),
+                hintStyle: TextStyle(
+                  color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter hint text
+                ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              style: TextStyle(
-                color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter text
+              style: const TextStyle(
+                color: AppTheme.textPrimary, // Full color for typed text (black)
                 fontSize: 16,
               ),
               textDirection: TextDirection.ltr,
@@ -426,15 +414,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
               controller: _passwordController,
               decoration: InputDecoration(
                 hintText: 'Enter security password',
-                hintStyle: const TextStyle(color: AppTheme.textPrimary),
+                hintStyle: TextStyle(
+                  color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter hint text
+                ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 suffixIcon: _isPasswordValid
                     ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
                     : null,
               ),
-              style: TextStyle(
-                color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter text
+              style: const TextStyle(
+                color: AppTheme.textPrimary, // Full color for typed text (black)
                 fontSize: 16,
               ),
               obscureText: true,
@@ -464,46 +454,46 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final isEnabled = _isFormValid && !_isSubmitting;
     
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isEnabled ? () {
-          print('[OnboardingPage] ========== Submit button TAPPED ==========');
-          print('[OnboardingPage] Form valid: $_isFormValid');
-          print('[OnboardingPage] Submitting: $_isSubmitting');
-          print('[OnboardingPage] Name: "${_nameController.text.trim()}"');
-          print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
-          print('[OnboardingPage] Password valid: $_isPasswordValid');
-          print('[OnboardingPage] Calling _submitForm...');
-          _submitForm();
-        } : null,
-        borderRadius: BorderRadius.circular(buttonSize / 2),
-        child: Container(
-          width: buttonSize,
-          height: buttonSize,
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? AppTheme.primaryBlack // Black when valid
-                : AppTheme.metalGrey, // Grey when invalid or submitting (from theme)
-            shape: BoxShape.circle,
-          ),
-          child: _isSubmitting
-              ? const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
-                    ),
-                  ),
-                )
-              : Icon(
-                  Icons.check,
-                  color: AppTheme.backgroundWhite, // Always white checkmark
-                  size: iconSize,
-                ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // Ensure taps are captured
+      onTap: isEnabled ? () {
+        print('[OnboardingPage] ========== Submit button TAPPED ==========');
+        print('[OnboardingPage] Form valid: $_isFormValid');
+        print('[OnboardingPage] Submitting: $_isSubmitting');
+        print('[OnboardingPage] Name: "${_nameController.text.trim()}"');
+        print('[OnboardingPage] Password: "${_passwordController.text}" (length: ${_passwordController.text.length})');
+        print('[OnboardingPage] Password valid: $_isPasswordValid');
+        print('[OnboardingPage] Calling _submitForm...');
+        _submitForm();
+      } : () {
+        // Show feedback when button is disabled
+        print('[OnboardingPage] Button disabled - Form valid: $_isFormValid, Submitting: $_isSubmitting');
+      },
+      child: Container(
+        width: buttonSize,
+        height: buttonSize,
+        decoration: BoxDecoration(
+          color: isEnabled
+              ? AppTheme.primaryBlack // Black when valid (form is filled)
+              : AppTheme.metalGrey, // Grey when invalid or submitting
+          shape: BoxShape.circle,
         ),
+        child: _isSubmitting
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.check,
+                color: AppTheme.backgroundWhite, // Always white checkmark
+                size: iconSize,
+              ),
       ),
     );
   }
