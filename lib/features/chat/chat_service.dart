@@ -405,26 +405,35 @@ class ChatService {
           return 'SECURITY_CHECK_REQUIRED';
         }
         
-        // Backend returns 'message' field and 'user_id' (for anonymous users)
+        // Backend returns 'message' field, 'user_id' (for anonymous users), and 'detected_name' (if name detected)
         final message = body['message']?.toString() ?? '';
         final userId = body['user_id'] as int?;
+        final detectedName = body['detected_name']?.toString();
         
         print('[ChatService] Parsed message: "$message"');
         print('[ChatService] Parsed user_id: $userId');
+        print('[ChatService] Parsed detected_name: $detectedName');
         
         if (message.isEmpty) {
           print('[ChatService] ⚠️ WARNING: Backend returned empty message!');
           print('[ChatService] Full response body: $body');
         }
         
-        // Return message with user_id if available (for anonymous users)
-        if (userId != null && message.isNotEmpty) {
-          print('[ChatService] Returning message with user_id: $userId');
-          return 'USER_ID:$userId|MESSAGE:$message';
+        // Build response string with all data
+        String responseString = message;
+        
+        // Add user_id if available (for anonymous users)
+        if (userId != null) {
+          responseString = 'USER_ID:$userId|$responseString';
         }
         
-        print('[ChatService] Returning message only (no user_id)');
-        return message;
+        // Add detected_name if available (to update UserProfile)
+        if (detectedName != null && detectedName.isNotEmpty) {
+          responseString = 'DETECTED_NAME:$detectedName|$responseString';
+          print('[ChatService] ✅ Name detected from conversation: $detectedName');
+        }
+        
+        return responseString;
       }
 
       // Handle 422 (Validation Error) - usually means missing required parameter

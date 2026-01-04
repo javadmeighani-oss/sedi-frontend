@@ -145,26 +145,57 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  /// Parse response to extract user_id and return clean message
-  String _parseResponse(String? response) {
-    if (response == null || response.isEmpty) return '';
+  /// Parse response to extract user_id, detected_name, and return clean message
+  Map<String, dynamic> _parseResponse(String? response) {
+    if (response == null || response.isEmpty) {
+      return {'message': '', 'detected_name': null};
+    }
     
-    // Check if response contains user_id (for anonymous users)
-    if (response.startsWith('USER_ID:')) {
-      final parts = response.split('|MESSAGE:');
+    String message = response;
+    String? detectedName;
+    int? userId;
+    
+    // Extract DETECTED_NAME if present
+    if (message.contains('DETECTED_NAME:')) {
+      final nameMatch = RegExp(r'DETECTED_NAME:([^|]+)\|').firstMatch(message);
+      if (nameMatch != null) {
+        detectedName = nameMatch.group(1);
+        message = message.replaceFirst(RegExp(r'DETECTED_NAME:[^|]+\|'), '');
+        print('[ChatController] Extracted detected_name: $detectedName');
+      }
+    }
+    
+    // Extract USER_ID if present
+    if (message.startsWith('USER_ID:')) {
+      final parts = message.split('|MESSAGE:');
       if (parts.length == 2) {
         final userIdStr = parts[0].replaceFirst('USER_ID:', '');
-        final userId = int.tryParse(userIdStr);
+        userId = int.tryParse(userIdStr);
         if (userId != null && _userProfile.userId == null) {
           // Save user_id for anonymous user
           _userProfile = _userProfile.copyWith(userId: userId);
           UserProfileManager.saveProfile(_userProfile);
         }
-        return parts[1]; // Return clean message without USER_ID prefix
+        message = parts[1]; // Clean message without USER_ID prefix
+      } else {
+        // Try alternative format
+        final userIdMatch = RegExp(r'USER_ID:(\d+)\|').firstMatch(message);
+        if (userIdMatch != null) {
+          userId = int.tryParse(userIdMatch.group(1)!);
+          if (userId != null && _userProfile.userId == null) {
+            _userProfile = _userProfile.copyWith(userId: userId);
+            UserProfileManager.saveProfile(_userProfile);
+          }
+          message = message.replaceFirst(RegExp(r'USER_ID:\d+\|'), '');
+        }
       }
     }
     
-    return response; // Return as-is if no USER_ID prefix
+    return {
+      'message': message,
+      'detected_name': detectedName,
+      'user_id': userId,
+    };
   }
 
   // ===============================
@@ -277,8 +308,19 @@ class ChatController extends ChangeNotifier {
                   : 'Empty response from server.',
         );
       } else {
-        // Parse and display backend message
-        final messageToDisplay = _parseResponse(response);
+        // Parse response to extract user_id, detected_name, and message
+        final parsed = _parseResponse(response);
+        final messageToDisplay = parsed['message'] as String;
+        final detectedName = parsed['detected_name'] as String?;
+        
+        // Update UserProfile if name was detected from conversation
+        if (detectedName != null && detectedName.isNotEmpty) {
+          print('[ChatController] ✅ Name detected from conversation: $detectedName');
+          _userProfile = _userProfile.copyWith(name: detectedName);
+          await UserProfileManager.saveProfile(_userProfile);
+          print('[ChatController] ✅ UserProfile updated with new name: $detectedName');
+        }
+        
         print('[ChatController] ✅ Displaying backend message');
         print('[ChatController] Original response length: ${response.length}');
         print('[ChatController] Parsed message length: ${messageToDisplay.length}');
