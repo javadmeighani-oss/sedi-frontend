@@ -51,12 +51,12 @@ class ChatService {
     String? userPassword,
     String? language,
   }) async {
-    // ---------------- LOCAL MODE ---------------- 
+    // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
       return null; // No greeting in local mode, use fallback
     }
 
-    // ---------------- BACKEND MODE ---------------- 
+    // ---------------- BACKEND MODE ----------------
     try {
       final currentLang = language ?? await UserPreferences.getUserLanguage();
       final lang = currentLang.isNotEmpty ? currentLang : 'en';
@@ -87,25 +87,28 @@ class ChatService {
       );
 
       final headers = await _buildHeaders();
-      
+
       print('[ChatService] Greeting request - URL: ${uri.toString()}');
       print('[ChatService] Greeting request - Headers: $headers');
       print('[ChatService] Greeting request - Query params: $queryParams');
-      
+
       // Retry mechanism for greeting
       http.Response? response;
       int retryCount = 0;
       const maxRetries = 2;
-      
+
       while (retryCount < maxRetries) {
         try {
-          response = await http.post(
+          response = await http
+              .post(
             uri,
             headers: headers,
-          ).timeout(
+          )
+              .timeout(
             const Duration(seconds: 15), // Increased timeout for greeting
             onTimeout: () {
-              print('[ChatService] Greeting request timeout after 15 seconds (attempt ${retryCount + 1})');
+              print(
+                  '[ChatService] Greeting request timeout after 15 seconds (attempt ${retryCount + 1})');
               throw Exception('Greeting timeout');
             },
           );
@@ -116,30 +119,34 @@ class ChatService {
             print('[ChatService] All greeting retry attempts failed');
             rethrow; // Re-throw the last error
           }
-          print('[ChatService] Greeting retry attempt $retryCount/$maxRetries after error: $e');
-          await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+          print(
+              '[ChatService] Greeting retry attempt $retryCount/$maxRetries after error: $e');
+          await Future.delayed(
+              Duration(seconds: retryCount * 2)); // Exponential backoff
         }
       }
-      
+
       if (response == null) {
-        print('[ChatService] Failed to get greeting response after $maxRetries attempts');
+        print(
+            '[ChatService] Failed to get greeting response after $maxRetries attempts');
         return 'BACKEND_UNAVAILABLE';
       }
-      
+
       print('[ChatService] Greeting response - Status: ${response.statusCode}');
       print('[ChatService] Greeting response - Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        
+
         // Safe parsing - handle optional fields
         final message = body['message'];
         final userId = body['user_id'] as int?;
-        
+
         print('[ChatService] Greeting success - message received from backend');
-        print('[ChatService] Message length: ${message?.toString().length ?? 0}');
+        print(
+            '[ChatService] Message length: ${message?.toString().length ?? 0}');
         print('[ChatService] User ID: $userId');
-        
+
         if (message != null && message.toString().isNotEmpty) {
           // Return message with user_id if available (for anonymous users)
           if (userId != null) {
@@ -147,7 +154,8 @@ class ChatService {
           }
           return message.toString();
         } else {
-          print('[ChatService] Warning: Backend returned empty message in greeting');
+          print(
+              '[ChatService] Warning: Backend returned empty message in greeting');
         }
       } else {
         // Log error details for debugging
@@ -167,10 +175,10 @@ class ChatService {
       // Any error - return BACKEND_UNAVAILABLE to show error message
       print('[ChatService] Greeting error: $e');
       print('[ChatService] Error type: ${e.runtimeType}');
-      
+
       // Check for connection errors
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('timeout') || 
+      if (errorString.contains('timeout') ||
           errorString.contains('connection refused') ||
           errorString.contains('failed host lookup') ||
           errorString.contains('network is unreachable') ||
@@ -217,17 +225,20 @@ class ChatService {
       print('[ChatService] Onboarding request - URL: ${uri.toString()}');
       print('[ChatService] Onboarding request - Params: $queryParams');
 
-      final response = await http.post(
+      final response = await http
+          .post(
         uri,
         headers: headers,
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           throw Exception('Onboarding timeout');
         },
       );
 
-      print('[ChatService] Onboarding response - Status: ${response.statusCode}');
+      print(
+          '[ChatService] Onboarding response - Status: ${response.statusCode}');
       print('[ChatService] Onboarding response - Body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -239,22 +250,82 @@ class ChatService {
         };
       }
 
-      // Parse error message
-      String errorMessage = 'REGISTRATION_ERROR_${response.statusCode}';
+      // Parse error message - provide user-friendly messages
+      String errorMessage;
       try {
         final errorBody = jsonDecode(response.body);
-        errorMessage = errorBody['detail']?.toString() ?? errorMessage;
-      } catch (_) {}
+        final detail = errorBody['detail']?.toString() ?? '';
+        
+        // Use backend error detail if available, otherwise use status code
+        if (detail.isNotEmpty) {
+          errorMessage = detail;
+        } else {
+          // Map status codes to user-friendly messages
+          switch (response.statusCode) {
+            case 400:
+              errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+              break;
+            case 401:
+              errorMessage = 'Authentication failed. Please try again.';
+              break;
+            case 404:
+              errorMessage = 'Service not found. Please contact support.';
+              break;
+            case 422:
+              errorMessage = 'Validation error. Please check your input.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            case 503:
+              errorMessage = 'Service temporarily unavailable. Please try again later.';
+              break;
+            default:
+              errorMessage = 'Registration failed. Please try again.';
+          }
+        }
+      } catch (_) {
+        // If can't parse error body, use status code
+        switch (response.statusCode) {
+          case 400:
+            errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+            break;
+          case 500:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+          default:
+            errorMessage = 'Registration failed. Please try again.';
+        }
+      }
 
+      print('[ChatService] Onboarding error: Status ${response.statusCode}, Message: $errorMessage');
       return {
         'message': errorMessage,
         'user_id': null,
         'language': null,
       };
     } catch (e) {
-      print('[ChatService] Onboarding error: $e');
+      print('[ChatService] Onboarding exception: $e');
+      print('[ChatService] Exception type: ${e.runtimeType}');
+      
+      // Provide user-friendly error messages based on exception type
+      String errorMessage;
+      final errorString = e.toString().toLowerCase();
+      
+      if (errorString.contains('timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (errorString.contains('connection refused') || 
+                 errorString.contains('failed host lookup') ||
+                 errorString.contains('socketexception')) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
+      } else if (errorString.contains('network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else {
+        errorMessage = 'Registration failed. Please try again.';
+      }
+      
       return {
-        'message': 'REGISTRATION_ERROR: ${e.toString()}',
+        'message': errorMessage,
         'user_id': null,
         'language': null,
       };
@@ -284,7 +355,8 @@ class ChatService {
     String? userName,
     String? userPassword,
     String? language, // Language from ChatController (currentLanguage)
-    int? userId, // CRITICAL: user_id from previous response to maintain conversation continuity
+    int?
+        userId, // CRITICAL: user_id from previous response to maintain conversation continuity
   }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
@@ -312,7 +384,9 @@ class ChatService {
       // Build query parameters (name and password are optional for new users)
       final queryParams = <String, String>{
         'message': userMessage.trim(), // Ensure trimmed
-        'lang': currentLang.isNotEmpty ? currentLang : 'en', // Default to 'en' if empty
+        'lang': currentLang.isNotEmpty
+            ? currentLang
+            : 'en', // Default to 'en' if empty
       };
 
       // CRITICAL: Add user_id if available (maintains conversation continuity)
@@ -354,16 +428,19 @@ class ChatService {
       http.Response? response;
       int retryCount = 0;
       const maxRetries = 3;
-      
+
       while (retryCount < maxRetries) {
         try {
-          response = await http.post(
+          response = await http
+              .post(
             uri,
             headers: headers,
-          ).timeout(
+          )
+              .timeout(
             const Duration(seconds: 15), // Increased timeout
             onTimeout: () {
-              print('[ChatService] Request timeout after 15 seconds (attempt ${retryCount + 1})');
+              print(
+                  '[ChatService] Request timeout after 15 seconds (attempt ${retryCount + 1})');
               throw Exception('Connection timeout - Server may be down');
             },
           );
@@ -374,19 +451,21 @@ class ChatService {
             print('[ChatService] All retry attempts failed');
             rethrow; // Re-throw the last error
           }
-          print('[ChatService] Retry attempt $retryCount/$maxRetries after error: $e');
-          await Future.delayed(Duration(seconds: retryCount * 2)); // Exponential backoff
+          print(
+              '[ChatService] Retry attempt $retryCount/$maxRetries after error: $e');
+          await Future.delayed(
+              Duration(seconds: retryCount * 2)); // Exponential backoff
         }
       }
-      
+
       if (response == null) {
         throw Exception('Failed to get response after $maxRetries attempts');
       }
-      
+
       print('[ChatService] ===== BACKEND RESPONSE =====');
       print('[ChatService] Status: ${response.statusCode}');
       print('[ChatService] Response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         print('[ChatService] ✅ SUCCESS - Backend responded');
       } else {
@@ -395,44 +474,45 @@ class ChatService {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        
+
         print('[ChatService] Response body keys: ${body.keys.toList()}');
         print('[ChatService] Response body: $body');
-        
+
         // Check for security flag in response (backend AI detected suspicious behavior)
         if (body['requires_security_check'] == true) {
           print('[ChatService] ⚠️ Security check required');
           return 'SECURITY_CHECK_REQUIRED';
         }
-        
+
         // Backend returns 'message' field, 'user_id' (for anonymous users), and 'detected_name' (if name detected)
         final message = body['message']?.toString() ?? '';
         final userId = body['user_id'] as int?;
         final detectedName = body['detected_name']?.toString();
-        
+
         print('[ChatService] Parsed message: "$message"');
         print('[ChatService] Parsed user_id: $userId');
         print('[ChatService] Parsed detected_name: $detectedName');
-        
+
         if (message.isEmpty) {
           print('[ChatService] ⚠️ WARNING: Backend returned empty message!');
           print('[ChatService] Full response body: $body');
         }
-        
+
         // Build response string with all data
         String responseString = message;
-        
+
         // Add user_id if available (for anonymous users)
         if (userId != null) {
           responseString = 'USER_ID:$userId|$responseString';
         }
-        
+
         // Add detected_name if available (to update UserProfile)
         if (detectedName != null && detectedName.isNotEmpty) {
           responseString = 'DETECTED_NAME:$detectedName|$responseString';
-          print('[ChatService] ✅ Name detected from conversation: $detectedName');
+          print(
+              '[ChatService] ✅ Name detected from conversation: $detectedName');
         }
-        
+
         return responseString;
       }
 
@@ -442,13 +522,15 @@ class ChatService {
         final body = jsonDecode(response.body);
         final errorDetail = body['detail']?.toString() ?? 'Validation error';
         print('[ChatService] 422 Validation Error: $errorDetail');
-        
+
         // Check if error is about missing name/secret_key (backend not updated)
-        if (errorDetail.contains('name') && errorDetail.contains('secret_key')) {
-          print('[ChatService] Backend needs restart - name/secret_key still required');
+        if (errorDetail.contains('name') &&
+            errorDetail.contains('secret_key')) {
+          print(
+              '[ChatService] Backend needs restart - name/secret_key still required');
           return 'BACKEND_UPDATE_REQUIRED: Backend needs to be restarted. Please contact administrator.';
         }
-        
+
         return 'SERVER_ERROR_422: $errorDetail';
       }
 
@@ -477,23 +559,28 @@ class ChatService {
       print('[ChatService] Exception type: ${e.runtimeType}');
       print('[ChatService] Exception message: $e');
       print('[ChatService] Stack trace: ${StackTrace.current}');
-      
+
       final errorString = e.toString().toLowerCase();
-      
+
       // Check for specific connection errors
       if (errorString.contains('timeout')) {
-        print('[ChatService] ❌ Connection timeout - Server may be down or slow');
+        print(
+            '[ChatService] ❌ Connection timeout - Server may be down or slow');
         return 'SERVER_CONNECTION_ERROR: Connection timeout. The server may be down or slow. Please try again.';
       } else if (errorString.contains('connection refused')) {
-        print('[ChatService] ❌ Connection refused - Server is not accepting connections');
+        print(
+            '[ChatService] ❌ Connection refused - Server is not accepting connections');
         return 'SERVER_CONNECTION_ERROR: Connection refused. The server may be down. Please check your internet connection and try again.';
-      } else if (errorString.contains('failed host lookup') || errorString.contains('name resolution')) {
-        print('[ChatService] ❌ DNS resolution failed - Cannot resolve hostname');
+      } else if (errorString.contains('failed host lookup') ||
+          errorString.contains('name resolution')) {
+        print(
+            '[ChatService] ❌ DNS resolution failed - Cannot resolve hostname');
         return 'SERVER_CONNECTION_ERROR: Cannot resolve server address. Please check your internet connection and try again.';
       } else if (errorString.contains('network is unreachable')) {
         print('[ChatService] ❌ Network unreachable - No internet connection');
         return 'SERVER_CONNECTION_ERROR: Network unreachable. Please check your internet connection and try again.';
-      } else if (errorString.contains('socketexception') || errorString.contains('socket')) {
+      } else if (errorString.contains('socketexception') ||
+          errorString.contains('socket')) {
         print('[ChatService] ❌ Socket exception - Network error');
         return 'SERVER_CONNECTION_ERROR: Network error. Please check your internet connection and try again.';
       } else if (errorString.contains('connection reset')) {
@@ -503,7 +590,7 @@ class ChatService {
         print('[ChatService] ❌ No route to host - Cannot reach server');
         return 'SERVER_CONNECTION_ERROR: Cannot reach server. Please check your internet connection and try again.';
       }
-      
+
       print('[ChatService] ❌ Unknown network error: $e');
       return 'NETWORK_ERROR: ${e.toString()}';
     }
@@ -527,13 +614,15 @@ class ChatService {
           'lang': 'en',
         },
       );
-      
+
       final headers = await _buildHeaders();
-      
-      final response = await http.post(
+
+      final response = await http
+          .post(
         uri,
         headers: headers,
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 5),
         onTimeout: () {
           throw Exception('Connection timeout');
@@ -541,10 +630,10 @@ class ChatService {
       );
 
       // Backend is reachable if we get any response (even errors mean server is up)
-      return response.statusCode == 200 || 
-             response.statusCode == 401 || 
-             response.statusCode == 422 ||
-             response.statusCode == 400;
+      return response.statusCode == 200 ||
+          response.statusCode == 401 ||
+          response.statusCode == 422 ||
+          response.statusCode == 400;
     } catch (e) {
       print('[ChatService] Connection test failed: $e');
       return false;

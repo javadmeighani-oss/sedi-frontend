@@ -52,6 +52,55 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return 'fa';
   }
 
+  /// Check if text contains Persian or Arabic characters
+  bool _containsPersianOrArabic(String text) {
+    final persianArabicRegex = RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]');
+    return persianArabicRegex.hasMatch(text);
+  }
+
+  /// Translate common error messages to user's language
+  String _translateErrorMessage(String errorMessage, String language) {
+    final errorLower = errorMessage.toLowerCase();
+    
+    if (language == 'fa') {
+      if (errorLower.contains('password') && errorLower.contains('6')) {
+        return 'رمز عبور باید حداقل 6 کاراکتر باشد.';
+      } else if (errorLower.contains('server error') || errorLower.contains('500')) {
+        return 'خطای سرور. لطفاً بعداً دوباره تلاش کنید.';
+      } else if (errorLower.contains('connection') || errorLower.contains('timeout')) {
+        return 'خطا در اتصال به سرور. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.';
+      } else if (errorLower.contains('invalid request') || errorLower.contains('400')) {
+        return 'درخواست نامعتبر. لطفاً اطلاعات را بررسی کنید.';
+      } else if (errorLower.contains('authentication') || errorLower.contains('401')) {
+        return 'خطا در احراز هویت. لطفاً دوباره تلاش کنید.';
+      } else if (errorLower.contains('validation')) {
+        return 'خطا در اعتبارسنجی. لطفاً اطلاعات را بررسی کنید.';
+      } else if (errorLower.contains('unavailable') || errorLower.contains('503')) {
+        return 'سرویس موقتاً در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.';
+      }
+      return 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.';
+    } else if (language == 'ar') {
+      if (errorLower.contains('password') && errorLower.contains('6')) {
+        return 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.';
+      } else if (errorLower.contains('server error') || errorLower.contains('500')) {
+        return 'خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
+      } else if (errorLower.contains('connection') || errorLower.contains('timeout')) {
+        return 'خطأ في الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+      } else if (errorLower.contains('invalid request') || errorLower.contains('400')) {
+        return 'طلب غير صالح. يرجى التحقق من المعلومات.';
+      } else if (errorLower.contains('authentication') || errorLower.contains('401')) {
+        return 'خطأ في المصادقة. يرجى المحاولة مرة أخرى.';
+      } else if (errorLower.contains('validation')) {
+        return 'خطأ في التحقق. يرجى التحقق من المعلومات.';
+      } else if (errorLower.contains('unavailable') || errorLower.contains('503')) {
+        return 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.';
+      }
+      return 'خطأ في تسجيل المعلومات. يرجى المحاولة مرة أخرى.';
+    }
+    
+    return errorMessage; // Return original if language not supported
+  }
+
   @override
   void initState() {
     super.initState();
@@ -197,15 +246,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
             _isSubmitting = false;
           });
           
-          // Show error message
+          // Show error message - translate if needed
           final errorMessage = result['message']?.toString() ?? 'Error registering information. Please try again.';
           print('[OnboardingPage] Backend error: $errorMessage');
           
+          // Translate error message based on system language
+          String displayMessage = errorMessage;
+          final systemLanguage = _getSystemLanguage();
+          
+          // If error message is in English, try to translate to user's language
+          if (systemLanguage == 'fa' && !_containsPersianOrArabic(errorMessage)) {
+            displayMessage = _translateErrorMessage(errorMessage, 'fa');
+          } else if (systemLanguage == 'ar' && !_containsPersianOrArabic(errorMessage)) {
+            displayMessage = _translateErrorMessage(errorMessage, 'ar');
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage),
+              content: Text(displayMessage),
               backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 5),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -282,11 +342,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
       print('[OnboardingPage] Stack trace: $stackTrace');
       
       if (mounted) {
+        // Translate error message based on system language
+        final systemLanguage = _getSystemLanguage();
+        String errorMessage = 'Error: $e';
+        
+        if (systemLanguage == 'fa') {
+          errorMessage = 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.';
+        } else if (systemLanguage == 'ar') {
+          errorMessage = 'خطأ في تسجيل المعلومات. يرجى المحاولة مرة أخرى.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
