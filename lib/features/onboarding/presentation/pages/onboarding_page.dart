@@ -222,18 +222,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
         });
       }
       
-      // Navigate to ChatPage
+      // Navigate to ChatPage - MUST happen after successful save
       print('[OnboardingPage] Navigating to ChatPage...');
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => ChatPage(
-              initialMessage: result['message']?.toString(),
-            ),
-          ),
-        );
-        print('[OnboardingPage] Navigation completed');
+      print('[OnboardingPage] User ID: ${result['user_id']}');
+      print('[OnboardingPage] Initial message: ${result['message']?.toString()}');
+      
+      if (!mounted) {
+        print('[OnboardingPage] ERROR: Widget not mounted, cannot navigate');
+        return;
       }
+      
+      // Ensure navigation happens - use pushReplacement to close onboarding page
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ChatPage(
+            initialMessage: result['message']?.toString(),
+          ),
+        ),
+      );
+      
+      print('[OnboardingPage] Navigation completed - OnboardingPage closed, ChatPage opened');
     } catch (e, stackTrace) {
       print('[OnboardingPage] ERROR in _submitForm: $e');
       print('[OnboardingPage] Stack trace: $stackTrace');
