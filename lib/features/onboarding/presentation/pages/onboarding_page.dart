@@ -156,19 +156,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
       );
 
       if (result['user_id'] == null && !AppConfig.useLocalMode) {
-        // Backend error
+        // Backend error - show error message and reset state
         if (mounted) {
           setState(() {
             _isSubmitting = false;
           });
+          
+          // Show error message
+          final errorMessage = result['message']?.toString() ?? 'Error registering information. Please try again.';
+          print('[OnboardingPage] Backend error: $errorMessage');
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']?.toString() ?? 'Error registering information. Please try again.'),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
-        return;
+        return; // Don't navigate, stay on page
       }
       
       // Save user profile locally
