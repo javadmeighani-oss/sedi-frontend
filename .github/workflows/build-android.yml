@@ -40,8 +40,28 @@ jobs:
       - name: Verify Flutter installation
         run: flutter doctor -v
       
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Clean build
+        run: flutter clean
+      
+      - name: Build APK with retry
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Build attempt $attempt of $max_attempts"
+            if flutter build apk --release; then
+              echo "Build succeeded"
+              exit 0
+            else
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Build failed, retrying in 10 seconds..."
+                sleep 10
+              fi
+              attempt=$((attempt + 1))
+            fi
+          done
+          echo "Build failed after $max_attempts attempts"
+          exit 1
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
