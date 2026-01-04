@@ -74,17 +74,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void _validatePassword() {
     final password = _passwordController.text;
     // Password requirements:
-    // - At least 6 characters
-    // - Only uppercase Latin letters (A-Z) and English numbers (0-9)
+    // - At least 6 characters (any characters allowed)
     final hasMinLength = password.length >= 6;
-    final hasOnlyValidChars = password.isEmpty || RegExp(r'^[A-Z0-9]+$').hasMatch(password);
-    final hasLetters = password.contains(RegExp(r'[A-Z]'));
-    final hasNumbers = password.contains(RegExp(r'[0-9]'));
     
-    final isValid = hasMinLength && hasOnlyValidChars && hasLetters && hasNumbers;
+    final isValid = hasMinLength;
     
     print('[OnboardingPage] _validatePassword - password: "${password.replaceAll(RegExp(r'.'), '*')}" (length: ${password.length}), valid: $isValid');
-    print('[OnboardingPage] _validatePassword - hasMinLength: $hasMinLength, hasOnlyValidChars: $hasOnlyValidChars, hasLetters: $hasLetters, hasNumbers: $hasNumbers');
+    print('[OnboardingPage] _validatePassword - hasMinLength: $hasMinLength');
     
     if (mounted) {
       setState(() {
@@ -162,6 +158,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (result['user_id'] == null && !AppConfig.useLocalMode) {
         // Backend error
         if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message']?.toString() ?? 'Error registering information. Please try again.'),
@@ -187,6 +186,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       
       if (!saved) {
         if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Error saving local information. Please try again.'),
@@ -206,16 +208,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
       
+      // Reset submitting state before navigation
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+      
       // Navigate to ChatPage
       print('[OnboardingPage] Navigating to ChatPage...');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ChatPage(
-            initialMessage: result['message']?.toString(),
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              initialMessage: result['message']?.toString(),
+            ),
           ),
-        ),
-      );
-      print('[OnboardingPage] Navigation completed');
+        );
+        print('[OnboardingPage] Navigation completed');
+      }
     } catch (e, stackTrace) {
       print('[OnboardingPage] ERROR in _submitForm: $e');
       print('[OnboardingPage] Stack trace: $stackTrace');
@@ -243,67 +254,80 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final containerWidth = screenSize.width * 0.9; // 90% of screen width
-    // 20% more height from bottom: 0.3 * 1.2 = 0.36 (36% of screen height)
-    final containerHeight = screenSize.height * 0.36;
+    // Reduced height to prevent keyboard from covering the form
+    // Calculate available height: screen height - keyboard - header - padding
+    final availableHeight = screenSize.height - keyboardHeight - 200; // Reserve space for header and padding
+    final containerHeight = availableHeight * 0.4; // 40% of available height (reduced from 36% of screen)
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite, // White background like ChatPage
+      resizeToAvoidBottomInset: true, // Allow resizing when keyboard appears
       body: SafeArea(
-        child: Column(
-          children: [
-            // ================= HEADER (Sedi Logo) =================
-            Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 16),
-              child: SediHeader(
-                isThinking: false,
-                isAlert: false,
-                size: 134.4, // Same size as ChatPage (20% smaller: 168 * 0.8 = 134.4)
-              ),
+        child: SingleChildScrollView(
+          // Allow scrolling when keyboard appears
+          padding: EdgeInsets.only(bottom: keyboardHeight > 0 ? 20 : 0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: screenSize.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
             ),
-            
-            // ================= ONBOARDING FORM =================
-            Expanded(
-              child: Center(
-                // Onboarding form - Small container (30% of screen height)
-                child: Container(
-                  width: containerWidth,
-                  constraints: BoxConstraints(
-                    maxHeight: containerHeight,
-                    minHeight: 336, // Increased to ensure submit button is fully inside (280 * 1.2 = 336)
+            child: Column(
+              children: [
+                // ================= HEADER (Sedi Logo) =================
+                Padding(
+                  padding: const EdgeInsets.only(top: 20, bottom: 16),
+                  child: SediHeader(
+                    isThinking: false,
+                    isAlert: false,
+                    size: 134.4, // Same size as ChatPage (20% smaller: 168 * 0.8 = 134.4)
                   ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Name input
-                          _buildNameSection(),
-                          const SizedBox(height: 12),
-                          
-                          // Password input
-                          _buildPasswordSection(),
-                          const SizedBox(height: 20), // More space before button
-                          
-                          // Submit button - ensure it's fully inside the container
-                          _buildSubmitButton(),
-                          const SizedBox(height: 8), // Space at bottom to ensure button is inside
-                        ],
+                ),
+                
+                // ================= ONBOARDING FORM =================
+                Expanded(
+                  child: Center(
+                    // Onboarding form - Reduced height container
+                    child: Container(
+                      width: containerWidth,
+                      constraints: BoxConstraints(
+                        maxHeight: containerHeight,
+                        minHeight: 280, // Reduced minimum height
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.metalGrey.withOpacity(0.3), // Grey transparent from theme
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Name input
+                              _buildNameSection(),
+                              const SizedBox(height: 12),
+                              
+                              // Password input
+                              _buildPasswordSection(),
+                              const SizedBox(height: 20), // More space before button
+                              
+                              // Submit button - ensure it's fully inside the container
+                              _buildSubmitButton(),
+                              const SizedBox(height: 8), // Space at bottom to ensure button is inside
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -347,8 +371,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter text
                 fontSize: 16,
               ),
               textDirection: TextDirection.ltr,
@@ -376,7 +400,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         Padding(
           padding: const EdgeInsets.only(bottom: 8, left: 4),
           child: Text(
-            'Security password (minimum 6 characters, uppercase Latin letters and numbers)',
+            'Security password (minimum 6 characters)',
             style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 14,
@@ -409,30 +433,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
                     : null,
               ),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: AppTheme.textPrimary.withOpacity(0.5), // 50% lighter text
                 fontSize: 16,
               ),
               obscureText: true,
               textDirection: TextDirection.ltr,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')), // Only uppercase letters and numbers
-              ],
+              // Removed inputFormatters to allow any characters
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter security password';
                 }
                 if (value.length < 6) {
                   return 'Password must be at least 6 characters';
-                }
-                if (!value.contains(RegExp(r'[A-Z]'))) {
-                  return 'Password must contain uppercase letters';
-                }
-                if (!value.contains(RegExp(r'[0-9]'))) {
-                  return 'Password must contain numbers';
-                }
-                if (!value.contains(RegExp(r'^[A-Z0-9]+$'))) {
-                  return 'Password must only contain uppercase letters and numbers';
                 }
                 return null;
               },
