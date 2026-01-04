@@ -148,9 +148,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       // Get system language
       final systemLanguage = _getSystemLanguage();
       
-      // Setup onboarding with backend
+      // Setup onboarding with backend (name no longer sent to backend)
       final result = await chatService.setupOnboarding(
-        _nameController.text.trim(),
         _passwordController.text,
         systemLanguage,
       );
@@ -178,9 +177,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return; // Don't navigate, stay on page
       }
       
-      // Save user profile locally
+      // Save user profile locally (name stored locally only, not in backend)
       final profile = UserProfile(
-        name: result['name']?.toString() ?? _nameController.text.trim(),
+        name: _nameController.text.trim(),  // Stored locally only
         securityPassword: _passwordController.text,
         preferredLanguage: result['language']?.toString() ?? systemLanguage,
         userId: result['user_id'] as int?,

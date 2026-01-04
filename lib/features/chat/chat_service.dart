@@ -185,10 +185,10 @@ class ChatService {
     }
   }
 
-  /// Setup onboarding - create user with name, password, and language
-  /// Returns: (message, user_id, language, name) or (error, null, null, null)
+  /// Setup onboarding - create user with password and language
+  /// Returns: (message, user_id, language) or (error, null, null)
+  /// Note: Name is no longer sent to backend
   Future<Map<String, dynamic>> setupOnboarding(
-    String userName,
     String password,
     String language,
   ) async {
@@ -198,14 +198,12 @@ class ChatService {
         'message': 'Welcome! This is local mode.',
         'user_id': null,
         'language': language,
-        'name': userName,
       };
     }
 
     // ---------------- BACKEND MODE ----------------
     try {
       final queryParams = <String, String>{
-        'name': userName,
         'password': password,
         'language': language,
       };
@@ -238,7 +236,6 @@ class ChatService {
           'message': body['message']?.toString() ?? '',
           'user_id': body['user_id'] as int?,
           'language': body['language']?.toString() ?? language,
-          'name': body['name']?.toString() ?? userName,
         };
       }
 
@@ -253,7 +250,6 @@ class ChatService {
         'message': errorMessage,
         'user_id': null,
         'language': null,
-        'name': null,
       };
     } catch (e) {
       print('[ChatService] Onboarding error: $e');
@@ -261,7 +257,6 @@ class ChatService {
         'message': 'REGISTRATION_ERROR: ${e.toString()}',
         'user_id': null,
         'language': null,
-        'name': null,
       };
     }
   }
