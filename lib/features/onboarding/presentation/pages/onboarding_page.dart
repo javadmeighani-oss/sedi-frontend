@@ -312,39 +312,37 @@ class _OnboardingPageState extends State<OnboardingPage> {
       print('[OnboardingPage] - Is verified: ${savedProfile.isVerified}');
       print('[OnboardingPage] - Has security password: ${savedProfile.hasSecurityPassword}');
 
-      // Navigate to ChatPage with initial message
-      print('[OnboardingPage] ========== NAVIGATION START ==========');
-      print('[OnboardingPage] Preparing to navigate to ChatPage');
-      print('[OnboardingPage] Initial message: ${result['message']?.toString()}');
-      print('[OnboardingPage] Widget mounted: $mounted');
+      // Navigate to ChatPage - CRITICAL: This MUST happen
+      print('[OnboardingPage] ========== NAVIGATION PHASE ==========');
       
       if (!mounted) {
-        print('[OnboardingPage] ❌ Widget not mounted, cannot navigate');
+        print('[OnboardingPage] ❌ Widget not mounted - cannot navigate');
         return;
       }
       
-      // Reset submitting state before navigation
+      // Reset submitting state
       setState(() {
         _isSubmitting = false;
       });
-      print('[OnboardingPage] Submitting state reset');
+      print('[OnboardingPage] Submitting state reset to false');
       
-      // Get initial message for ChatPage
-      final initialMessage = result['message']?.toString();
-      print('[OnboardingPage] Initial message for ChatPage: $initialMessage');
+      // Get initial message
+      final initialMessage = result['message']?.toString() ?? '';
+      print('[OnboardingPage] Initial message for ChatPage: ${initialMessage.isNotEmpty ? initialMessage.substring(0, initialMessage.length > 50 ? 50 : initialMessage.length) + "..." : "empty"}');
       
-      // Small delay to ensure state is updated
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Ensure UI is ready
+      await Future.delayed(const Duration(milliseconds: 50));
       
       if (!mounted) {
-        print('[OnboardingPage] ❌ Widget not mounted after delay, cannot navigate');
+        print('[OnboardingPage] ❌ Widget not mounted after delay');
         return;
       }
       
-      // Navigate to ChatPage - MUST happen after successful save
-      // Use pushReplacement to close onboarding page completely
-      print('[OnboardingPage] Executing Navigator.pushReplacement...');
+      // NAVIGATE - Use multiple methods to ensure it works
+      print('[OnboardingPage] Attempting navigation to ChatPage...');
+      
       try {
+        // Method 1: pushReplacement (preferred)
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => ChatPage(
@@ -352,23 +350,43 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
         );
-        print('[OnboardingPage] ✅ Navigation completed - OnboardingPage closed, ChatPage opened');
+        print('[OnboardingPage] ✅ Navigation successful (pushReplacement)');
+        print('[OnboardingPage] OnboardingPage should now be closed');
       } catch (e, stackTrace) {
-        print('[OnboardingPage] ❌ Navigation error: $e');
+        print('[OnboardingPage] ❌ pushReplacement failed: $e');
         print('[OnboardingPage] Stack trace: $stackTrace');
-        // Try alternative navigation method
+        
+        // Method 2: pushAndRemoveUntil (fallback)
         if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => ChatPage(
-                initialMessage: initialMessage,
+          try {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => ChatPage(
+                  initialMessage: initialMessage,
+                ),
               ),
-            ),
-            (route) => false, // Remove all previous routes
-          );
-          print('[OnboardingPage] ✅ Alternative navigation completed');
+              (route) => false, // Remove all previous routes
+            );
+            print('[OnboardingPage] ✅ Navigation successful (pushAndRemoveUntil)');
+          } catch (e2) {
+            print('[OnboardingPage] ❌ pushAndRemoveUntil also failed: $e2');
+            // Last resort: pop and push
+            if (mounted) {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ChatPage(
+                    initialMessage: initialMessage,
+                  ),
+                ),
+              );
+              print('[OnboardingPage] ✅ Navigation successful (pop + push)');
+            }
+          }
         }
       }
+      
+      print('[OnboardingPage] ========== NAVIGATION PHASE COMPLETE ==========');
     } catch (e, stackTrace) {
       print('[OnboardingPage] ERROR in _submitForm: $e');
       print('[OnboardingPage] Stack trace: $stackTrace');
