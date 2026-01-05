@@ -59,46 +59,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   /// Translate common error messages to user's language
+  /// NOTE: All error messages should be in English (Sedi's primary language)
+  /// This method is kept for compatibility but always returns English
+  @Deprecated('Error messages should always be in English. This method is kept for compatibility only.')
   String _translateErrorMessage(String errorMessage, String language) {
-    final errorLower = errorMessage.toLowerCase();
-    
-    if (language == 'fa') {
-      if (errorLower.contains('password') && errorLower.contains('6')) {
-        return 'رمز عبور باید حداقل 6 کاراکتر باشد.';
-      } else if (errorLower.contains('server error') || errorLower.contains('500')) {
-        return 'خطای سرور. لطفاً بعداً دوباره تلاش کنید.';
-      } else if (errorLower.contains('connection') || errorLower.contains('timeout')) {
-        return 'خطا در اتصال به سرور. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.';
-      } else if (errorLower.contains('invalid request') || errorLower.contains('400')) {
-        return 'درخواست نامعتبر. لطفاً اطلاعات را بررسی کنید.';
-      } else if (errorLower.contains('authentication') || errorLower.contains('401')) {
-        return 'خطا در احراز هویت. لطفاً دوباره تلاش کنید.';
-      } else if (errorLower.contains('validation')) {
-        return 'خطا در اعتبارسنجی. لطفاً اطلاعات را بررسی کنید.';
-      } else if (errorLower.contains('unavailable') || errorLower.contains('503')) {
-        return 'سرویس موقتاً در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.';
-      }
-      return 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.';
-    } else if (language == 'ar') {
-      if (errorLower.contains('password') && errorLower.contains('6')) {
-        return 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.';
-      } else if (errorLower.contains('server error') || errorLower.contains('500')) {
-        return 'خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
-      } else if (errorLower.contains('connection') || errorLower.contains('timeout')) {
-        return 'خطأ في الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-      } else if (errorLower.contains('invalid request') || errorLower.contains('400')) {
-        return 'طلب غير صالح. يرجى التحقق من المعلومات.';
-      } else if (errorLower.contains('authentication') || errorLower.contains('401')) {
-        return 'خطأ في المصادقة. يرجى المحاولة مرة أخرى.';
-      } else if (errorLower.contains('validation')) {
-        return 'خطأ في التحقق. يرجى التحقق من المعلومات.';
-      } else if (errorLower.contains('unavailable') || errorLower.contains('503')) {
-        return 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.';
-      }
-      return 'خطأ في تسجيل المعلومات. يرجى المحاولة مرة أخرى.';
-    }
-    
-    return errorMessage; // Return original if language not supported
+    // All error messages should be in English (Sedi's primary language)
+    // No translation needed - return original English message
+    return errorMessage;
   }
 
   @override
