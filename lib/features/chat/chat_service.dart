@@ -196,12 +196,21 @@ class ChatService {
   /// Setup onboarding - create user with password and language
   /// Returns: (message, user_id, language) or (error, null, null)
   /// Note: Name is no longer sent to backend
+  /// 
+  /// CRITICAL: This method MUST return user_id if backend returns 200.
+  /// Only network errors or non-200 status codes should return null user_id.
   Future<Map<String, dynamic>> setupOnboarding(
     String password,
     String language,
   ) async {
-    // ---------------- LOCAL MODE ----------------
+    print('[ChatService] ========== SETUP ONBOARDING START ==========');
+    print('[ChatService] Password length: ${password.length}');
+    print('[ChatService] Language: $language');
+    print('[ChatService] Local mode: ${AppConfig.useLocalMode}');
+    
+    // ---------------- LOCAL MODE ---------------- 
     if (AppConfig.useLocalMode) {
+      print('[ChatService] Using local mode - returning mock response');
       return {
         'message': 'Welcome! This is local mode.',
         'user_id': null,
@@ -209,7 +218,7 @@ class ChatService {
       };
     }
 
-    // ---------------- BACKEND MODE ----------------
+    // ---------------- BACKEND MODE ---------------- 
     try {
       final queryParams = <String, String>{
         'password': password,
@@ -222,8 +231,9 @@ class ChatService {
 
       final headers = await _buildHeaders();
 
-      print('[ChatService] Onboarding request - URL: ${uri.toString()}');
-      print('[ChatService] Onboarding request - Params: $queryParams');
+      print('[ChatService] Request URL: ${uri.toString()}');
+      print('[ChatService] Request params: $queryParams');
+      print('[ChatService] Request headers: $headers');
 
       final response = await http
           .post(
@@ -231,15 +241,17 @@ class ChatService {
         headers: headers,
       )
           .timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 30), // Increased timeout
         onTimeout: () {
+          print('[ChatService] ❌ Request timeout after 30 seconds');
           throw Exception('Onboarding timeout');
         },
       );
 
-      print(
-          '[ChatService] Onboarding response - Status: ${response.statusCode}');
-      print('[ChatService] Onboarding response - Body: ${response.body}');
+      print('[ChatService] ========== RESPONSE RECEIVED ==========');
+      print('[ChatService] Status code: ${response.statusCode}');
+      print('[ChatService] Response body: ${response.body}');
+      print('[ChatService] Response headers: ${response.headers}');
 
       if (response.statusCode == 200) {
         try {
@@ -247,15 +259,17 @@ class ChatService {
           print('[ChatService] ===== SUCCESS RESPONSE =====');
           print('[ChatService] Parsed response body: $body');
           print('[ChatService] Response keys: ${body.keys.toList()}');
-          
+
           // Check if user_id exists in response
           if (!body.containsKey('user_id')) {
-            print('[ChatService] ⚠️ WARNING: user_id not found in response body');
+            print(
+                '[ChatService] ⚠️ WARNING: user_id not found in response body');
             print('[ChatService] Response body keys: ${body.keys.toList()}');
           }
-          
+
           final userId = body['user_id'];
-          print('[ChatService] user_id from body: $userId, type: ${userId?.runtimeType}');
+          print(
+              '[ChatService] user_id from body: $userId, type: ${userId?.runtimeType}');
           print('[ChatService] message: ${body['message']}');
           print('[ChatService] language: ${body['language']}');
 
@@ -280,9 +294,11 @@ class ChatService {
 
           if (userIdInt == null) {
             print('[ChatService] ❌ ERROR: user_id is null after parsing');
-            print('[ChatService] This should not happen - backend should always return user_id');
+            print(
+                '[ChatService] This should not happen - backend should always return user_id');
             return {
-              'message': body['message']?.toString() ?? 'Server response missing user_id. Please try again.',
+              'message': body['message']?.toString() ??
+                  'Server response missing user_id. Please try again.',
               'user_id': null,
               'language': body['language']?.toString() ?? language,
             };
@@ -312,7 +328,7 @@ class ChatService {
       print('[ChatService] ===== ERROR RESPONSE =====');
       print('[ChatService] Status code: ${response.statusCode}');
       print('[ChatService] Response body: ${response.body}');
-      
+
       String errorMessage;
       try {
         final errorBody = jsonDecode(response.body);

@@ -206,36 +206,43 @@ class _OnboardingPageState extends State<OnboardingPage> {
       print('[OnboardingPage] Password length: ${_passwordController.text.length}');
       print('[OnboardingPage] Language: $systemLanguage');
       
+      print('[OnboardingPage] ========== CALLING SETUP ONBOARDING ==========');
       final result = await chatService.setupOnboarding(
         _passwordController.text,
         systemLanguage,
       );
       
-      print('[OnboardingPage] setupOnboarding result: $result');
-      print('[OnboardingPage] user_id: ${result['user_id']}');
+      print('[OnboardingPage] ========== SETUP ONBOARDING RESULT ==========');
+      print('[OnboardingPage] Full result: $result');
+      print('[OnboardingPage] user_id: ${result['user_id']} (type: ${result['user_id']?.runtimeType})');
       print('[OnboardingPage] message: ${result['message']}');
+      print('[OnboardingPage] language: ${result['language']}');
       print('[OnboardingPage] useLocalMode: ${AppConfig.useLocalMode}');
+      print('[OnboardingPage] ============================================');
 
-      // Check if onboarding was successful
-      // In local mode, user_id can be null (that's okay)
-      // In backend mode, user_id must not be null for success
+      // Determine if onboarding was successful
       final isBackendMode = !AppConfig.useLocalMode;
-      final hasUserId = result['user_id'] != null;
+      final userId = result['user_id'];
+      final hasUserId = userId != null;
       
+      print('[OnboardingPage] isBackendMode: $isBackendMode');
+      print('[OnboardingPage] hasUserId: $hasUserId');
+      print('[OnboardingPage] userId value: $userId');
+      
+      // In backend mode, user_id MUST be present for success
       if (isBackendMode && !hasUserId) {
-        // Backend error - show error message and reset state
-        print('[OnboardingPage] ❌ Backend error: user_id is null in backend mode');
+        print('[OnboardingPage] ❌ FAILURE: Backend mode but user_id is null');
+        print('[OnboardingPage] This means backend returned an error or network failed');
+        
         if (mounted) {
           setState(() {
             _isSubmitting = false;
           });
           
-          // Show error message - always in English (Sedi's primary language)
-          final errorMessage = result['message']?.toString() ?? 'Error registering information. Please try again.';
-          print('[OnboardingPage] Backend error message: $errorMessage');
+          final errorMessage = result['message']?.toString() ?? 
+              'Error registering information. Please check your internet connection and try again.';
+          print('[OnboardingPage] Showing error: $errorMessage');
           
-          // All error messages should be in English (Sedi's primary language)
-          // No translation needed
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
@@ -245,11 +252,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           );
         }
-        return; // Don't navigate, stay on page
+        return; // Don't navigate - stay on page
       }
       
-      // Onboarding successful (either backend mode with user_id OR local mode)
-      print('[OnboardingPage] ✅ Onboarding successful - proceeding to save profile');
+      // Onboarding successful - proceed to save profile and navigate
+      print('[OnboardingPage] ✅ SUCCESS: Onboarding completed successfully');
+      print('[OnboardingPage] Proceeding to save profile and navigate...');
       
       // Save user profile locally (name stored locally only, not in backend)
       print('[OnboardingPage] Creating user profile...');
