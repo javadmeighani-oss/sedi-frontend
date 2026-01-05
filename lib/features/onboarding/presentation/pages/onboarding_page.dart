@@ -177,7 +177,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   void _validateForm() {
     final nameText = _nameController.text.trim();
-    final nameValid = nameText.isNotEmpty && nameText.length >= 2;
+    // No restrictions on name - just check it's not empty
+    final nameValid = nameText.isNotEmpty;
     final isValid = nameValid && _isPasswordValid;
     
     print('[OnboardingPage] _validateForm - name: "$nameText" (valid: $nameValid), password valid: $_isPasswordValid, form valid: $isValid');
@@ -262,24 +263,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
             _isSubmitting = false;
           });
           
-          // Show error message - translate if needed
+          // Show error message - always in English (Sedi's primary language)
           final errorMessage = result['message']?.toString() ?? 'Error registering information. Please try again.';
           print('[OnboardingPage] Backend error message: $errorMessage');
           
-          // Translate error message based on system language
-          String displayMessage = errorMessage;
-          final systemLanguage = _getSystemLanguage();
-          
-          // If error message is in English, try to translate to user's language
-          if (systemLanguage == 'fa' && !_containsPersianOrArabic(errorMessage)) {
-            displayMessage = _translateErrorMessage(errorMessage, 'fa');
-          } else if (systemLanguage == 'ar' && !_containsPersianOrArabic(errorMessage)) {
-            displayMessage = _translateErrorMessage(errorMessage, 'ar');
-          }
-          
+          // All error messages should be in English (Sedi's primary language)
+          // No translation needed
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(displayMessage),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 5),
               behavior: SnackBarBehavior.floating,
@@ -319,14 +311,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
             _isSubmitting = false;
           });
           
-          // Translate error message
-          String errorMessage = 'Error saving local information. Please try again.';
-          final systemLanguage = _getSystemLanguage();
-          if (systemLanguage == 'fa') {
-            errorMessage = 'خطا در ذخیره اطلاعات محلی. لطفاً دوباره تلاش کنید.';
-          } else if (systemLanguage == 'ar') {
-            errorMessage = 'خطأ في حفظ المعلومات المحلية. يرجى المحاولة مرة أخرى.';
-          }
+          // Error message in English (Sedi's primary language)
+          const errorMessage = 'Error saving local information. Please try again.';
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -413,14 +399,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       print('[OnboardingPage] Stack trace: $stackTrace');
       
       if (mounted) {
-        // Translate error message based on system language
-        final systemLanguage = _getSystemLanguage();
-        String errorMessage = 'Error: $e';
-        
-        if (systemLanguage == 'fa') {
-          errorMessage = 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.';
-        } else if (systemLanguage == 'ar') {
-          errorMessage = 'خطأ في تسجيل المعلومات. يرجى المحاولة مرة أخرى.';
+        // Error message in English (Sedi's primary language)
+        String errorMessage = 'Error registering information. Please try again.';
+        if (e.toString().contains('timeout')) {
+          errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+        } else if (e.toString().contains('connection')) {
+          errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -557,11 +541,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
               textDirection: TextDirection.ltr,
               validator: (value) {
+                // No restrictions on name - just check it's not empty
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter your name';
-                }
-                if (value.trim().length < 2) {
-                  return 'Name must be at least 2 characters';
                 }
                 return null;
               },
