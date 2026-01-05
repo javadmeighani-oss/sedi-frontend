@@ -340,47 +340,90 @@ class _OnboardingPageState extends State<OnboardingPage> {
       
       // NAVIGATE - Use multiple methods to ensure it works
       print('[OnboardingPage] Attempting navigation to ChatPage...');
+      print('[OnboardingPage] Context: $context');
+      print('[OnboardingPage] Navigator state: ${Navigator.of(context)}');
+      
+      // Ensure we're in the right context
+      final navigatorContext = Navigator.of(context, rootNavigator: false);
+      print('[OnboardingPage] Navigator context obtained: $navigatorContext');
       
       try {
-        // Method 1: pushReplacement (preferred)
-        Navigator.of(context).pushReplacement(
+        // Method 1: pushReplacement (preferred) - closes current page and opens ChatPage
+        print('[OnboardingPage] Method 1: Using pushReplacement...');
+        navigatorContext.pushReplacement(
           MaterialPageRoute(
-            builder: (context) => ChatPage(
-              initialMessage: initialMessage,
-            ),
+            builder: (context) {
+              print('[OnboardingPage] Building ChatPage with initialMessage: ${initialMessage.isNotEmpty ? initialMessage.substring(0, initialMessage.length > 30 ? 30 : initialMessage.length) + "..." : "empty"}');
+              return ChatPage(
+                initialMessage: initialMessage,
+              );
+            },
           ),
         );
         print('[OnboardingPage] ✅ Navigation successful (pushReplacement)');
-        print('[OnboardingPage] OnboardingPage should now be closed');
+        print('[OnboardingPage] OnboardingPage should now be closed and ChatPage opened');
+        // Don't continue after successful navigation
+        return;
       } catch (e, stackTrace) {
-        print('[OnboardingPage] ❌ pushReplacement failed: $e');
+        print('[OnboardingPage] ❌ Method 1 (pushReplacement) failed: $e');
+        print('[OnboardingPage] Error type: ${e.runtimeType}');
         print('[OnboardingPage] Stack trace: $stackTrace');
         
-        // Method 2: pushAndRemoveUntil (fallback)
+        // Method 2: pushAndRemoveUntil (fallback) - removes all previous routes
         if (mounted) {
           try {
-            Navigator.of(context).pushAndRemoveUntil(
+            print('[OnboardingPage] Method 2: Using pushAndRemoveUntil...');
+            navigatorContext.pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => ChatPage(
-                  initialMessage: initialMessage,
-                ),
+                builder: (context) {
+                  print('[OnboardingPage] Building ChatPage (method 2) with initialMessage: ${initialMessage.isNotEmpty ? initialMessage.substring(0, initialMessage.length > 30 ? 30 : initialMessage.length) + "..." : "empty"}');
+                  return ChatPage(
+                    initialMessage: initialMessage,
+                  );
+                },
               ),
-              (route) => false, // Remove all previous routes
+              (route) {
+                print('[OnboardingPage] Route predicate - route: $route, should remove: ${route.isFirst}');
+                return false; // Remove all previous routes
+              },
             );
             print('[OnboardingPage] ✅ Navigation successful (pushAndRemoveUntil)');
-          } catch (e2) {
-            print('[OnboardingPage] ❌ pushAndRemoveUntil also failed: $e2');
-            // Last resort: pop and push
+            // Don't continue after successful navigation
+            return;
+          } catch (e2, stackTrace2) {
+            print('[OnboardingPage] ❌ Method 2 (pushAndRemoveUntil) also failed: $e2');
+            print('[OnboardingPage] Error type: ${e2.runtimeType}');
+            print('[OnboardingPage] Stack trace: $stackTrace2');
+            
+            // Method 3: pop then push (last resort)
             if (mounted) {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ChatPage(
-                    initialMessage: initialMessage,
-                  ),
-                ),
-              );
-              print('[OnboardingPage] ✅ Navigation successful (pop + push)');
+              try {
+                print('[OnboardingPage] Method 3: Using pop + push (last resort)...');
+                if (navigatorContext.canPop()) {
+                  navigatorContext.pop();
+                  print('[OnboardingPage] Popped current route');
+                }
+                await Future.delayed(const Duration(milliseconds: 100));
+                if (mounted) {
+                  navigatorContext.push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        print('[OnboardingPage] Building ChatPage (method 3) with initialMessage: ${initialMessage.isNotEmpty ? initialMessage.substring(0, initialMessage.length > 30 ? 30 : initialMessage.length) + "..." : "empty"}');
+                        return ChatPage(
+                          initialMessage: initialMessage,
+                        );
+                      },
+                    ),
+                  );
+                  print('[OnboardingPage] ✅ Navigation successful (pop + push)');
+                  return;
+                }
+              } catch (e3, stackTrace3) {
+                print('[OnboardingPage] ❌ Method 3 (pop + push) also failed: $e3');
+                print('[OnboardingPage] Error type: ${e3.runtimeType}');
+                print('[OnboardingPage] Stack trace: $stackTrace3');
+                print('[OnboardingPage] ⚠️ ALL NAVIGATION METHODS FAILED - User may need to manually navigate');
+              }
             }
           }
         }
