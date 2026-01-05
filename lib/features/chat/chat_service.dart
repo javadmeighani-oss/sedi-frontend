@@ -245,10 +245,11 @@ class ChatService {
         try {
           final body = jsonDecode(response.body);
           print('[ChatService] Parsed response body: $body');
-          print('[ChatService] user_id: ${body['user_id']}, type: ${body['user_id'].runtimeType}');
+          print(
+              '[ChatService] user_id: ${body['user_id']}, type: ${body['user_id'].runtimeType}');
           print('[ChatService] message: ${body['message']}');
           print('[ChatService] language: ${body['language']}');
-          
+
           final userId = body['user_id'];
           // Handle both int and string user_id
           int? userIdInt;
@@ -259,9 +260,9 @@ class ChatService {
           } else if (userId != null) {
             userIdInt = int.tryParse(userId.toString());
           }
-          
+
           print('[ChatService] Final user_id: $userIdInt');
-          
+
           return {
             'message': body['message']?.toString() ?? '',
             'user_id': userIdInt,

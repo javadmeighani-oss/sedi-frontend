@@ -251,8 +251,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       // Check if onboarding was successful
       // In local mode, user_id can be null (that's okay)
       // In backend mode, user_id must not be null for success
-      if (result['user_id'] == null && !AppConfig.useLocalMode) {
+      final isBackendMode = !AppConfig.useLocalMode;
+      final hasUserId = result['user_id'] != null;
+      
+      if (isBackendMode && !hasUserId) {
         // Backend error - show error message and reset state
+        print('[OnboardingPage] ❌ Backend error: user_id is null in backend mode');
         if (mounted) {
           setState(() {
             _isSubmitting = false;
@@ -260,7 +264,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           
           // Show error message - translate if needed
           final errorMessage = result['message']?.toString() ?? 'Error registering information. Please try again.';
-          print('[OnboardingPage] Backend error: $errorMessage');
+          print('[OnboardingPage] Backend error message: $errorMessage');
           
           // Translate error message based on system language
           String displayMessage = errorMessage;
@@ -285,7 +289,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return; // Don't navigate, stay on page
       }
       
+      // Onboarding successful (either backend mode with user_id OR local mode)
+      print('[OnboardingPage] ✅ Onboarding successful - proceeding to save profile');
+      
       // Save user profile locally (name stored locally only, not in backend)
+      print('[OnboardingPage] Creating user profile...');
+      print('[OnboardingPage] Name: "${_nameController.text.trim()}"');
+      print('[OnboardingPage] Password length: ${_passwordController.text.length}');
+      print('[OnboardingPage] User ID: ${result['user_id']}');
+      print('[OnboardingPage] Language: ${result['language']?.toString() ?? systemLanguage}');
+      
       final profile = UserProfile(
         name: _nameController.text.trim(),  // Stored locally only
         securityPassword: _passwordController.text,
@@ -296,59 +309,105 @@ class _OnboardingPageState extends State<OnboardingPage> {
         isVerified: true,
       );
 
+      print('[OnboardingPage] Saving profile to local storage...');
       final saved = await UserProfileManager.saveProfile(profile);
       
       if (!saved) {
+        print('[OnboardingPage] ❌ Failed to save profile');
         if (mounted) {
           setState(() {
             _isSubmitting = false;
           });
+          
+          // Translate error message
+          String errorMessage = 'Error saving local information. Please try again.';
+          final systemLanguage = _getSystemLanguage();
+          if (systemLanguage == 'fa') {
+            errorMessage = 'خطا در ذخیره اطلاعات محلی. لطفاً دوباره تلاش کنید.';
+          } else if (systemLanguage == 'ar') {
+            errorMessage = 'خطأ في حفظ المعلومات المحلية. يرجى المحاولة مرة أخرى.';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error saving local information. Please try again.'),
+            SnackBar(
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
         return;
       }
+      
+      print('[OnboardingPage] ✅ Profile saved successfully');
+      
+      // Verify profile was saved correctly
+      final savedProfile = await UserProfileManager.loadProfile();
+      print('[OnboardingPage] Verification - Loaded profile:');
+      print('[OnboardingPage] - Name: ${savedProfile.name}');
+      print('[OnboardingPage] - Has password: ${savedProfile.securityPassword != null}');
+      print('[OnboardingPage] - User ID: ${savedProfile.userId}');
+      print('[OnboardingPage] - Is verified: ${savedProfile.isVerified}');
+      print('[OnboardingPage] - Has security password: ${savedProfile.hasSecurityPassword}');
 
       // Navigate to ChatPage with initial message
+      print('[OnboardingPage] ========== NAVIGATION START ==========');
       print('[OnboardingPage] Preparing to navigate to ChatPage');
       print('[OnboardingPage] Initial message: ${result['message']?.toString()}');
+      print('[OnboardingPage] Widget mounted: $mounted');
       
       if (!mounted) {
-        print('[OnboardingPage] Widget not mounted, cannot navigate');
+        print('[OnboardingPage] ❌ Widget not mounted, cannot navigate');
         return;
       }
       
       // Reset submitting state before navigation
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
+      setState(() {
+        _isSubmitting = false;
+      });
+      print('[OnboardingPage] Submitting state reset');
       
-      // Navigate to ChatPage - MUST happen after successful save
-      print('[OnboardingPage] Navigating to ChatPage...');
-      print('[OnboardingPage] User ID: ${result['user_id']}');
-      print('[OnboardingPage] Initial message: ${result['message']?.toString()}');
+      // Get initial message for ChatPage
+      final initialMessage = result['message']?.toString();
+      print('[OnboardingPage] Initial message for ChatPage: $initialMessage');
+      
+      // Small delay to ensure state is updated
+      await Future.delayed(const Duration(milliseconds: 100));
       
       if (!mounted) {
-        print('[OnboardingPage] ERROR: Widget not mounted, cannot navigate');
+        print('[OnboardingPage] ❌ Widget not mounted after delay, cannot navigate');
         return;
       }
       
-      // Ensure navigation happens - use pushReplacement to close onboarding page
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ChatPage(
-            initialMessage: result['message']?.toString(),
+      // Navigate to ChatPage - MUST happen after successful save
+      // Use pushReplacement to close onboarding page completely
+      print('[OnboardingPage] Executing Navigator.pushReplacement...');
+      try {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              initialMessage: initialMessage,
+            ),
           ),
-        ),
-      );
-      
-      print('[OnboardingPage] Navigation completed - OnboardingPage closed, ChatPage opened');
+        );
+        print('[OnboardingPage] ✅ Navigation completed - OnboardingPage closed, ChatPage opened');
+      } catch (e, stackTrace) {
+        print('[OnboardingPage] ❌ Navigation error: $e');
+        print('[OnboardingPage] Stack trace: $stackTrace');
+        // Try alternative navigation method
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => ChatPage(
+                initialMessage: initialMessage,
+              ),
+            ),
+            (route) => false, // Remove all previous routes
+          );
+          print('[OnboardingPage] ✅ Alternative navigation completed');
+        }
+      }
     } catch (e, stackTrace) {
       print('[OnboardingPage] ERROR in _submitForm: $e');
       print('[OnboardingPage] Stack trace: $stackTrace');
