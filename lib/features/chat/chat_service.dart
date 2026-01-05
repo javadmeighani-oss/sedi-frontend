@@ -244,33 +244,62 @@ class ChatService {
       if (response.statusCode == 200) {
         try {
           final body = jsonDecode(response.body);
+          print('[ChatService] ===== SUCCESS RESPONSE =====');
           print('[ChatService] Parsed response body: $body');
-          print(
-              '[ChatService] user_id: ${body['user_id']}, type: ${body['user_id'].runtimeType}');
+          print('[ChatService] Response keys: ${body.keys.toList()}');
+          
+          // Check if user_id exists in response
+          if (!body.containsKey('user_id')) {
+            print('[ChatService] ⚠️ WARNING: user_id not found in response body');
+            print('[ChatService] Response body keys: ${body.keys.toList()}');
+          }
+          
+          final userId = body['user_id'];
+          print('[ChatService] user_id from body: $userId, type: ${userId?.runtimeType}');
           print('[ChatService] message: ${body['message']}');
           print('[ChatService] language: ${body['language']}');
 
-          final userId = body['user_id'];
           // Handle both int and string user_id
           int? userIdInt;
-          if (userId is int) {
+          if (userId == null) {
+            print('[ChatService] ⚠️ WARNING: user_id is null in response');
+            userIdInt = null;
+          } else if (userId is int) {
             userIdInt = userId;
+            print('[ChatService] user_id is int: $userIdInt');
           } else if (userId is String) {
             userIdInt = int.tryParse(userId);
-          } else if (userId != null) {
+            print('[ChatService] user_id is string, parsed: $userIdInt');
+          } else {
             userIdInt = int.tryParse(userId.toString());
+            print('[ChatService] user_id is other type, converted: $userIdInt');
           }
 
           print('[ChatService] Final user_id: $userIdInt');
+          print('[ChatService] ===== END SUCCESS RESPONSE =====');
+
+          if (userIdInt == null) {
+            print('[ChatService] ❌ ERROR: user_id is null after parsing');
+            print('[ChatService] This should not happen - backend should always return user_id');
+            return {
+              'message': body['message']?.toString() ?? 'Server response missing user_id. Please try again.',
+              'user_id': null,
+              'language': body['language']?.toString() ?? language,
+            };
+          }
 
           return {
             'message': body['message']?.toString() ?? '',
             'user_id': userIdInt,
             'language': body['language']?.toString() ?? language,
           };
-        } catch (e) {
+        } catch (e, stackTrace) {
+          print('[ChatService] ===== PARSE ERROR =====');
           print('[ChatService] ERROR parsing response body: $e');
+          print('[ChatService] Stack trace: $stackTrace');
           print('[ChatService] Response body (raw): ${response.body}');
+          print('[ChatService] Response status: ${response.statusCode}');
+          print('[ChatService] ===== END PARSE ERROR =====');
           return {
             'message': 'Error parsing server response. Please try again.',
             'user_id': null,
@@ -280,14 +309,21 @@ class ChatService {
       }
 
       // Parse error message - provide user-friendly messages
+      print('[ChatService] ===== ERROR RESPONSE =====');
+      print('[ChatService] Status code: ${response.statusCode}');
+      print('[ChatService] Response body: ${response.body}');
+      
       String errorMessage;
       try {
         final errorBody = jsonDecode(response.body);
+        print('[ChatService] Error body parsed: $errorBody');
         final detail = errorBody['detail']?.toString() ?? '';
+        print('[ChatService] Error detail: $detail');
 
         // Use backend error detail if available, otherwise use status code
         if (detail.isNotEmpty) {
           errorMessage = detail;
+          print('[ChatService] Using backend error detail: $errorMessage');
         } else {
           // Map status codes to user-friendly messages
           switch (response.statusCode) {
@@ -330,8 +366,8 @@ class ChatService {
         }
       }
 
-      print(
-          '[ChatService] Onboarding error: Status ${response.statusCode}, Message: $errorMessage');
+      print('[ChatService] Final error message: $errorMessage');
+      print('[ChatService] ===== END ERROR RESPONSE =====');
       return {
         'message': errorMessage,
         'user_id': null,
