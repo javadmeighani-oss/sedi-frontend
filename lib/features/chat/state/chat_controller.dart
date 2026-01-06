@@ -61,43 +61,94 @@ class ChatController extends ChangeNotifier {
   // ===============================
 
   Future<void> initialize({String? initialMessage}) async {
-    if (_initialized) return;
+    if (_initialized) {
+      print('[ChatController] ⚠️ Already initialized, skipping');
+      return;
+    }
     _initialized = true;
 
+    print('[ChatController] ========== INITIALIZE START ==========');
+    
     // Load user profile
     _userProfile = await UserProfileManager.loadProfile();
     currentLanguage = _userProfile.preferredLanguage;
     
+    print('[ChatController] Profile loaded:');
+    print('[ChatController]   - name: "${_userProfile.name}"');
+    print('[ChatController]   - userId: ${_userProfile.userId}');
+    print('[ChatController]   - language: $currentLanguage');
+    print('[ChatController]   - isVerified: ${_userProfile.isVerified}');
+    
     conversationState = ConversationState.initializing;
     notifyListeners();
 
-    // If initial message provided (from onboarding), use it
+    // CRITICAL: If initial message provided (from onboarding), use it and STOP
+    // Do NOT make any additional API calls
     if (initialMessage != null && initialMessage.isNotEmpty) {
+      print('[ChatController] ✅ Initial message provided from onboarding');
+      print('[ChatController]   - Message: "${initialMessage.substring(0, initialMessage.length > 50 ? 50 : initialMessage.length)}..."');
+      print('[ChatController]   - Length: ${initialMessage.length}');
+      
       conversationState = ConversationState.chatting;
       notifyListeners();
       _addSediMessage(initialMessage);
+      
+      print('[ChatController] ✅ Initial message displayed, initialization complete');
+      print('[ChatController] ========== INITIALIZE END (ONBOARDING) ==========');
       return;
     }
 
-    // Otherwise, get greeting from backend
+    // CRITICAL: Only get greeting if NO initial message AND user_id exists
+    // This prevents failed requests after onboarding
+    if (_userProfile.userId == null) {
+      print('[ChatController] ⚠️ WARNING: user_id is null, cannot fetch greeting');
+      print('[ChatController]   - This should not happen after onboarding');
+      print('[ChatController]   - Skipping greeting fetch');
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+      print('[ChatController] ========== INITIALIZE END (NO USER_ID) ==========');
+      return;
+    }
+
+    print('[ChatController] No initial message, fetching greeting from backend...');
+    // Otherwise, get greeting from backend (only for returning users)
     await _getGreetingFromBackend();
+    print('[ChatController] ========== INITIALIZE END (GREETING) ==========');
   }
 
   /// Get greeting from backend - NO frontend logic
   Future<void> _getGreetingFromBackend() async {
+    // CRITICAL: Validate user_id before making any API call
+    if (_userProfile.userId == null) {
+      print('[ChatController] ❌ ERROR: Cannot fetch greeting - user_id is null');
+      print('[ChatController]   - This should not happen. User should have user_id after onboarding.');
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+      _addSediMessage(
+        currentLanguage == 'fa'
+            ? 'خطا در بارگذاری پروفایل کاربر. لطفاً دوباره تلاش کنید.'
+            : currentLanguage == 'ar'
+                ? 'خطأ في تحميل ملف تعريف المستخدم. يرجى المحاولة مرة أخرى.'
+                : 'Error loading user profile. Please try again.',
+      );
+      return;
+    }
+    
     // Wait a bit for UI to settle
     await Future.delayed(const Duration(milliseconds: 800));
 
+    print('[ChatController] ========== GET GREETING START ==========');
     print('[ChatController] Requesting greeting from backend...');
     print('[ChatController] User: name="${_userProfile.name}", userId=${_userProfile.userId}, lang=$currentLanguage');
     print('[ChatController] Profile loaded: name="${_userProfile.name}", userId=${_userProfile.userId}');
 
     try {
-      // CRITICAL: Pass user name to backend so GPT can use it
+      // CRITICAL: Pass user name and user_id to backend so GPT can use it
       final greeting = await _chatService.getGreeting(
         userName: _userProfile.name,  // This will be passed to backend for GPT
         userPassword: _userProfile.securityPassword,
         language: currentLanguage,
+        userId: _userProfile.userId,  // CRITICAL: Pass user_id to prevent anonymous user creation
       );
 
       conversationState = ConversationState.chatting;

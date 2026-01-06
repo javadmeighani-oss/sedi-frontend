@@ -69,6 +69,12 @@ class ChatService {
         'lang': lang,
       };
 
+      // CRITICAL: Add user_id if available (prevents anonymous user creation)
+      if (userId != null) {
+        queryParams['user_id'] = userId.toString();
+        print('[ChatService] Adding user_id to greeting request: $userId');
+      }
+      
       // Add credentials if available
       if (userName != null && userName.isNotEmpty) {
         queryParams['name'] = userName.trim();
@@ -202,7 +208,7 @@ class ChatService {
   Future<Map<String, dynamic>> setupOnboarding(
     String password,
     String language, {
-    String? name,  // Optional: user name for GPT personalization
+    String? name, // Optional: user name for GPT personalization
   }) async {
     print('[ChatService] ========== SETUP ONBOARDING START ==========');
     print('[ChatService] Password length: ${password.length}');
@@ -225,7 +231,7 @@ class ChatService {
         'password': password,
         'language': language,
       };
-      
+
       // Add name if provided (for GPT personalization)
       if (name != null && name.trim().isNotEmpty) {
         queryParams['name'] = name.trim();
