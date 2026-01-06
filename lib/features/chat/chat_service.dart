@@ -46,10 +46,12 @@ class ChatService {
 
   /// Get greeting from backend (for new or returning users)
   /// Returns greeting message or null if backend unavailable
+  /// CRITICAL: userId is required to prevent anonymous user creation
   Future<String?> getGreeting({
     String? userName,
     String? userPassword,
     String? language,
+    int? userId,  // CRITICAL: user_id to prevent anonymous user creation
   }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
