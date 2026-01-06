@@ -195,14 +195,15 @@ class ChatService {
 
   /// Setup onboarding - create user with password and language
   /// Returns: (message, user_id, language) or (error, null, null)
-  /// Note: Name is no longer sent to backend
+  /// Note: Name is sent to backend for GPT personalization (optional)
   ///
   /// CRITICAL: This method MUST return user_id if backend returns 200.
   /// Only network errors or non-200 status codes should return null user_id.
   Future<Map<String, dynamic>> setupOnboarding(
     String password,
-    String language,
-  ) async {
+    String language, {
+    String? name,  // Optional: user name for GPT personalization
+  }) async {
     print('[ChatService] ========== SETUP ONBOARDING START ==========');
     print('[ChatService] Password length: ${password.length}');
     print('[ChatService] Language: $language');
@@ -224,6 +225,12 @@ class ChatService {
         'password': password,
         'language': language,
       };
+      
+      // Add name if provided (for GPT personalization)
+      if (name != null && name.trim().isNotEmpty) {
+        queryParams['name'] = name.trim();
+        print('[ChatService] Adding name to request: "$name"');
+      }
 
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding').replace(
         queryParameters: queryParams,
@@ -331,16 +338,17 @@ class ChatService {
       print('[ChatService] Response headers: ${response.headers}');
 
       String errorMessage = 'Error creating account. Please try again.';
-      
+
       try {
         final errorBody = jsonDecode(response.body);
         print('[ChatService] Error body parsed: $errorBody');
-        
+
         // Try to get detail from error body
-        final detail = errorBody['detail']?.toString() ?? 
-                      errorBody['message']?.toString() ?? 
-                      errorBody['error']?.toString() ?? '';
-        
+        final detail = errorBody['detail']?.toString() ??
+            errorBody['message']?.toString() ??
+            errorBody['error']?.toString() ??
+            '';
+
         print('[ChatService] Error detail extracted: $detail');
 
         // Use backend error detail if available
@@ -351,7 +359,8 @@ class ChatService {
           // Map status codes to user-friendly messages
           switch (response.statusCode) {
             case 400:
-              errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+              errorMessage =
+                  'Invalid request. Please check your password (minimum 6 characters).';
               break;
             case 401:
               errorMessage = 'Authentication failed. Please try again.';
@@ -366,27 +375,31 @@ class ChatService {
               errorMessage = 'Server error. Please try again later.';
               break;
             case 503:
-              errorMessage = 'Service temporarily unavailable. Please try again later.';
+              errorMessage =
+                  'Service temporarily unavailable. Please try again later.';
               break;
             default:
               errorMessage = 'Registration failed. Please try again.';
           }
-          print('[ChatService] Using status code based error message: $errorMessage');
+          print(
+              '[ChatService] Using status code based error message: $errorMessage');
         }
       } catch (parseError) {
         print('[ChatService] ⚠️ Could not parse error body: $parseError');
         print('[ChatService] Raw response body: ${response.body}');
-        
+
         // If can't parse error body, use status code
         switch (response.statusCode) {
           case 400:
-            errorMessage = 'Invalid request. Please check your password (minimum 6 characters).';
+            errorMessage =
+                'Invalid request. Please check your password (minimum 6 characters).';
             break;
           case 500:
             errorMessage = 'Server error. Please try again later.';
             break;
           case 503:
-            errorMessage = 'Service temporarily unavailable. Please try again later.';
+            errorMessage =
+                'Service temporarily unavailable. Please try again later.';
             break;
           default:
             errorMessage = 'Registration failed. Please try again.';

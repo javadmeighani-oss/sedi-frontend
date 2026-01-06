@@ -89,11 +89,13 @@ class ChatController extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 800));
 
     print('[ChatController] Requesting greeting from backend...');
-    print('[ChatController] User: name=${_userProfile.name}, userId=${_userProfile.userId}, lang=$currentLanguage');
+    print('[ChatController] User: name="${_userProfile.name}", userId=${_userProfile.userId}, lang=$currentLanguage');
+    print('[ChatController] Profile loaded: name="${_userProfile.name}", userId=${_userProfile.userId}');
 
     try {
+      // CRITICAL: Pass user name to backend so GPT can use it
       final greeting = await _chatService.getGreeting(
-        userName: _userProfile.name,
+        userName: _userProfile.name,  // This will be passed to backend for GPT
         userPassword: _userProfile.securityPassword,
         language: currentLanguage,
       );

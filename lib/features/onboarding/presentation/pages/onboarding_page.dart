@@ -97,23 +97,55 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _submitForm() async {
-    if (_isSubmitting || !_isFormValid) return;
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    print('[OnboardingPage] ========== SUBMIT FORM START ==========');
+    
+    if (_isSubmitting || !_isFormValid) {
+      print('[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
+      return;
+    }
+    
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      print('[OnboardingPage] ⚠️ Form validation failed');
+      return;
+    }
 
-    if (!mounted) return;
+    if (!mounted) {
+      print('[OnboardingPage] ⚠️ Widget not mounted, aborting');
+      return;
+    }
+    
     setState(() {
       _isSubmitting = true;
     });
+    
+    final name = _nameController.text.trim();
+    final password = _passwordController.text;
+    final systemLanguage = _getSystemLanguage();
+    
+    print('[OnboardingPage] Form data:');
+    print('[OnboardingPage]   - Name: "$name" (length: ${name.length})');
+    print('[OnboardingPage]   - Password: length=${password.length}');
+    print('[OnboardingPage]   - Language: $systemLanguage');
 
     try {
+      print('[OnboardingPage] Calling ChatService.setupOnboarding...');
       final chatService = ChatService();
-      final systemLanguage = _getSystemLanguage();
       final result = await chatService.setupOnboarding(
-        _passwordController.text,
+        password,
         systemLanguage,
+        name: name,  // CRITICAL: Pass name to backend for GPT personalization
       );
       
+      print('[OnboardingPage] ========== BACKEND RESPONSE RECEIVED ==========');
+      print('[OnboardingPage] Response keys: ${result.keys.toList()}');
+      print('[OnboardingPage] user_id: ${result['user_id']} (type: ${result['user_id']?.runtimeType})');
+      print('[OnboardingPage] message: ${result['message']}');
+      print('[OnboardingPage] language: ${result['language']}');
+      
+      // CRITICAL: Check user_id - this is the blocking issue
       if (!AppConfig.useLocalMode && result['user_id'] == null) {
+        print('[OnboardingPage] ❌ ERROR: user_id is null in response');
+        print('[OnboardingPage] Response: $result');
         if (mounted) {
           setState(() {
             _isSubmitting = false;
@@ -129,9 +161,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
       
+      print('[OnboardingPage] ✅ user_id received: ${result['user_id']}');
+      
+      // Create profile with all data
       final profile = UserProfile(
-        name: _nameController.text.trim(),
-        securityPassword: _passwordController.text,
+        name: name.isNotEmpty ? name : null,
+        securityPassword: password,
         preferredLanguage: result['language']?.toString() ?? systemLanguage,
         userId: result['user_id'] as int?,
         hasSecurityPassword: true,
@@ -139,19 +174,49 @@ class _OnboardingPageState extends State<OnboardingPage> {
         isVerified: true,
       );
       
-      await UserProfileManager.saveProfile(profile);
+      print('[OnboardingPage] Profile created:');
+      print('[OnboardingPage]   - name: "${profile.name}"');
+      print('[OnboardingPage]   - userId: ${profile.userId}');
+      print('[OnboardingPage]   - language: ${profile.preferredLanguage}');
+      print('[OnboardingPage]   - hasSecurityPassword: ${profile.hasSecurityPassword}');
+      print('[OnboardingPage]   - isVerified: ${profile.isVerified}');
       
-      if (!mounted) return;
+      print('[OnboardingPage] Saving profile to local storage...');
+      final saveResult = await UserProfileManager.saveProfile(profile);
+      print('[OnboardingPage] Profile save result: $saveResult');
+      
+      // Verify profile was saved
+      final savedProfile = await UserProfileManager.loadProfile();
+      print('[OnboardingPage] Verified saved profile:');
+      print('[OnboardingPage]   - name: "${savedProfile.name}"');
+      print('[OnboardingPage]   - userId: ${savedProfile.userId}');
+      print('[OnboardingPage]   - language: ${savedProfile.preferredLanguage}');
+      
+      if (!mounted) {
+        print('[OnboardingPage] ⚠️ Widget unmounted before navigation');
+        return;
+      }
       
       final initialMessage = result['message']?.toString() ?? '';
+      print('[OnboardingPage] Initial message: "$initialMessage"');
+      print('[OnboardingPage] Navigating to ChatPage...');
       
+      // CRITICAL: Use pushReplacement to close onboarding window
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => ChatPage(initialMessage: initialMessage),
         ),
       );
       
-    } catch (e) {
+      print('[OnboardingPage] ✅ Navigation completed');
+      print('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
+      
+    } catch (e, stackTrace) {
+      print('[OnboardingPage] ========== SUBMIT FORM ERROR ==========');
+      print('[OnboardingPage] ❌ ERROR: $e');
+      print('[OnboardingPage] Stack trace: $stackTrace');
+      print('[OnboardingPage] ========== END ERROR ==========');
+      
       if (mounted) {
         setState(() {
           _isSubmitting = false;
