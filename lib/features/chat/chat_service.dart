@@ -51,7 +51,7 @@ class ChatService {
     String? userName,
     String? userPassword,
     String? language,
-    int? userId,  // CRITICAL: user_id to prevent anonymous user creation
+    int? userId, // CRITICAL: user_id to prevent anonymous user creation
   }) async {
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
@@ -76,7 +76,7 @@ class ChatService {
         queryParams['user_id'] = userId.toString();
         print('[ChatService] Adding user_id to greeting request: $userId');
       }
-      
+
       // Add credentials if available
       if (userName != null && userName.isNotEmpty) {
         queryParams['name'] = userName.trim();
