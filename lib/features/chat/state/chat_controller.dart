@@ -290,16 +290,32 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // CRITICAL: Validate user_id before sending message
+      if (_userProfile.userId == null) {
+        print('[ChatController] ❌ ERROR: Cannot send message - user_id is null');
+        print('[ChatController]   - This should not happen after onboarding');
+        isThinking = false;
+        notifyListeners();
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در بارگذاری پروفایل کاربر. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في تحميل ملف تعريف المستخدم. يرجى المحاولة مرة أخرى.'
+                  : 'Error loading user profile. Please try again.',
+        );
+        return;
+      }
+      
       // 3️⃣ Send to backend - backend decides everything
       print('[ChatController] ===== SENDING TO BACKEND =====');
       print('[ChatController] Message: "${trimmed.substring(0, trimmed.length > 50 ? 50 : trimmed.length)}..."');
-      print('[ChatController] User: name=${_userProfile.name}, userId=${_userProfile.userId}, lang=$currentLanguage');
+      print('[ChatController] User: name="${_userProfile.name}", userId=${_userProfile.userId}, lang=$currentLanguage');
       
       final response = await _chatService.sendMessage(
         trimmed,
         userName: _userProfile.name,
         userPassword: _userProfile.securityPassword,
-        language: currentLanguage, // Send current language to backend
+        language: currentLanguage, // Send current language to backend (fa/ar/en)
         userId: _userProfile.userId, // CRITICAL: Send user_id to maintain conversation continuity
       );
       
