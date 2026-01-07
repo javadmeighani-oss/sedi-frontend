@@ -394,6 +394,20 @@ class ChatController extends ChangeNotifier {
         return;
       }
 
+      // Handle GPT errors (502 from backend)
+      if (response.startsWith('GPT_ERROR:')) {
+        final errorMessage = response.replaceFirst('GPT_ERROR: ', '');
+        print('[ChatController] GPT error received: $errorMessage');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در سرویس هوش مصنوعی: $errorMessage'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في خدمة الذكاء الاصطناعي: $errorMessage'
+                  : 'AI service error: $errorMessage',
+        );
+        return;
+      }
+
       if (response.startsWith('AUTH_REQUIRED')) {
         // Backend requires auth - show error
         _addSediMessage(

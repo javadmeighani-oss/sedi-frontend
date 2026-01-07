@@ -592,13 +592,15 @@ class ChatService {
       } else {
         print('[ChatService] ❌ ERROR - Status ${response.statusCode}');
         print('[ChatService] Response body: ${response.body}');
-        
+
         // Parse error response to get real backend error message
         try {
           final errorBody = jsonDecode(response.body);
-          final errorDetail = errorBody.get('detail') ?? errorBody.get('message') ?? 'Unknown error';
+          final errorDetail = errorBody.get('detail') ??
+              errorBody.get('message') ??
+              'Unknown error';
           print('[ChatService] Backend error detail: $errorDetail');
-          
+
           // Return structured error message from backend
           if (response.statusCode == 400) {
             return 'VALIDATION_ERROR: $errorDetail';
