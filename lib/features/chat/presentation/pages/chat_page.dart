@@ -77,14 +77,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   String _inputHint() {
-    switch (_controller.currentLanguage) {
-      case 'fa':
-        return 'صحبت با صدی…';
-      case 'ar':
-        return 'تحدّث مع سِدي…';
-      default:
-        return 'Talk to Sedi…';
-    }
+    // CRITICAL: Input placeholder MUST ALWAYS be English (per requirements)
+    // Language detection happens after first user message
+    return 'Talk to Sedi…';
   }
 
   void _scrollToBottom() {

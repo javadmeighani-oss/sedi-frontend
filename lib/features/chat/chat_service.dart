@@ -591,6 +591,35 @@ class ChatService {
         print('[ChatService] ✅ SUCCESS - Backend responded');
       } else {
         print('[ChatService] ❌ ERROR - Status ${response.statusCode}');
+        print('[ChatService] Response body: ${response.body}');
+        
+        // Parse error response to get real backend error message
+        try {
+          final errorBody = jsonDecode(response.body);
+          final errorDetail = errorBody.get('detail') ?? errorBody.get('message') ?? 'Unknown error';
+          print('[ChatService] Backend error detail: $errorDetail');
+          
+          // Return structured error message from backend
+          if (response.statusCode == 400) {
+            return 'VALIDATION_ERROR: $errorDetail';
+          } else if (response.statusCode == 404) {
+            return 'USER_NOT_FOUND: $errorDetail';
+          } else if (response.statusCode >= 500) {
+            return 'SERVER_ERROR: $errorDetail';
+          } else {
+            return 'ERROR_${response.statusCode}: $errorDetail';
+          }
+        } catch (parseError) {
+          print('[ChatService] Could not parse error body: $parseError');
+          // Fallback to status code based error
+          if (response.statusCode == 400) {
+            return 'VALIDATION_ERROR: Invalid request. Please check your input.';
+          } else if (response.statusCode == 404) {
+            return 'USER_NOT_FOUND: User not found. Please check your user_id.';
+          } else {
+            return 'ERROR_${response.statusCode}: Server returned error status ${response.statusCode}';
+          }
+        }
       }
 
       if (response.statusCode == 200) {

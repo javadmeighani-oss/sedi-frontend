@@ -343,6 +343,55 @@ class ChatController extends ChangeNotifier {
         return;
       }
 
+      // Handle structured backend error messages
+      if (response.startsWith('VALIDATION_ERROR:')) {
+        final errorMessage = response.replaceFirst('VALIDATION_ERROR: ', '');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در اعتبارسنجی: $errorMessage'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في التحقق: $errorMessage'
+                  : 'Validation error: $errorMessage',
+        );
+        return;
+      }
+
+      if (response.startsWith('USER_NOT_FOUND:')) {
+        final errorMessage = response.replaceFirst('USER_NOT_FOUND: ', '');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'کاربر یافت نشد: $errorMessage'
+              : currentLanguage == 'ar'
+                  ? 'المستخدم غير موجود: $errorMessage'
+                  : 'User not found: $errorMessage',
+        );
+        return;
+      }
+
+      if (response.startsWith('SERVER_ERROR:')) {
+        final errorMessage = response.replaceFirst('SERVER_ERROR: ', '');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطای سرور: $errorMessage'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في الخادم: $errorMessage'
+                  : 'Server error: $errorMessage',
+        );
+        return;
+      }
+
+      if (response.startsWith('ERROR_')) {
+        final errorMessage = response.replaceFirst(RegExp(r'ERROR_\d+: '), '');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا: $errorMessage'
+              : currentLanguage == 'ar'
+                  ? 'خطأ: $errorMessage'
+                  : 'Error: $errorMessage',
+        );
+        return;
+      }
+
       if (response.startsWith('AUTH_REQUIRED')) {
         // Backend requires auth - show error
         _addSediMessage(
