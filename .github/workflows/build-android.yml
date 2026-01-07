@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Flutter Frontend - Android
 
 on:
   push:
@@ -33,12 +33,16 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
+          cache: true
       
-      - name: Get Flutter dependencies
+      - name: Get dependencies
         run: flutter pub get
       
       - name: Verify Flutter installation
         run: flutter doctor -v
+      
+      - name: Analyze code
+        run: flutter analyze || true  # Continue even if there are warnings
       
       - name: Clean build
         run: flutter clean
@@ -54,9 +58,8 @@ jobs:
               exit 0
             else
               if [ $attempt -lt $max_attempts ]; then
-                echo "Build failed, cleaning and retrying in 15 seconds..."
-                flutter clean
-                sleep 15
+                echo "Build failed, retrying in 10 seconds..."
+                sleep 10
               fi
               attempt=$((attempt + 1))
             fi
@@ -70,3 +73,9 @@ jobs:
           name: sedi-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+      
+      - name: Build Summary
+        run: |
+          echo "## ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "APK built successfully and uploaded as artifact." >> $GITHUB_STEP_SUMMARY
+          echo "Download from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
