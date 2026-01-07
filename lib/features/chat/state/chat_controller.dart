@@ -406,17 +406,40 @@ class ChatController extends ChangeNotifier {
         // NO asking for name, password, etc. from frontend
         // Backend will send those messages if needed
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Log error details for debugging
-      print('[ChatController] ERROR sending message: $e');
+      print('[ChatController] ===== ERROR SENDING MESSAGE =====');
+      print('[ChatController] Error: $e');
       print('[ChatController] Error type: ${e.runtimeType}');
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خطا در ارسال پیام به سرور. لطفاً دوباره تلاش کنید.'
-            : currentLanguage == 'ar'
-                ? 'خطأ في إرسال الرسالة إلى الخادم. يرجى المحاولة مرة أخرى.'
-                : 'Error sending message to server. Please try again.',
-      );
+      print('[ChatController] Stack trace: $stackTrace');
+      print('[ChatController] Message that failed: "$trimmed"');
+      print('[ChatController] User ID: ${_userProfile.userId}');
+      print('[ChatController] Language: $currentLanguage');
+      print('[ChatController] ===== END ERROR =====');
+      
+      // Only show generic error if it's a network/server error
+      // Otherwise, show specific error
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('timeout') || 
+          errorString.contains('connection') || 
+          errorString.contains('network') ||
+          errorString.contains('socket')) {
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
+                  : 'Error connecting to server. Please try again.',
+        );
+      } else {
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'خطا در ارسال پیام. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'خطأ في إرسال الرسالة. يرجى المحاولة مرة أخرى.'
+                  : 'Error sending message. Please try again.',
+        );
+      }
     }
   }
 
