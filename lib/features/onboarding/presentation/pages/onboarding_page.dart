@@ -197,11 +197,33 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return;
       }
       
+      // CRITICAL: Verify user_id is saved before navigation
+      final verifyProfile = await UserProfileManager.loadProfile();
+      if (verifyProfile.userId == null) {
+        print('[OnboardingPage] ❌ CRITICAL ERROR: user_id is null after save!');
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error saving profile. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+      
+      print('[OnboardingPage] ✅ Profile verified - userId: ${verifyProfile.userId}');
+      
       final initialMessage = result['message']?.toString() ?? '';
       print('[OnboardingPage] Initial message: "$initialMessage"');
       print('[OnboardingPage] Navigating to ChatPage...');
       
       // CRITICAL: Use pushReplacement to close onboarding window
+      // Navigation happens AFTER profile is saved and verified
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => ChatPage(initialMessage: initialMessage),
