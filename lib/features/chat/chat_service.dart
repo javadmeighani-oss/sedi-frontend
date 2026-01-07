@@ -587,6 +587,20 @@ class ChatService {
       print('[ChatService] Status: ${response.statusCode}');
       print('[ChatService] Response body: ${response.body}');
 
+      // Handle 502 Bad Gateway (GPT failure) FIRST
+      if (response.statusCode == 502) {
+        print('[ChatService] ❌ 502 Bad Gateway - GPT service error');
+        try {
+          final errorBody = jsonDecode(response.body);
+          final errorDetail = errorBody['detail'] ?? errorBody['error'] ?? 'GPT service error';
+          print('[ChatService] GPT error detail: $errorDetail');
+          return 'GPT_ERROR: $errorDetail';
+        } catch (parseError) {
+          print('[ChatService] Could not parse 502 error body: $parseError');
+          return 'GPT_ERROR: GPT service is unavailable. Please try again.';
+        }
+      }
+
       if (response.statusCode == 200) {
         print('[ChatService] ✅ SUCCESS - Backend responded');
       } else {
