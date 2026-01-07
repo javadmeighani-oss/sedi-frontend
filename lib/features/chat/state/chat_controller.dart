@@ -71,7 +71,9 @@ class ChatController extends ChangeNotifier {
     
     // Load user profile
     _userProfile = await UserProfileManager.loadProfile();
-    currentLanguage = _userProfile.preferredLanguage;
+    // CRITICAL: Initial language is always English (per requirements)
+    // Language will be detected from first user message
+    currentLanguage = 'en';
     
     print('[ChatController] Profile loaded:');
     print('[ChatController]   - name: "${_userProfile.name}"');
