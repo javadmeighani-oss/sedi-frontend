@@ -96,21 +96,36 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
+  /// ============================================
+  /// STEP 1: REWRITE ONBOARDING HANDLER (NO PATCHES)
+  /// ============================================
+  /// MANDATORY LOGIC:
+  /// - Await HTTP response
+  /// - Parse JSON
+  /// - If (json["user_id"] != null):
+  ///     - SAVE user_id
+  ///     - MARK registration as SUCCESS
+  ///     - NAVIGATE to chat screen
+  ///     - RETURN IMMEDIATELY
+  /// - ELSE:
+  ///     - Show registration error
+  /// ============================================
   Future<void> _submitForm() async {
-    print('[OnboardingPage] ========== SUBMIT FORM START ==========');
+    debugPrint('[OnboardingPage] ========== SUBMIT FORM START ==========');
     
+    // Pre-flight checks
     if (_isSubmitting || !_isFormValid) {
-      print('[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
+      debugPrint('[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
       return;
     }
     
     if (!(_formKey.currentState?.validate() ?? false)) {
-      print('[OnboardingPage] ⚠️ Form validation failed');
+      debugPrint('[OnboardingPage] ⚠️ Form validation failed');
       return;
     }
 
     if (!mounted) {
-      print('[OnboardingPage] ⚠️ Widget not mounted, aborting');
+      debugPrint('[OnboardingPage] ⚠️ Widget not mounted, aborting');
       return;
     }
     
@@ -122,177 +137,47 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final password = _passwordController.text;
     final systemLanguage = _getSystemLanguage();
     
-    print('[OnboardingPage] Form data:');
-    print('[OnboardingPage]   - Name: "$name" (length: ${name.length})');
-    print('[OnboardingPage]   - Password: length=${password.length}');
-    print('[OnboardingPage]   - Language: $systemLanguage');
+    debugPrint('[OnboardingPage] Form data:');
+    debugPrint('[OnboardingPage]   - Name: "$name" (length: ${name.length})');
+    debugPrint('[OnboardingPage]   - Password: length=${password.length}');
+    debugPrint('[OnboardingPage]   - Language: $systemLanguage');
 
+    // ============================================
+    // STEP 4: FIX try/catch STRUCTURE
+    // ============================================
+    // try/catch ONLY around HTTP request
+    // NOT around navigation or profile saving
+    // ============================================
+    Map<String, dynamic>? onboardingResponse;
+    Exception? onboardingException;
+    
     try {
-      print('[OnboardingPage] Calling ChatService.setupOnboarding...');
+      debugPrint('[OnboardingPage] ===== CALLING ONBOARDING API =====');
       final chatService = ChatService();
-      final result = await chatService.setupOnboarding(
+      onboardingResponse = await chatService.setupOnboarding(
         password,
         systemLanguage,
-        name: name,  // CRITICAL: Pass name to backend for GPT personalization
+        name: name,
       );
-      
-      print('[OnboardingPage] ========== BACKEND RESPONSE RECEIVED ==========');
-      print('[OnboardingPage] Full response body: $result');
-      print('[OnboardingPage] Response keys: ${result.keys.toList()}');
-      print('[OnboardingPage] user_id: ${result['user_id']} (type: ${result['user_id']?.runtimeType})');
-      print('[OnboardingPage] message: ${result['message']}');
-      print('[OnboardingPage] language: ${result['language']}');
-      
-      // ============================================
-      // STEP 1: FIX ONBOARDING SUCCESS CONDITION
-      // ============================================
-      // SUCCESS if and only if: user_id exists and is not null
-      // FAILURE only if: HTTP error OR user_id is missing
-      // DO NOT check: success flag, message content, chat response, GPT availability
-      // ============================================
-      
-      final userId = result['user_id'];
-      final userIdInt = userId is int ? userId : (userId is String ? int.tryParse(userId) : null);
-      
-      print('[OnboardingPage] Extracted user_id: $userIdInt');
-      
-      // CRITICAL: Registration is SUCCESSFUL if and only if user_id exists
-      if (!AppConfig.useLocalMode && userIdInt == null) {
-        print('[OnboardingPage] ❌ ERROR: user_id is null or invalid in response');
-        print('[OnboardingPage] This indicates registration FAILED on backend');
-        print('[OnboardingPage] Full response: $result');
-        if (mounted) {
-          setState(() {
-            _isSubmitting = false;
-          });
-          // Only show error if user_id is missing (registration actually failed)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']?.toString() ?? 'Registration failed. Please try again.'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-        return;
-      }
-      
-      // ============================================
-      // STEP 2: DECOUPLE ONBOARDING FROM CHAT
-      // ============================================
-      // Onboarding flow ENDS immediately after successful user creation
-      // DO NOT: auto-trigger chat request, auto-trigger GPT, block navigation based on chat result
-      // Chat failures must NOT affect registration state
-      // ============================================
-      
-      print('[OnboardingPage] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
-      print('[OnboardingPage] Onboarding flow complete - proceeding to save profile and navigate');
-      
-      // Create profile with all data
-      // NOTE: We use userIdInt (already validated above) instead of result['user_id']
-      final profile = UserProfile(
-        name: name.isNotEmpty ? name : null,
-        securityPassword: password,
-        preferredLanguage: result['language']?.toString() ?? systemLanguage,
-        userId: userIdInt, // Use validated userIdInt
-        hasSecurityPassword: true,
-        securityPasswordSetAt: DateTime.now(),
-        isVerified: true,
-      );
-      
-      print('[OnboardingPage] Profile created:');
-      print('[OnboardingPage]   - name: "${profile.name}"');
-      print('[OnboardingPage]   - userId: ${profile.userId}');
-      print('[OnboardingPage]   - language: ${profile.preferredLanguage}');
-      print('[OnboardingPage]   - hasSecurityPassword: ${profile.hasSecurityPassword}');
-      print('[OnboardingPage]   - isVerified: ${profile.isVerified}');
-      
-      print('[OnboardingPage] Saving profile to local storage...');
-      final saveResult = await UserProfileManager.saveProfile(profile);
-      print('[OnboardingPage] Profile save result: $saveResult');
-      
-      // Verify profile was saved
-      final savedProfile = await UserProfileManager.loadProfile();
-      print('[OnboardingPage] Verified saved profile:');
-      print('[OnboardingPage]   - name: "${savedProfile.name}"');
-      print('[OnboardingPage]   - userId: ${savedProfile.userId}');
-      print('[OnboardingPage]   - language: ${savedProfile.preferredLanguage}');
-      
-      if (!mounted) {
-        print('[OnboardingPage] ⚠️ Widget unmounted before navigation');
-        return;
-      }
-      
-      // CRITICAL: Verify user_id is saved before navigation
-      final verifyProfile = await UserProfileManager.loadProfile();
-      if (verifyProfile.userId == null) {
-        print('[OnboardingPage] ❌ CRITICAL ERROR: user_id is null after save!');
-        if (mounted) {
-          setState(() {
-            _isSubmitting = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error saving profile. Please try again.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-        return;
-      }
-      
-      print('[OnboardingPage] ✅ Profile verified - userId: ${verifyProfile.userId}');
-      
-      // ============================================
-      // STEP 3: REMOVE FAKE ERROR BANNER
-      // ============================================
-      // The initial message from onboarding response is used for chat greeting
-      // Even if message contains an error (from chat/GPT failure), we still navigate
-      // Chat errors are handled separately in ChatController
-      // ============================================
-      
-      // Extract initial message from onboarding response
-      // This is the welcome message from backend (may be empty if chat failed, but that's OK)
-      final initialMessage = result['message']?.toString() ?? '';
-      print('[OnboardingPage] Initial message from backend: "$initialMessage"');
-      print('[OnboardingPage] Note: If message is empty or contains error, chat will handle it separately');
-      
-      print('[OnboardingPage] Navigating to ChatPage...');
-      
-      // CRITICAL: Use pushReplacement to close onboarding window
-      // Navigation happens AFTER profile is saved and verified
-      // Onboarding is COMPLETE - chat failures are separate
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ChatPage(initialMessage: initialMessage),
-        ),
-      );
-      
-      print('[OnboardingPage] ✅ Navigation completed');
-      print('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
-      
-    } catch (e, stackTrace) {
-      print('[OnboardingPage] ========== SUBMIT FORM ERROR ==========');
-      print('[OnboardingPage] ❌ EXCEPTION: $e');
-      print('[OnboardingPage] Exception type: ${e.runtimeType}');
-      print('[OnboardingPage] Stack trace: $stackTrace');
-      print('[OnboardingPage] ========== END ERROR ==========');
-      
-      // ============================================
-      // STEP 4: CHAT ERROR HANDLING (SEPARATE)
-      // ============================================
-      // This catch block only handles exceptions during onboarding API call
-      // Chat errors are handled separately in ChatController
-      // ============================================
-      
+      debugPrint('[OnboardingPage] ===== ONBOARDING API SUCCESS =====');
+    } catch (e) {
+      debugPrint('[OnboardingPage] ===== ONBOARDING API EXCEPTION =====');
+      debugPrint('[OnboardingPage] Exception: $e');
+      debugPrint('[OnboardingPage] Exception type: ${e.runtimeType}');
+      onboardingException = e is Exception ? e : Exception(e.toString());
+    }
+
+    // ============================================
+    // STEP 1: CHECK user_id (OUTSIDE try/catch)
+    // ============================================
+    // If HTTP request failed, show error
+    if (onboardingException != null) {
+      debugPrint('[OnboardingPage] ❌ HTTP request failed');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        // Only show error for actual onboarding failures (HTTP errors, network errors, etc.)
-        // NOT for chat/GPT failures (those are handled in chat)
-        final errorString = e.toString().toLowerCase();
+        final errorString = onboardingException.toString().toLowerCase();
         String errorMessage;
         if (errorString.contains('timeout') || 
             errorString.contains('connection') || 
@@ -310,7 +195,158 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
         );
       }
+      return;
     }
+
+    // Response received - parse it
+    if (onboardingResponse == null) {
+      debugPrint('[OnboardingPage] ❌ Response is null');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration failed. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+      return;
+    }
+
+    // ============================================
+    // STEP 5: ADD TEMP DEBUG LOGS (MANDATORY)
+    // ============================================
+    debugPrint('[OnboardingPage] ===== ONBOARDING RESPONSE =====');
+    debugPrint('[OnboardingPage] Full response: $onboardingResponse');
+    debugPrint('[OnboardingPage] Response keys: ${onboardingResponse.keys.toList()}');
+    
+    // Extract user_id
+    final userId = onboardingResponse['user_id'];
+    debugPrint('[OnboardingPage] USER_ID from response: $userId');
+    debugPrint('[OnboardingPage] USER_ID type: ${userId?.runtimeType}');
+    debugPrint('[OnboardingPage] USER_ID is null: ${userId == null}');
+    
+    // Parse user_id to int
+    int? userIdInt;
+    if (userId == null) {
+      userIdInt = null;
+    } else if (userId is int) {
+      userIdInt = userId;
+    } else if (userId is String) {
+      userIdInt = int.tryParse(userId);
+    } else {
+      userIdInt = int.tryParse(userId.toString());
+    }
+    
+    debugPrint('[OnboardingPage] USER_ID parsed: $userIdInt');
+    debugPrint('[OnboardingPage] USER_ID is null after parsing: ${userIdInt == null}');
+    debugPrint('[OnboardingPage] ===== END ONBOARDING RESPONSE =====');
+
+    // ============================================
+    // STEP 1: CHECK user_id EXISTENCE
+    // ============================================
+    // If user_id is null → registration FAILED
+    if (!AppConfig.useLocalMode && userIdInt == null) {
+      debugPrint('[OnboardingPage] ❌ ERROR: user_id is null');
+      debugPrint('[OnboardingPage] Exact place where error banner is triggered: user_id check failed');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(onboardingResponse['message']?.toString() ?? 'Registration failed. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      return;
+    }
+
+    // ============================================
+    // STEP 1: SUCCESS PATH (user_id EXISTS)
+    // ============================================
+    // Registration is SUCCESSFUL
+    // SAVE user_id, MARK as SUCCESS, NAVIGATE, RETURN IMMEDIATELY
+    // ============================================
+    debugPrint('[OnboardingPage] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
+    debugPrint('[OnboardingPage] Proceeding to save profile and navigate...');
+
+    // ============================================
+    // STEP 2: HARD SEPARATION: onboarding vs chat
+    // ============================================
+    // After onboarding success:
+    // - DO NOT auto-call chat API
+    // - DO NOT wait for GPT
+    // - DO NOT block navigation
+    // - DO NOT show ANY error related to chat
+    // Registration == user creation ONLY
+    // ============================================
+    
+    // Save profile (outside try/catch - if this fails, it's a different error)
+    try {
+      final profile = UserProfile(
+        name: name.isNotEmpty ? name : null,
+        securityPassword: password,
+        preferredLanguage: onboardingResponse['language']?.toString() ?? systemLanguage,
+        userId: userIdInt,
+        hasSecurityPassword: true,
+        securityPasswordSetAt: DateTime.now(),
+        isVerified: true,
+      );
+      
+      debugPrint('[OnboardingPage] Saving profile with userId: $userIdInt');
+      await UserProfileManager.saveProfile(profile);
+      debugPrint('[OnboardingPage] Profile saved successfully');
+    } catch (saveError) {
+      debugPrint('[OnboardingPage] ❌ Error saving profile: $saveError');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error saving profile. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+      return;
+    }
+
+    // ============================================
+    // STEP 3: KILL THE RED ERROR BANNER
+    // ============================================
+    // Navigation happens OUTSIDE try/catch
+    // If navigation fails, it's a different error (not registration failure)
+    // ============================================
+    if (!mounted) {
+      debugPrint('[OnboardingPage] ⚠️ Widget unmounted before navigation');
+      return;
+    }
+
+    // Extract initial message (may be empty if chat failed - that's OK)
+    final initialMessage = onboardingResponse['message']?.toString() ?? '';
+    debugPrint('[OnboardingPage] Initial message: "$initialMessage"');
+    debugPrint('[OnboardingPage] Note: Message may be empty if chat failed - that is OK, chat handles it separately');
+
+    // Navigate to chat (OUTSIDE try/catch)
+    debugPrint('[OnboardingPage] Navigating to ChatPage...');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ChatPage(initialMessage: initialMessage),
+      ),
+    );
+    
+    debugPrint('[OnboardingPage] ✅ Navigation completed');
+    debugPrint('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
+    
+    // Registration is COMPLETE - no error banner should appear
   }
 
   @override
