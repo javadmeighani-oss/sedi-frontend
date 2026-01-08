@@ -307,10 +307,18 @@ class ChatService {
           print('[ChatService] Final user_id: $userIdInt');
           print('[ChatService] ===== END SUCCESS RESPONSE =====');
 
+          // ============================================
+          // STEP 1: FIX ONBOARDING SUCCESS CONDITION
+          // ============================================
+          // SUCCESS if and only if: user_id exists and is not null
+          // FAILURE only if: HTTP error OR user_id is missing
+          // DO NOT check: success flag, message content, chat response, GPT availability
+          // ============================================
+          
           if (userIdInt == null) {
             print('[ChatService] ❌ ERROR: user_id is null after parsing');
-            print(
-                '[ChatService] This should not happen - backend should always return user_id');
+            print('[ChatService] This indicates registration FAILED on backend');
+            print('[ChatService] Response body: $body');
             return {
               'message': body['message']?.toString() ??
                   'Server response missing user_id. Please try again.',
@@ -319,6 +327,16 @@ class ChatService {
             };
           }
 
+          // ============================================
+          // STEP 2: DECOUPLE ONBOARDING FROM CHAT
+          // ============================================
+          // Registration is SUCCESSFUL - return user_id immediately
+          // Message content (even if it contains chat/GPT errors) does NOT affect registration success
+          // ============================================
+          
+          print('[ChatService] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
+          print('[ChatService] Returning success response (message may contain chat errors, but registration succeeded)');
+          
           return {
             'message': body['message']?.toString() ?? '',
             'user_id': userIdInt,
@@ -592,7 +610,8 @@ class ChatService {
         print('[ChatService] ❌ 502 Bad Gateway - GPT service error');
         try {
           final errorBody = jsonDecode(response.body);
-          final errorDetail = errorBody['detail'] ?? errorBody['error'] ?? 'GPT service error';
+          final errorDetail =
+              errorBody['detail'] ?? errorBody['error'] ?? 'GPT service error';
           print('[ChatService] GPT error detail: $errorDetail');
           return 'GPT_ERROR: $errorDetail';
         } catch (parseError) {

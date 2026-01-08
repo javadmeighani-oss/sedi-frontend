@@ -84,18 +84,43 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.initializing;
     notifyListeners();
 
+    // ============================================
+    // STEP 4: CHAT ERROR HANDLING (SEPARATE)
+    // ============================================
+    // Chat errors must:
+    // - show ONLY inside chat UI
+    // - never rollback onboarding
+    // - never reset user state
+    // ============================================
+    
     // CRITICAL: If initial message provided (from onboarding), use it and STOP
     // Do NOT make any additional API calls
-    if (initialMessage != null && initialMessage.isNotEmpty) {
+    // Even if initial message is empty or contains errors, onboarding was successful
+    if (initialMessage != null) {
       print('[ChatController] ✅ Initial message provided from onboarding');
-      print('[ChatController]   - Message: "${initialMessage.substring(0, initialMessage.length > 50 ? 50 : initialMessage.length)}..."');
+      print('[ChatController]   - Message: "${initialMessage.length > 50 ? initialMessage.substring(0, 50) + "..." : initialMessage}"');
       print('[ChatController]   - Length: ${initialMessage.length}');
       
       conversationState = ConversationState.chatting;
       notifyListeners();
-      _addSediMessage(initialMessage);
       
-      print('[ChatController] ✅ Initial message displayed, initialization complete');
+      // Display initial message if not empty
+      // If empty, it means chat/GPT failed, but onboarding succeeded (handled separately)
+      if (initialMessage.isNotEmpty) {
+        _addSediMessage(initialMessage);
+      } else {
+        // Chat failed but onboarding succeeded - show chat-specific error
+        print('[ChatController] ⚠️ Initial message is empty (chat may have failed, but onboarding succeeded)');
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'پیام خوش‌آمدگویی دریافت نشد. لطفاً پیام خود را ارسال کنید.'
+              : currentLanguage == 'ar'
+                  ? 'لم يتم استلام رسالة الترحيب. يرجى إرسال رسالتك.'
+                  : 'Welcome message could not be loaded. Please send your message.',
+        );
+      }
+      
+      print('[ChatController] ✅ Initialization complete (onboarding successful, chat handled separately)');
       print('[ChatController] ========== INITIALIZE END (ONBOARDING) ==========');
       return;
     }
