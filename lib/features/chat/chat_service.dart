@@ -203,8 +203,8 @@ class ChatService {
 
   /// Setup onboarding - create user with password and name
   /// Returns: (message, user_id, language) or (error, null, null)
-  /// 
-  /// CRITICAL: 
+  ///
+  /// CRITICAL:
   /// - name is REQUIRED (from JSON body)
   /// - password is REQUIRED (from JSON body)
   /// - Backend contract: {"name": string, "password": string}
@@ -244,7 +244,7 @@ class ChatService {
       // STEP 2: Use JSON body (not query params)
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding');
       final headers = await _buildHeaders();
-      
+
       // STEP 2: Create JSON payload according to backend contract
       // Backend contract: {"name": string, "password": string}
       final payload = {
@@ -290,7 +290,7 @@ class ChatService {
           print('[ChatService] ===== RAW RESPONSE (200) =====');
           print('[ChatService] Response body (raw): ${response.body}');
           print('[ChatService] Response body length: ${response.body.length}');
-          
+
           final body = jsonDecode(response.body);
           print('[ChatService] ===== PARSED RESPONSE =====');
           print('[ChatService] Parsed response body: $body');
@@ -299,7 +299,8 @@ class ChatService {
 
           // Check if user_id exists in response
           if (!body.containsKey('user_id')) {
-            print('[ChatService] ⚠️ WARNING: user_id not found in response body');
+            print(
+                '[ChatService] ⚠️ WARNING: user_id not found in response body');
             print('[ChatService] Response body keys: ${body.keys.toList()}');
             print('[ChatService] This indicates backend response format issue');
           }
@@ -324,16 +325,19 @@ class ChatService {
           } else if (userId is String) {
             userIdInt = int.tryParse(userId);
             if (userIdInt == null) {
-              print('[ChatService] ⚠️ WARNING: Failed to parse user_id string: "$userId"');
+              print(
+                  '[ChatService] ⚠️ WARNING: Failed to parse user_id string: "$userId"');
             } else {
               print('[ChatService] ✅ user_id is string, parsed: $userIdInt');
             }
           } else {
             userIdInt = int.tryParse(userId.toString());
             if (userIdInt == null) {
-              print('[ChatService] ⚠️ WARNING: Failed to parse user_id from type ${userId.runtimeType}: $userId');
+              print(
+                  '[ChatService] ⚠️ WARNING: Failed to parse user_id from type ${userId.runtimeType}: $userId');
             } else {
-              print('[ChatService] ✅ user_id is other type, converted: $userIdInt');
+              print(
+                  '[ChatService] ✅ user_id is other type, converted: $userIdInt');
             }
           }
 
@@ -349,10 +353,11 @@ class ChatService {
           // FAILURE only if: HTTP error OR user_id is missing
           // DO NOT check: success flag, message content, chat response, GPT availability
           // ============================================
-          
+
           if (userIdInt == null) {
             print('[ChatService] ❌ ERROR: user_id is null after parsing');
-            print('[ChatService] This indicates registration FAILED on backend');
+            print(
+                '[ChatService] This indicates registration FAILED on backend');
             print('[ChatService] Response body: $body');
             return {
               'message': body['message']?.toString() ??
@@ -368,14 +373,16 @@ class ChatService {
           // Registration is SUCCESSFUL - return user_id immediately
           // Message content (even if it contains chat/GPT errors) does NOT affect registration success
           // ============================================
-          
-          print('[ChatService] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
-          print('[ChatService] Returning success response (message may contain chat errors, but registration succeeded)');
-          
+
+          print(
+              '[ChatService] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
+          print(
+              '[ChatService] Returning success response (message may contain chat errors, but registration succeeded)');
+
           return {
             'message': body['message']?.toString() ?? '',
             'user_id': userIdInt,
-            'language': body['language']?.toString() ?? language,
+            'language': body['language']?.toString() ?? 'en', // Default to English if not provided
           };
         } catch (e, stackTrace) {
           print('[ChatService] ===== PARSE ERROR =====');
@@ -514,8 +521,11 @@ class ChatService {
     String language, {
     int? existingUserId, // For upgrading anonymous users
   }) async {
-    // Use new onboarding endpoint (name no longer sent to backend)
-    final result = await setupOnboarding(password, language);
+    // Use new onboarding endpoint - name is required
+    final result = await setupOnboarding(
+      password,
+      name: userName, // name is now a required named parameter
+    );
     return {
       'message': result['message'],
       'user_id': result['user_id'],
@@ -692,7 +702,8 @@ class ChatService {
         print('[ChatService] Parsed message: "$message"');
         print('[ChatService] Parsed language: $language');
         print('[ChatService] Parsed timestamp: $timestamp');
-        print('[ChatService] Parsed requires_security_check: $requiresSecurityCheck');
+        print(
+            '[ChatService] Parsed requires_security_check: $requiresSecurityCheck');
         print('[ChatService] Parsed detected_name: $detectedName');
 
         if (message.isEmpty) {
@@ -709,7 +720,7 @@ class ChatService {
           'requires_security_check': requiresSecurityCheck,
           'detected_name': detectedName,
         };
-        
+
         return jsonEncode(responseData);
       }
 
