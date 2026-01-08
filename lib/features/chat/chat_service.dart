@@ -270,21 +270,35 @@ class ChatService {
 
       if (response.statusCode == 200) {
         try {
+          // ============================================
+          // STEP 5: LOGGING (IMPORTANT)
+          // ============================================
+          // Add debug logging for onboarding response:
+          // - full response body
+          // - extracted user_id
+          // ============================================
+          print('[ChatService] ===== RAW RESPONSE (200) =====');
+          print('[ChatService] Response body (raw): ${response.body}');
+          print('[ChatService] Response body length: ${response.body.length}');
+          
           final body = jsonDecode(response.body);
-          print('[ChatService] ===== SUCCESS RESPONSE =====');
+          print('[ChatService] ===== PARSED RESPONSE =====');
           print('[ChatService] Parsed response body: $body');
+          print('[ChatService] Response type: ${body.runtimeType}');
           print('[ChatService] Response keys: ${body.keys.toList()}');
 
           // Check if user_id exists in response
           if (!body.containsKey('user_id')) {
-            print(
-                '[ChatService] ⚠️ WARNING: user_id not found in response body');
+            print('[ChatService] ⚠️ WARNING: user_id not found in response body');
             print('[ChatService] Response body keys: ${body.keys.toList()}');
+            print('[ChatService] This indicates backend response format issue');
           }
 
           final userId = body['user_id'];
-          print(
-              '[ChatService] user_id from body: $userId, type: ${userId?.runtimeType}');
+          print('[ChatService] ===== USER_ID EXTRACTION =====');
+          print('[ChatService] user_id from body: $userId');
+          print('[ChatService] user_id type: ${userId?.runtimeType}');
+          print('[ChatService] user_id is null: ${userId == null}');
           print('[ChatService] message: ${body['message']}');
           print('[ChatService] language: ${body['language']}');
 
@@ -292,19 +306,30 @@ class ChatService {
           int? userIdInt;
           if (userId == null) {
             print('[ChatService] ⚠️ WARNING: user_id is null in response');
+            print('[ChatService] This means registration FAILED on backend');
             userIdInt = null;
           } else if (userId is int) {
             userIdInt = userId;
-            print('[ChatService] user_id is int: $userIdInt');
+            print('[ChatService] ✅ user_id is int: $userIdInt');
           } else if (userId is String) {
             userIdInt = int.tryParse(userId);
-            print('[ChatService] user_id is string, parsed: $userIdInt');
+            if (userIdInt == null) {
+              print('[ChatService] ⚠️ WARNING: Failed to parse user_id string: "$userId"');
+            } else {
+              print('[ChatService] ✅ user_id is string, parsed: $userIdInt');
+            }
           } else {
             userIdInt = int.tryParse(userId.toString());
-            print('[ChatService] user_id is other type, converted: $userIdInt');
+            if (userIdInt == null) {
+              print('[ChatService] ⚠️ WARNING: Failed to parse user_id from type ${userId.runtimeType}: $userId');
+            } else {
+              print('[ChatService] ✅ user_id is other type, converted: $userIdInt');
+            }
           }
 
+          print('[ChatService] ===== FINAL USER_ID =====');
           print('[ChatService] Final user_id: $userIdInt');
+          print('[ChatService] Final user_id is null: ${userIdInt == null}');
           print('[ChatService] ===== END SUCCESS RESPONSE =====');
 
           // ============================================
