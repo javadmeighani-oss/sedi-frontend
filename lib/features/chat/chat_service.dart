@@ -363,7 +363,7 @@ class ChatService {
               'message': body['message']?.toString() ??
                   'Server response missing user_id. Please try again.',
               'user_id': null,
-              'language': body['language']?.toString() ?? language,
+              'language': body['language']?.toString() ?? 'en', // Default to English
             };
           }
 
@@ -382,7 +382,8 @@ class ChatService {
           return {
             'message': body['message']?.toString() ?? '',
             'user_id': userIdInt,
-            'language': body['language']?.toString() ?? 'en', // Default to English if not provided
+            'language': body['language']?.toString() ??
+                'en', // Default to English if not provided
           };
         } catch (e, stackTrace) {
           print('[ChatService] ===== PARSE ERROR =====');

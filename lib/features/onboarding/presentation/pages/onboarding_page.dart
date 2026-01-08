@@ -291,7 +291,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final profile = UserProfile(
         name: name.isNotEmpty ? name : null,
         securityPassword: password,
-        preferredLanguage: onboardingResponse['language']?.toString() ?? systemLanguage,
+        preferredLanguage: onboardingResponse['language']?.toString() ?? _getSystemLanguage(),
         userId: userIdInt,
         hasSecurityPassword: true,
         securityPasswordSetAt: DateTime.now(),
