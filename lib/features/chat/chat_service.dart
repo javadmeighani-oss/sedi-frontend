@@ -363,7 +363,8 @@ class ChatService {
               'message': body['message']?.toString() ??
                   'Server response missing user_id. Please try again.',
               'user_id': null,
-              'language': body['language']?.toString() ?? 'en', // Default to English
+              'language':
+                  body['language']?.toString() ?? 'en', // Default to English
             };
           }
 
@@ -400,78 +401,49 @@ class ChatService {
         }
       }
 
-      // Parse error message - provide user-friendly messages
+      // Parse error message - extract from backend response AS-IS
+      // Backend contract: { "detail": string }
       print('[ChatService] ===== ERROR RESPONSE =====');
       print('[ChatService] Status code: ${response.statusCode}');
       print('[ChatService] Response body: ${response.body}');
       print('[ChatService] Response headers: ${response.headers}');
 
-      String errorMessage = 'Error creating account. Please try again.';
+      String errorMessage = 'Registration failed. Please try again.';
 
       try {
         final errorBody = jsonDecode(response.body);
         print('[ChatService] Error body parsed: $errorBody');
 
-        // Try to get detail from error body
-        final detail = errorBody['detail']?.toString() ??
-            errorBody['message']?.toString() ??
-            errorBody['error']?.toString() ??
-            '';
+        // Extract error message from backend response detail field (AS-IS)
+        // Backend contract: { "detail": string }
+        final detail = errorBody['detail']?.toString();
 
         print('[ChatService] Error detail extracted: $detail');
 
-        // Use backend error detail if available
-        if (detail.isNotEmpty) {
+        // Use backend error detail verbatim if available
+        if (detail != null && detail.isNotEmpty) {
           errorMessage = detail;
-          print('[ChatService] Using backend error detail: $errorMessage');
+          print('[ChatService] Using backend error detail verbatim: $errorMessage');
         } else {
-          // Map status codes to user-friendly messages
-          switch (response.statusCode) {
-            case 400:
-              errorMessage =
-                  'Invalid request. Please check your password (minimum 6 characters).';
-              break;
-            case 401:
-              errorMessage = 'Authentication failed. Please try again.';
-              break;
-            case 404:
-              errorMessage = 'Service not found. Please contact support.';
-              break;
-            case 422:
-              errorMessage = 'Validation error. Please check your input.';
-              break;
-            case 500:
-              errorMessage = 'Server error. Please try again later.';
-              break;
-            case 503:
-              errorMessage =
-                  'Service temporarily unavailable. Please try again later.';
-              break;
-            default:
-              errorMessage = 'Registration failed. Please try again.';
+          // If no detail field, use generic message based on status code
+          // Do NOT mention password or user existence
+          if (response.statusCode >= 400 && response.statusCode < 500) {
+            errorMessage = 'Registration failed. Please try again.';
+          } else {
+            errorMessage = 'Server error. Please try again later.';
           }
-          print(
-              '[ChatService] Using status code based error message: $errorMessage');
+          print('[ChatService] Using generic error message (no detail field): $errorMessage');
         }
       } catch (parseError) {
         print('[ChatService] ⚠️ Could not parse error body: $parseError');
         print('[ChatService] Raw response body: ${response.body}');
 
-        // If can't parse error body, use status code
-        switch (response.statusCode) {
-          case 400:
-            errorMessage =
-                'Invalid request. Please check your password (minimum 6 characters).';
-            break;
-          case 500:
-            errorMessage = 'Server error. Please try again later.';
-            break;
-          case 503:
-            errorMessage =
-                'Service temporarily unavailable. Please try again later.';
-            break;
-          default:
-            errorMessage = 'Registration failed. Please try again.';
+        // If can't parse error body, use generic message
+        // Do NOT mention password or user existence
+        if (response.statusCode >= 400 && response.statusCode < 500) {
+          errorMessage = 'Registration failed. Please try again.';
+        } else {
+          errorMessage = 'Server error. Please try again later.';
         }
         print('[ChatService] Using fallback error message: $errorMessage');
       }

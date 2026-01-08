@@ -178,11 +178,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
         });
         final errorString = onboardingException.toString().toLowerCase();
         String errorMessage;
+        // Network/unexpected errors - show generic technical error only
+        // Do NOT mention password or user existence
         if (errorString.contains('timeout') || 
             errorString.contains('connection') || 
             errorString.contains('network') ||
             errorString.contains('socket')) {
-          errorMessage = 'Connection error. Please check your internet and try again.';
+          errorMessage = 'Connection error. Please try again.';
         } else {
           errorMessage = 'Registration failed. Please try again.';
         }
