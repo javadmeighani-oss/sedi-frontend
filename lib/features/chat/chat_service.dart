@@ -201,22 +201,20 @@ class ChatService {
     }
   }
 
-  /// Setup onboarding - create user with password and name
+  /// Setup onboarding - create user with username only (password removed)
   /// Returns: (message, user_id, language) or (error, null, null)
   ///
   /// CRITICAL:
   /// - name is REQUIRED (from JSON body)
-  /// - password is REQUIRED (from JSON body)
-  /// - Backend contract: {"name": string, "password": string}
+  /// - password is REMOVED - no authentication
+  /// - Backend contract: {"name": string}
   /// - This method MUST return user_id if backend returns 200.
   /// - Only network errors or non-200 status codes should return null user_id.
-  Future<Map<String, dynamic>> setupOnboarding(
-    String password, {
+  Future<Map<String, dynamic>> setupOnboarding({
     required String name, // REQUIRED - name must be provided
   }) async {
     print('[ChatService] ========== SETUP ONBOARDING START ==========');
     print('[ChatService] Name: "$name" (length: ${name.length})');
-    print('[ChatService] Password length: ${password.length}');
     print('[ChatService] Local mode: ${AppConfig.useLocalMode}');
 
     // ---------------- LOCAL MODE ----------------
@@ -245,11 +243,10 @@ class ChatService {
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding');
       final headers = await _buildHeaders();
 
-      // STEP 2: Create JSON payload according to backend contract
-      // Backend contract: {"name": string, "password": string}
+      // Create JSON payload according to backend contract
+      // Backend contract: {"name": string} - password removed
       final payload = {
         'name': name.trim(), // REQUIRED
-        'password': password.trim(), // REQUIRED
       };
 
       print('[ChatService] Request URL: ${uri.toString()}');
@@ -423,7 +420,8 @@ class ChatService {
         // Use backend error detail verbatim if available
         if (detail != null && detail.isNotEmpty) {
           errorMessage = detail;
-          print('[ChatService] Using backend error detail verbatim: $errorMessage');
+          print(
+              '[ChatService] Using backend error detail verbatim: $errorMessage');
         } else {
           // If no detail field, use generic message based on status code
           // Do NOT mention password or user existence
@@ -432,7 +430,8 @@ class ChatService {
           } else {
             errorMessage = 'Server error. Please try again later.';
           }
-          print('[ChatService] Using generic error message (no detail field): $errorMessage');
+          print(
+              '[ChatService] Using generic error message (no detail field): $errorMessage');
         }
       } catch (parseError) {
         print('[ChatService] ⚠️ Could not parse error body: $parseError');
@@ -490,14 +489,13 @@ class ChatService {
   /// Returns tuple: (message, user_id) or (error, null)
   Future<Map<String, dynamic>> registerUser(
     String userName,
-    String password,
-    String language, {
-    int? existingUserId, // For upgrading anonymous users
-  }) async {
-    // Use new onboarding endpoint - name is required
+    String password, // Ignored - password removed
+    String language, // Ignored - not used
+    {int? existingUserId} // For upgrading anonymous users
+  ) async {
+    // Use new onboarding endpoint - name only (password removed)
     final result = await setupOnboarding(
-      password,
-      name: userName, // name is now a required named parameter
+      name: userName, // name is required
     );
     return {
       'message': result['message'],

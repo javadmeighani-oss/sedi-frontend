@@ -86,9 +86,8 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
       final chatService = ChatService();
       
       // Setup onboarding with backend - name is REQUIRED
-      // Backend contract: {"name": string, "password": string}
+      // Backend contract: {"name": string} - password removed
       final result = await chatService.setupOnboarding(
-        _passwordController.text,
         name: _nameController.text.trim(), // REQUIRED - name must be provided
       );
 
