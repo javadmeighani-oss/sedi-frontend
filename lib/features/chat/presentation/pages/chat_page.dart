@@ -272,6 +272,7 @@ class _ChatPageState extends State<ChatPage> {
                   onSendText: _controller.sendUserMessage,
                   onStartRecording: _controller.startVoiceRecording,
                   onStopRecordingAndSend: _controller.stopVoiceRecording,
+                  isEnabled: _controller.canSend, // STEP 2: Disable input while sending
                 ),
               ),
             ),

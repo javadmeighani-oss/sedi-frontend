@@ -201,20 +201,22 @@ class ChatService {
     }
   }
 
-  /// Setup onboarding - create user with password and language
+  /// Setup onboarding - create user with password and name
   /// Returns: (message, user_id, language) or (error, null, null)
-  /// Note: Name is sent to backend for GPT personalization (optional)
-  ///
-  /// CRITICAL: This method MUST return user_id if backend returns 200.
-  /// Only network errors or non-200 status codes should return null user_id.
+  /// 
+  /// CRITICAL: 
+  /// - name is REQUIRED (from JSON body)
+  /// - password is REQUIRED (from JSON body)
+  /// - Backend contract: {"name": string, "password": string}
+  /// - This method MUST return user_id if backend returns 200.
+  /// - Only network errors or non-200 status codes should return null user_id.
   Future<Map<String, dynamic>> setupOnboarding(
-    String password,
-    String language, {
-    String? name, // Optional: user name for GPT personalization
+    String password, {
+    required String name, // REQUIRED - name must be provided
   }) async {
     print('[ChatService] ========== SETUP ONBOARDING START ==========');
+    print('[ChatService] Name: "$name" (length: ${name.length})');
     print('[ChatService] Password length: ${password.length}');
-    print('[ChatService] Language: $language');
     print('[ChatService] Local mode: ${AppConfig.useLocalMode}');
 
     // ---------------- LOCAL MODE ----------------
@@ -223,37 +225,45 @@ class ChatService {
       return {
         'message': 'Welcome! This is local mode.',
         'user_id': null,
-        'language': language,
+        'language': 'en',
       };
     }
 
     // ---------------- BACKEND MODE ----------------
+    // STEP 2: Validate name (REQUIRED, non-empty)
+    if (name.trim().isEmpty) {
+      print('[ChatService] ❌ ERROR: Name is required and cannot be empty');
+      return {
+        'message': 'Name is required and cannot be empty',
+        'user_id': null,
+        'language': null,
+      };
+    }
+
     try {
-      final queryParams = <String, String>{
-        'password': password,
-        'language': language,
+      // STEP 2: Use JSON body (not query params)
+      final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding');
+      final headers = await _buildHeaders();
+      
+      // STEP 2: Create JSON payload according to backend contract
+      // Backend contract: {"name": string, "password": string}
+      final payload = {
+        'name': name.trim(), // REQUIRED
+        'password': password.trim(), // REQUIRED
       };
 
-      // Add name if provided (for GPT personalization)
-      if (name != null && name.trim().isNotEmpty) {
-        queryParams['name'] = name.trim();
-        print('[ChatService] Adding name to request: "$name"');
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding').replace(
-        queryParameters: queryParams,
-      );
-
-      final headers = await _buildHeaders();
-
       print('[ChatService] Request URL: ${uri.toString()}');
-      print('[ChatService] Request params: $queryParams');
+      print('[ChatService] Request payload: $payload');
       print('[ChatService] Request headers: $headers');
 
       final response = await http
           .post(
         uri,
-        headers: headers,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json', // STEP 2: JSON body
+        },
+        body: jsonEncode(payload), // STEP 2: JSON body
       )
           .timeout(
         const Duration(seconds: 30), // Increased timeout
@@ -545,47 +555,27 @@ class ChatService {
         currentLang = await UserPreferences.getUserLanguage();
       }
 
-      // Build query parameters (name and password are optional for new users)
-      final queryParams = <String, String>{
-        'message': userMessage.trim(), // Ensure trimmed
-        'lang': currentLang.isNotEmpty
-            ? currentLang
-            : 'en', // Default to 'en' if empty
+      // STEP 2: Use JSON body (not query params) - Backend API contract
+      if (userId == null) {
+        print('[ChatService] ❌ ERROR: user_id is required for chat');
+        return 'VALIDATION_ERROR: User ID is required. Please complete onboarding first.';
+      }
+
+      // Build JSON payload according to backend contract
+      final payload = {
+        'user_id': userId,
+        'message': userMessage.trim(),
       };
 
-      // CRITICAL: Add user_id if available (maintains conversation continuity)
-      if (userId != null) {
-        queryParams['user_id'] = userId.toString();
-        print('[ChatService] Adding user_id to request: $userId');
-      }
-
-      // Add credentials if available (not required for initial conversations)
-      if (userName != null && userName.isNotEmpty) {
-        queryParams['name'] = userName.trim();
-      }
-      if (userPassword != null && userPassword.isNotEmpty) {
-        queryParams['secret_key'] = userPassword.trim();
-      }
-
-      // Backend uses /interact/chat with query parameters
-      // Use Uri.https or Uri.http to ensure proper encoding
-      final baseUri = Uri.parse(AppConfig.baseUrl);
-      final uri = Uri(
-        scheme: baseUri.scheme,
-        host: baseUri.host,
-        port: baseUri.port,
-        path: '/interact/chat',
-        queryParameters: queryParams,
-      );
-
+      final uri = Uri.parse('${AppConfig.baseUrl}/interact/chat');
       final headers = await _buildHeaders();
 
-      // Debug: Print URL for troubleshooting (TEMPORARY - for verification)
+      // Debug: Print request details
       print('[ChatService] ===== SENDING TO BACKEND =====');
       print('[ChatService] URL: ${uri.toString()}');
       print('[ChatService] Method: POST');
       print('[ChatService] Headers: $headers');
-      print('[ChatService] Query params: $queryParams');
+      print('[ChatService] JSON payload: $payload');
       print('[ChatService] Message: "$userMessage"');
 
       // Retry mechanism for network issues
@@ -598,14 +588,18 @@ class ChatService {
           response = await http
               .post(
             uri,
-            headers: headers,
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json', // STEP 2: JSON body
+            },
+            body: jsonEncode(payload), // STEP 2: JSON body
           )
               .timeout(
-            const Duration(seconds: 15), // Increased timeout
+            const Duration(seconds: 15),
             onTimeout: () {
               print(
                   '[ChatService] Request timeout after 15 seconds (attempt ${retryCount + 1})');
-              throw Exception('Connection timeout - Server may be down');
+              throw Exception('Connection timeout');
             },
           );
           break; // Success, exit retry loop
@@ -688,19 +682,17 @@ class ChatService {
         print('[ChatService] Response body keys: ${body.keys.toList()}');
         print('[ChatService] Response body: $body');
 
-        // Check for security flag in response (backend AI detected suspicious behavior)
-        if (body['requires_security_check'] == true) {
-          print('[ChatService] ⚠️ Security check required');
-          return 'SECURITY_CHECK_REQUIRED';
-        }
-
-        // Backend returns 'message' field, 'user_id' (for anonymous users), and 'detected_name' (if name detected)
+        // Backend contract: {"message": string, "language": string, "timestamp": string, "requires_security_check": boolean, "detected_name": string | null}
         final message = body['message']?.toString() ?? '';
-        final userId = body['user_id'] as int?;
+        final language = body['language']?.toString();
+        final timestamp = body['timestamp']?.toString();
+        final requiresSecurityCheck = body['requires_security_check'] == true;
         final detectedName = body['detected_name']?.toString();
 
         print('[ChatService] Parsed message: "$message"');
-        print('[ChatService] Parsed user_id: $userId');
+        print('[ChatService] Parsed language: $language');
+        print('[ChatService] Parsed timestamp: $timestamp');
+        print('[ChatService] Parsed requires_security_check: $requiresSecurityCheck');
         print('[ChatService] Parsed detected_name: $detectedName');
 
         if (message.isEmpty) {
@@ -708,22 +700,17 @@ class ChatService {
           print('[ChatService] Full response body: $body');
         }
 
-        // Build response string with all data
-        String responseString = message;
-
-        // Add user_id if available (for anonymous users)
-        if (userId != null) {
-          responseString = 'USER_ID:$userId|$responseString';
-        }
-
-        // Add detected_name if available (to update UserProfile)
-        if (detectedName != null && detectedName.isNotEmpty) {
-          responseString = 'DETECTED_NAME:$detectedName|$responseString';
-          print(
-              '[ChatService] ✅ Name detected from conversation: $detectedName');
-        }
-
-        return responseString;
+        // Build JSON response string to pass to controller
+        // Controller will parse this JSON to extract message and detected_name
+        final responseData = {
+          'message': message,
+          'language': language,
+          'timestamp': timestamp,
+          'requires_security_check': requiresSecurityCheck,
+          'detected_name': detectedName,
+        };
+        
+        return jsonEncode(responseData);
       }
 
       // Handle 422 (Validation Error) - usually means missing required parameter
@@ -772,37 +759,24 @@ class ChatService {
 
       final errorString = e.toString().toLowerCase();
 
-      // Check for specific connection errors
+      // STEP 4: Only return real HTTP/timeout errors (no fake errors)
       if (errorString.contains('timeout')) {
-        print(
-            '[ChatService] ❌ Connection timeout - Server may be down or slow');
-        return 'SERVER_CONNECTION_ERROR: Connection timeout. The server may be down or slow. Please try again.';
-      } else if (errorString.contains('connection refused')) {
-        print(
-            '[ChatService] ❌ Connection refused - Server is not accepting connections');
-        return 'SERVER_CONNECTION_ERROR: Connection refused. The server may be down. Please check your internet connection and try again.';
-      } else if (errorString.contains('failed host lookup') ||
-          errorString.contains('name resolution')) {
-        print(
-            '[ChatService] ❌ DNS resolution failed - Cannot resolve hostname');
-        return 'SERVER_CONNECTION_ERROR: Cannot resolve server address. Please check your internet connection and try again.';
-      } else if (errorString.contains('network is unreachable')) {
-        print('[ChatService] ❌ Network unreachable - No internet connection');
-        return 'SERVER_CONNECTION_ERROR: Network unreachable. Please check your internet connection and try again.';
-      } else if (errorString.contains('socketexception') ||
-          errorString.contains('socket')) {
-        print('[ChatService] ❌ Socket exception - Network error');
-        return 'SERVER_CONNECTION_ERROR: Network error. Please check your internet connection and try again.';
-      } else if (errorString.contains('connection reset')) {
-        print('[ChatService] ❌ Connection reset - Server closed connection');
-        return 'SERVER_CONNECTION_ERROR: Connection reset. The server closed the connection. Please try again.';
-      } else if (errorString.contains('no route to host')) {
-        print('[ChatService] ❌ No route to host - Cannot reach server');
-        return 'SERVER_CONNECTION_ERROR: Cannot reach server. Please check your internet connection and try again.';
+        print('[ChatService] ❌ Connection timeout');
+        return 'SERVER_ERROR: Connection timeout. Please try again.';
+      } else if (errorString.contains('connection refused') ||
+          errorString.contains('failed host lookup') ||
+          errorString.contains('name resolution') ||
+          errorString.contains('network is unreachable') ||
+          errorString.contains('socketexception') ||
+          errorString.contains('socket') ||
+          errorString.contains('connection reset') ||
+          errorString.contains('no route to host')) {
+        print('[ChatService] ❌ Network error: $e');
+        return 'SERVER_ERROR: Network error. Please check your internet connection and try again.';
       }
 
-      print('[ChatService] ❌ Unknown network error: $e');
-      return 'NETWORK_ERROR: ${e.toString()}';
+      print('[ChatService] ❌ Unknown error: $e');
+      return 'SERVER_ERROR: ${e.toString()}';
     }
   }
 

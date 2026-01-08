@@ -19,6 +19,7 @@ class InputBar extends StatefulWidget {
   final ValueChanged<String> onSendText;
   final VoidCallback onStartRecording;
   final VoidCallback onStopRecordingAndSend;
+  final bool isEnabled; // STEP 2: Disable input while sending
 
   const InputBar({
     super.key,
@@ -28,6 +29,7 @@ class InputBar extends StatefulWidget {
     required this.onSendText,
     required this.onStartRecording,
     required this.onStopRecordingAndSend,
+    this.isEnabled = true, // Default to enabled
   });
 
   @override
@@ -54,6 +56,9 @@ class _InputBarState extends State<InputBar> {
   }
 
   void _sendText() {
+    // STEP 2: Block if disabled (sending in progress)
+    if (!widget.isEnabled) return;
+    
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
@@ -140,17 +145,17 @@ class _InputBarState extends State<InputBar> {
                   : TextField(
                       controller: _textController,
                       focusNode: _focusNode,
-                      enabled: !widget.isRecording,
+                      enabled: !widget.isRecording && widget.isEnabled, // STEP 2: Disable while sending
                       maxLines: 1,
                       decoration: InputDecoration.collapsed(
                         hintText: widget.hintText,
-                        hintStyle: const TextStyle(
-                          color: AppTheme.textSecondary,
+                        hintStyle: TextStyle(
+                          color: widget.isEnabled ? AppTheme.textSecondary : AppTheme.textSecondary.withOpacity(0.5),
                           fontSize: 15,
                         ),
                       ),
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: widget.isEnabled ? AppTheme.textPrimary : AppTheme.textPrimary.withOpacity(0.5),
                         fontSize: 15,
                   ),
                       textInputAction: TextInputAction.send,

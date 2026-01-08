@@ -135,12 +135,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     
     final name = _nameController.text.trim();
     final password = _passwordController.text;
-    final systemLanguage = _getSystemLanguage();
     
     debugPrint('[OnboardingPage] Form data:');
     debugPrint('[OnboardingPage]   - Name: "$name" (length: ${name.length})');
     debugPrint('[OnboardingPage]   - Password: length=${password.length}');
-    debugPrint('[OnboardingPage]   - Language: $systemLanguage');
 
     // ============================================
     // STEP 4: FIX try/catch STRUCTURE
@@ -154,10 +152,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     try {
       debugPrint('[OnboardingPage] ===== CALLING ONBOARDING API =====');
       final chatService = ChatService();
+      // STEP 2: name is REQUIRED (non-empty, validated in form)
+      // Backend contract: {"name": string, "password": string}
       onboardingResponse = await chatService.setupOnboarding(
         password,
-        systemLanguage,
-        name: name,
+        name: name, // REQUIRED - name must be provided
       );
       debugPrint('[OnboardingPage] ===== ONBOARDING API SUCCESS =====');
     } catch (e) {

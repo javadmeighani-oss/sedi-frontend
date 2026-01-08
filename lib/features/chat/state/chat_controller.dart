@@ -9,6 +9,7 @@
 /// - همه متن‌ها از backend می‌آیند
 /// ============================================
 
+import 'dart:convert';
 import '../../../../core/utils/language_detector.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../core/utils/user_profile_manager.dart';
@@ -20,6 +21,14 @@ import 'package:flutter/foundation.dart';
 enum ConversationState {
   initializing, // در حال دریافت greeting از backend
   chatting, // مکالمه عادی
+}
+
+// STEP 2: Explicit state machine for chat flow
+enum ChatSendState {
+  idle,    // Ready to send
+  sending, // Message being sent
+  waiting, // Waiting for response
+  error,   // Error occurred
 }
 
 class ChatController extends ChangeNotifier {
@@ -36,6 +45,11 @@ class ChatController extends ChangeNotifier {
 
   String currentLanguage = 'en';
   ConversationState conversationState = ConversationState.initializing;
+  
+  // STEP 2: Explicit state machine
+  ChatSendState _sendState = ChatSendState.idle;
+  ChatSendState get sendState => _sendState;
+  bool get canSend => _sendState == ChatSendState.idle;
   
   // User Profile
   UserProfile _userProfile = UserProfile();
@@ -288,8 +302,14 @@ class ChatController extends ChangeNotifier {
   Future<void> sendUserMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    
+    // STEP 2: Block if already sending
+    if (_sendState != ChatSendState.idle) {
+      print('[ChatController] ⚠️ Message send blocked - state: $_sendState');
+      return;
+    }
 
-    // Detect language from user message (for sending to backend)
+    // STEP 3: Detect language from user message ONLY (not device/IP)
     final detected = LanguageDetector.detectLanguage(trimmed);
     if (detected != currentLanguage) {
       currentLanguage = detected;
@@ -297,6 +317,10 @@ class ChatController extends ChangeNotifier {
       await UserPreferences.saveUserLanguage(currentLanguage);
       await UserProfileManager.saveProfile(_userProfile);
     }
+
+    // STEP 2: Set state to sending
+    _sendState = ChatSendState.sending;
+    notifyListeners();
 
     // 1️⃣ Add user message to UI
     messages.add(
@@ -313,6 +337,8 @@ class ChatController extends ChangeNotifier {
     );
     await UserProfileManager.saveProfile(_userProfile);
 
+    // STEP 2: Set state to waiting
+    _sendState = ChatSendState.waiting;
     isThinking = true;
     notifyListeners();
 
@@ -321,6 +347,7 @@ class ChatController extends ChangeNotifier {
       if (_userProfile.userId == null) {
         print('[ChatController] ❌ ERROR: Cannot send message - user_id is null');
         print('[ChatController]   - This should not happen after onboarding');
+        _sendState = ChatSendState.error;
         isThinking = false;
         notifyListeners();
         _addSediMessage(
@@ -330,6 +357,9 @@ class ChatController extends ChangeNotifier {
                   ? 'خطأ في تحميل ملف تعريف المستخدم. يرجى المحاولة مرة أخرى.'
                   : 'Error loading user profile. Please try again.',
         );
+        // Reset to idle after error
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
       
@@ -340,39 +370,19 @@ class ChatController extends ChangeNotifier {
       
       final response = await _chatService.sendMessage(
         trimmed,
-        userName: _userProfile.name,
-        userPassword: _userProfile.securityPassword,
-        language: currentLanguage, // Send current language to backend (fa/ar/en)
-        userId: _userProfile.userId, // CRITICAL: Send user_id to maintain conversation continuity
+        userId: _userProfile.userId, // STEP 2: Only user_id and message (JSON body)
       );
       
       print('[ChatController] ===== BACKEND RESPONSE =====');
       print('[ChatController] Response: ${response.substring(0, response.length > 100 ? 100 : response.length)}...');
 
-      // 4️⃣ Handle special backend responses
-      if (response == 'SECURITY_CHECK_REQUIRED') {
-        // Backend requested security check - show backend's message
-        // Frontend doesn't decide what to show - backend will send the message
-        print('[ChatController] Backend requested security check');
-        // Don't show anything - backend will send the actual message in next response
-        return;
-      }
-
-      if (response.startsWith('BACKEND_UPDATE_REQUIRED:')) {
-        final errorMessage = response.replaceFirst('BACKEND_UPDATE_REQUIRED: ', '');
-        _addSediMessage(errorMessage);
-        return;
-      }
-
-      if (response.startsWith('SERVER_CONNECTION_ERROR:')) {
-        final errorMessage = response.replaceFirst('SERVER_CONNECTION_ERROR: ', '');
-        _addSediMessage(errorMessage);
-        return;
-      }
-
-      // Handle structured backend error messages
+      // STEP 4: Handle error responses (only real HTTP/timeout errors)
+      // Remove fake errors - only show real backend errors
       if (response.startsWith('VALIDATION_ERROR:')) {
         final errorMessage = response.replaceFirst('VALIDATION_ERROR: ', '');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'خطا در اعتبارسنجی: $errorMessage'
@@ -380,11 +390,16 @@ class ChatController extends ChangeNotifier {
                   ? 'خطأ في التحقق: $errorMessage'
                   : 'Validation error: $errorMessage',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
 
       if (response.startsWith('USER_NOT_FOUND:')) {
         final errorMessage = response.replaceFirst('USER_NOT_FOUND: ', '');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'کاربر یافت نشد: $errorMessage'
@@ -392,11 +407,16 @@ class ChatController extends ChangeNotifier {
                   ? 'المستخدم غير موجود: $errorMessage'
                   : 'User not found: $errorMessage',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
 
       if (response.startsWith('SERVER_ERROR:')) {
         final errorMessage = response.replaceFirst('SERVER_ERROR: ', '');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'خطای سرور: $errorMessage'
@@ -404,11 +424,16 @@ class ChatController extends ChangeNotifier {
                   ? 'خطأ في الخادم: $errorMessage'
                   : 'Server error: $errorMessage',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
 
       if (response.startsWith('ERROR_')) {
         final errorMessage = response.replaceFirst(RegExp(r'ERROR_\d+: '), '');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'خطا: $errorMessage'
@@ -416,13 +441,18 @@ class ChatController extends ChangeNotifier {
                   ? 'خطأ: $errorMessage'
                   : 'Error: $errorMessage',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
 
-      // Handle GPT errors (502 from backend)
+      // Handle GPT errors (502 from backend) - real error
       if (response.startsWith('GPT_ERROR:')) {
         final errorMessage = response.replaceFirst('GPT_ERROR: ', '');
         print('[ChatController] GPT error received: $errorMessage');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'خطا در سرویس هوش مصنوعی: $errorMessage'
@@ -430,36 +460,18 @@ class ChatController extends ChangeNotifier {
                   ? 'خطأ في خدمة الذكاء الاصطناعي: $errorMessage'
                   : 'AI service error: $errorMessage',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
         return;
       }
 
-      if (response.startsWith('AUTH_REQUIRED')) {
-        // Backend requires auth - show error
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'نیاز به احراز هویت است. لطفاً دوباره تلاش کنید.'
-              : currentLanguage == 'ar'
-                  ? 'يجب التحقق من الهوية. يرجى المحاولة مرة أخرى.'
-                  : 'Authentication required. Please try again.',
-        );
-        return;
-      }
-
-      if (response.startsWith('SERVER_ERROR_') || response.startsWith('NETWORK_ERROR:')) {
-        // Backend error - show error
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.'
-              : currentLanguage == 'ar'
-                  ? 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
-                  : 'Error connecting to server. Please try again.',
-        );
-        return;
-      }
-
-      // 5️⃣ Display backend response - NO frontend logic
+      // 5️⃣ Display backend response - Parse JSON according to backend contract
+      // Backend returns: {"message": string, "language": string, "timestamp": string, "requires_security_check": boolean, "detected_name": string | null}
       if (response.isEmpty) {
         print('[ChatController] ⚠️ WARNING: Empty response from backend');
+        _sendState = ChatSendState.error;
+        isThinking = false;
+        notifyListeners();
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'پاسخ خالی از سرور دریافت شد.'
@@ -467,11 +479,36 @@ class ChatController extends ChangeNotifier {
                   ? 'تم استلام رد فارغ من الخادم.'
                   : 'Empty response from server.',
         );
+        _sendState = ChatSendState.idle;
+        notifyListeners();
       } else {
-        // Parse response to extract user_id, detected_name, and message
-        final parsed = _parseResponse(response);
-        final messageToDisplay = parsed['message'] as String;
-        final detectedName = parsed['detected_name'] as String?;
+        // STEP 2: Parse JSON response according to backend contract
+        Map<String, dynamic> responseData;
+        try {
+          responseData = jsonDecode(response) as Map<String, dynamic>;
+          print('[ChatController] ✅ Response parsed as JSON');
+        } catch (e) {
+          // Fallback to old format parsing for backward compatibility
+          print('[ChatController] Response is not JSON, using old format parser: $e');
+          final parsed = _parseResponse(response);
+          responseData = {
+            'message': parsed['message'] as String,
+            'detected_name': parsed['detected_name'] as String?,
+          };
+        }
+        
+        final messageToDisplay = responseData['message']?.toString() ?? '';
+        final detectedName = responseData['detected_name']?.toString();
+        final responseLanguage = responseData['language']?.toString();
+        
+        // STEP 3: Update language if backend returned different language
+        if (responseLanguage != null && responseLanguage.isNotEmpty && responseLanguage != currentLanguage) {
+          print('[ChatController] Language updated from backend: $currentLanguage -> $responseLanguage');
+          currentLanguage = responseLanguage;
+          _userProfile = _userProfile.copyWith(preferredLanguage: currentLanguage);
+          await UserPreferences.saveUserLanguage(currentLanguage);
+          await UserProfileManager.saveProfile(_userProfile);
+        }
         
         // Update UserProfile if name was detected from conversation
         if (detectedName != null && detectedName.isNotEmpty) {
@@ -490,14 +527,20 @@ class ChatController extends ChangeNotifier {
           print('[ChatController] ⚠️ WARNING: Parsed message is empty!');
         }
         
+        // STEP 2: Append message only after successful response
         _addSediMessage(messageToDisplay);
+        
+        // STEP 2: Reset to idle after success
+        _sendState = ChatSendState.idle;
+        isThinking = false;
+        notifyListeners();
         
         // NO frontend logic here - backend Conversation Brain decides everything
         // NO asking for name, password, etc. from frontend
         // Backend will send those messages if needed
       }
     } catch (e, stackTrace) {
-      // Log error details for debugging
+      // STEP 4: Only show real HTTP/timeout errors (no fake errors)
       print('[ChatController] ===== ERROR SENDING MESSAGE =====');
       print('[ChatController] Error: $e');
       print('[ChatController] Error type: ${e.runtimeType}');
@@ -507,13 +550,17 @@ class ChatController extends ChangeNotifier {
       print('[ChatController] Language: $currentLanguage');
       print('[ChatController] ===== END ERROR =====');
       
-      // Only show generic error if it's a network/server error
-      // Otherwise, show specific error
+      _sendState = ChatSendState.error;
+      isThinking = false;
+      notifyListeners();
+      
+      // STEP 4: Only show error if it's a real network/timeout/HTTP error
       final errorString = e.toString().toLowerCase();
       if (errorString.contains('timeout') || 
           errorString.contains('connection') || 
           errorString.contains('network') ||
-          errorString.contains('socket')) {
+          errorString.contains('socket') ||
+          errorString.contains('http')) {
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.'
@@ -530,6 +577,10 @@ class ChatController extends ChangeNotifier {
                   : 'Error sending message. Please try again.',
         );
       }
+      
+      // STEP 2: Reset to idle after error
+      _sendState = ChatSendState.idle;
+      notifyListeners();
     }
   }
 
