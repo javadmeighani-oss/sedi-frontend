@@ -8,7 +8,15 @@ import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/brand_name.dart';
+import '../../../../core/utils/user_profile_manager.dart';
 import 'chat_history_page.dart';
+import '../../../devices/presentation/pages/devices_page.dart';
+import '../../../health/presentation/pages/vitals_page.dart';
+import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
+import '../../../notification/data/notification_service.dart';
+import '../../../notification/logic/notification_sync.dart';
+import '../../../notification/presentation/pages/notifications_inbox_page.dart';
 
 /// ============================================
 /// ChatPage - صفحه اصلی چت
@@ -29,23 +37,53 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
+  final NotificationService _notificationService = NotificationService();
 
   // Double tap to exit variables
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
 
+  /// Unread count for badge; null = not loaded yet.
+  int? _unreadCount;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = ChatController();
     // Add listener to update UI when timer changes
     _controller.addListener(_onControllerChanged);
     // Auto-scroll to bottom when new message arrives
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage);
+    _refreshUnreadCount();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      NotificationSync.syncOnce();
+      _refreshUnreadCount();
+    }
+  }
+
+  Future<void> _refreshUnreadCount() async {
+    final profile = await UserProfileManager.loadProfile();
+    final userId = profile.userId;
+    if (userId == null) {
+      if (mounted) setState(() => _unreadCount = 0);
+      return;
+    }
+    final resp = await _notificationService.fetchUnreadList(userId: userId);
+    if (!mounted) return;
+    if (resp['ok'] == true) {
+      setState(() => _unreadCount = NotificationService.parseUnreadCount(resp));
+    } else {
+      setState(() => _unreadCount = _unreadCount ?? 0);
+    }
   }
 
   void _onControllerChanged() {
@@ -68,6 +106,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _backPressTimer?.cancel(); // Cancel timer if active
     _controller.removeListener(_onControllerChanged); // Remove listener
     _controller.removeListener(_scrollToBottomOnNewMessage); // Remove scroll listener
@@ -76,10 +115,13 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
+  /// Placeholder: brand name from brand_name.dart
   String _inputHint() {
-    // CRITICAL: Input placeholder MUST ALWAYS be English (per requirements)
-    // Language detection happens after first user message
-    return 'Talk to Sedi…';
+    final lang = _controller.currentLanguage;
+    final brand = sediBrandName(lang);
+    if (lang == 'fa') return 'با $brand صحبت کنید…';
+    if (lang == 'ar') return 'تحدث مع $brand…';
+    return 'Talk to $brand…';
   }
 
   void _scrollToBottom() {
@@ -174,16 +216,85 @@ class _ChatPageState extends State<ChatPage> {
                   child: Row(
                     children: [
                       const Spacer(),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications_outlined),
+                            iconSize: 24,
+                            style: IconButton.styleFrom(
+                              foregroundColor: AppTheme.primaryBlack,
+                              minimumSize: const Size(44, 44),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsInboxPage(),
+                                ),
+                              ).then((_) => _refreshUnreadCount());
+                            },
+                          ),
+                          if (_unreadCount != null && _unreadCount! > 0)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                child: Text(
+                                  _unreadCount! > 99 ? '99+' : '$_unreadCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textDirection: TextDirection.ltr,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.devices),
+                        iconSize: 24,
+                        style: IconButton.styleFrom(
+                          foregroundColor: AppTheme.primaryBlack,
+                          minimumSize: const Size(44, 44),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const DevicesPage(),
+                            ),
+                          );
+                        },
+                      ),
                       IconButton(
                         icon: const Icon(Icons.favorite_border),
-                        color: AppTheme.primaryBlack,
+                        iconSize: 24,
+                        style: IconButton.styleFrom(
+                          foregroundColor: AppTheme.primaryBlack,
+                          minimumSize: const Size(44, 44),
+                        ),
                         onPressed: () {
-                          // later: daily health status
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const VitalsPage(),
+                            ),
+                          );
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.history),
-                        color: AppTheme.primaryBlack,
+                        iconSize: 24,
+                        style: IconButton.styleFrom(
+                          foregroundColor: AppTheme.primaryBlack,
+                          minimumSize: const Size(44, 44),
+                        ),
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -191,6 +302,21 @@ class _ChatPageState extends State<ChatPage> {
                             ),
                           );
                         },
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, size: 24, color: AppTheme.primaryBlack),
+                        onSelected: (value) {
+                          if (value == 'lifestyle') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const LifestylePage(),
+                              ),
+                            );
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'lifestyle', child: Text('Lifestyle')),
+                        ],
                       ),
                     ],
                   ),
@@ -258,22 +384,18 @@ class _ChatPageState extends State<ChatPage> {
               ],
             ),
 
-            // ================= INPUT BAR (Positioned above keyboard) =================
+            // ================= INPUT BAR (full width within SafeArea) =================
             Positioned(
-              bottom: keyboardHeight, // Position InputBar above keyboard
               left: 0,
               right: 0,
-              child: Center(
-                // Center InputBar and allow custom width
-                child: InputBar(
-                  hintText: _inputHint(),
-                  isRecording: _controller.isRecording,
-                  recordingTime: _controller.recordingTimeFormatted,
-                  onSendText: _controller.sendUserMessage,
-                  onStartRecording: _controller.startVoiceRecording,
-                  onStopRecordingAndSend: _controller.stopVoiceRecording,
-                  isEnabled: _controller.canSend, // STEP 2: Disable input while sending
-                ),
+              bottom: keyboardHeight,
+              child: InputBar(
+                hintText: _inputHint(),
+                isRecording: _controller.isRecording,
+                recordingTime: _controller.recordingTimeFormatted,
+                onSendText: _controller.sendUserMessage,
+                onStartRecording: _controller.startVoiceRecording,
+                onStopRecordingAndSend: _controller.stopVoiceRecording,
               ),
             ),
             

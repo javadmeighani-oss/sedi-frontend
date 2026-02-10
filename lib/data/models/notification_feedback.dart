@@ -74,6 +74,29 @@ class NotificationFeedback {
     };
   }
 
+  /// Backend contract (Release B2): feedback (positive|negative|neutral), reason?, action?
+  Map<String, dynamic> toBackendJson() {
+    final feedback = _reactionToBackendFeedback(reaction);
+    return {
+      'feedback': feedback,
+      if (feedbackText != null && feedbackText!.isNotEmpty) 'reason': feedbackText,
+      if (actionId != null && actionId!.isNotEmpty) 'action': actionId,
+    };
+  }
+
+  static String _reactionToBackendFeedback(FeedbackReaction r) {
+    switch (r) {
+      case FeedbackReaction.like:
+        return 'positive';
+      case FeedbackReaction.dislike:
+        return 'negative';
+      case FeedbackReaction.seen:
+      case FeedbackReaction.interact:
+      case FeedbackReaction.dismiss:
+        return 'neutral';
+    }
+  }
+
   factory NotificationFeedback.create({
     required String notificationId,
     String? actionId,

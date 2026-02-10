@@ -6,11 +6,9 @@ import '../../../../core/theme/app_theme.dart';
 /// ============================================
 ///
 /// CONTRACT:
-/// - ChatGPT-style input box
-/// - Border: primaryBlack (always)
-/// - Icons: primaryBlack (default)
-/// - Clean, medical-grade UI
-/// - NO pistachio green, NO opacity hacks, NO glow effects
+/// - Full width (edge-to-edge within SafeArea); pill shape; Apple-like.
+/// - Border: subtle neutral (AppTheme). Icons: neutral when disabled, accent when enabled.
+/// - RTL: mic on start side, send on end side; tap targets >= 44x44.
 /// ============================================
 class InputBar extends StatefulWidget {
   final String hintText;
@@ -19,7 +17,6 @@ class InputBar extends StatefulWidget {
   final ValueChanged<String> onSendText;
   final VoidCallback onStartRecording;
   final VoidCallback onStopRecordingAndSend;
-  final bool isEnabled; // STEP 2: Disable input while sending
 
   const InputBar({
     super.key,
@@ -29,7 +26,6 @@ class InputBar extends StatefulWidget {
     required this.onSendText,
     required this.onStartRecording,
     required this.onStopRecordingAndSend,
-    this.isEnabled = true, // Default to enabled
   });
 
   @override
@@ -39,6 +35,11 @@ class InputBar extends StatefulWidget {
 class _InputBarState extends State<InputBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  static const double _pillHeight = 56.0;
+  static const double _pillRadius = 18.0;
+  static const double _internalPadding = 16.0;
+  static const double _iconTapSize = 44.0;
 
   @override
   void initState() {
@@ -56,12 +57,8 @@ class _InputBarState extends State<InputBar> {
   }
 
   void _sendText() {
-    // STEP 2: Block if disabled (sending in progress)
-    if (!widget.isEnabled) return;
-    
     final text = _textController.text.trim();
     if (text.isEmpty) return;
-
     widget.onSendText(text);
     _textController.clear();
     _focusNode.unfocus();
@@ -69,10 +66,8 @@ class _InputBarState extends State<InputBar> {
 
   void _handleMicTap() {
     if (widget.isRecording) {
-      // Second tap: stop recording
       widget.onStopRecordingAndSend();
     } else {
-      // First tap: start recording
       widget.onStartRecording();
     }
   }
@@ -80,142 +75,84 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final hasText = _textController.text.trim().isNotEmpty;
-    // Height reduced by 20%: 112.0 * 0.8 = 89.6 ≈ 90.0
-    const height = 90.0;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
 
-    // Calculate width: 10% smaller than current
-    // Current: screenWidth - 6 (3px margin on each side)
-    // New: (screenWidth - 6) * 0.9 (10% smaller)
-    final screenWidth = MediaQuery.of(context).size.width;
-    final containerWidth =
-        (screenWidth - 6) * 0.9; // 10% smaller than current
-
-    // Remove SafeArea from InputBar - ChatPage handles it
     return Container(
-      width: containerWidth,
-      height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 12,
-      ),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(_internalPadding, 8, _internalPadding, 8),
+      child: Container(
+        height: _pillHeight,
         decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          color: AppTheme.backgroundWhite,
+          borderRadius: BorderRadius.circular(_pillRadius),
           border: Border.all(
-          color: AppTheme.borderActive, // Using AppTheme semantic color
-          width: 1.5,
+            color: AppTheme.borderInactive.withOpacity(0.6),
+            width: 1,
           ),
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque, // Capture all taps in the container
-        onTap: () {
-          // When user taps anywhere on InputBar, focus TextField to open keyboard
-          if (!widget.isRecording) {
-            FocusScope.of(context).requestFocus(_focusNode);
-          }
-        },
-        child: _buildNewLayout(hasText),
-                  ),
-    );
-  }
-
-  /// New layout with reduced height (20% smaller)
-  /// - Top-left: Recording text (when recording) or TextField (when not recording)
-  /// - Bottom-right: Icons [TIMER] (left) [SPEAKER] (middle) [SEND] (right)
-  Widget _buildNewLayout(bool hasText) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // TOP-LEFT: Recording text (when recording) or TextField (when not recording)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: widget.isRecording
-                  ? Text(
-                      'مکالمه با صدا', // Short text for voice conversation
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  : TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      enabled: !widget.isRecording && widget.isEnabled, // STEP 2: Disable while sending
-                      maxLines: 1,
-                      decoration: InputDecoration.collapsed(
-                        hintText: widget.hintText,
-                        hintStyle: TextStyle(
-                          color: widget.isEnabled ? AppTheme.textSecondary : AppTheme.textSecondary.withOpacity(0.5),
-                          fontSize: 15,
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: widget.isEnabled ? AppTheme.textPrimary : AppTheme.textPrimary.withOpacity(0.5),
-                        fontSize: 15,
-                  ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendText(),
-                    ),
-            ),
-          ],
         ),
-
-        // BOTTOM-RIGHT: Icons (all in one horizontal line)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icons order from left to right
-            // Order: [TIMER] (left) → [SPEAKER] (middle) → [SEND] (right)
-            // All icons aligned in one horizontal line
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 1. Timer (leftmost, only when recording)
-                if (widget.isRecording) ...[
-                  _buildRecordingTimer(),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_pillRadius),
+            onTap: () {
+              if (!widget.isRecording) FocusScope.of(context).requestFocus(_focusNode);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: widget.isRecording
+                        ? _buildRecordingContent()
+                        : TextField(
+                            controller: _textController,
+                            focusNode: _focusNode,
+                            enabled: !widget.isRecording,
+                            maxLines: 1,
+                            decoration: InputDecoration.collapsed(
+                              hintText: widget.hintText,
+                              hintStyle: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 16,
+                            ),
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendText(),
+                          ),
+                  ),
                   const SizedBox(width: 8),
+                  if (isRtl) ...[_buildSendButton(hasText), const SizedBox(width: 4), _buildMicButton()] else ...[_buildMicButton(), const SizedBox(width: 4), _buildSendButton(hasText)],
                 ],
-                // 2. Speaker icon (middle)
-                _buildSpeakerIcon(),
-                const SizedBox(width: 8),
-                // 3. Send icon (rightmost position - bottom-right)
-                _buildSendIcon(hasText),
-              ],
+              ),
             ),
-          ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
-  /// Recording timer (appears after MIC when recording)
-  /// Color: black (primaryBlack) to match Sedi theme
-  Widget _buildRecordingTimer() {
+  Widget _buildRecordingContent() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Recording indicator (black dot - matching Sedi theme)
         Container(
-          width: 12,
-          height: 12,
+          width: 10,
+          height: 10,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: AppTheme.textPrimary, // Black to match Sedi theme
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(width: 8),
-        // Timer text from recordingTimeFormatted (black color)
         Text(
           widget.recordingTime,
           style: const TextStyle(
-            color: AppTheme.textPrimary, // Black color
+            color: AppTheme.textPrimary,
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),
@@ -224,49 +161,45 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  /// Send icon (ChatGPT-style: white arrow inside black circle)
-  /// primaryBlack circle when hasText, metalGrey when empty
-  /// Size: 20% larger (32 -> 38, arrow 20 -> 24)
-  Widget _buildSendIcon(bool hasText) {
-    return GestureDetector(
-      onTap: hasText ? _sendText : () {},
-                    child: Container(
-        width: 38, // 32 * 1.2 = 38.4 ≈ 38
-        height: 38,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-          color: hasText
-              ? AppTheme.iconActive
-              : AppTheme
-                  .iconInactive, // Active when user types, inactive otherwise
-        ),
-                      child: const Icon(
-          Icons.arrow_upward_rounded,
-          size: 24, // 20 * 1.2 = 24
-          color: AppTheme.backgroundWhite, // Always white arrow
+  Widget _buildSendButton(bool hasText) {
+    return SizedBox(
+      width: _iconTapSize,
+      height: _iconTapSize,
+      child: InkResponse(
+        onTap: hasText ? _sendText : null,
+        radius: _iconTapSize / 2,
+        child: Center(
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: hasText ? AppTheme.pistachioGreen : AppTheme.iconInactive,
+            ),
+            child: const Icon(
+              Icons.arrow_upward_rounded,
+              size: 22,
+              color: AppTheme.backgroundWhite,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  /// Speaker (mic) icon (simple mic without circle)
-  /// Default: primaryBlack
-  /// When recording: metalGrey
-  /// Size: 20% larger (28 -> 34)
-  /// Fixed container size to align with other icons in one line
-  Widget _buildSpeakerIcon() {
-    return GestureDetector(
-      onTap: _handleMicTap,
-      child: Container(
-        width: 50, // Fixed width to match icon size + padding
-        height: 50, // Fixed height to align with other icons
-        alignment: Alignment.center,
-        child: Icon(
-          Icons.mic_rounded,
-          size: 34, // 28 * 1.2 = 33.6 ≈ 34
-          color: widget.isRecording
-              ? AppTheme.iconInactive // Inactive when recording
-              : AppTheme.iconActive, // Active when idle
+  Widget _buildMicButton() {
+    return SizedBox(
+      width: _iconTapSize,
+      height: _iconTapSize,
+      child: InkResponse(
+        onTap: _handleMicTap,
+        radius: _iconTapSize / 2,
+        child: Center(
+          child: Icon(
+            Icons.mic_rounded,
+            size: 26,
+            color: widget.isRecording ? AppTheme.iconInactive : AppTheme.primaryBlack,
+          ),
         ),
       ),
     );

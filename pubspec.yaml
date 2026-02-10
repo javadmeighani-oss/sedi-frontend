@@ -1,8 +1,8 @@
-﻿name: sedi_app
+name: sedi_app
 description: Sedi Intelligent Health Assistant
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -16,14 +16,21 @@ dependencies:
   shared_preferences: ^2.2.2
   provider: ^6.1.1
   intl: ^0.18.1
+  flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/sedi_app_icon.png"

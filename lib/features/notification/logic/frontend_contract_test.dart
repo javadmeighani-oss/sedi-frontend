@@ -46,9 +46,11 @@ class FrontendContractTest {
       }
 
       // Validate response structure (Contract Section 7)
+      // GET /notifications returns { notifications }; GET /unread returns { notifications, count }. total/unread_count optional.
       final notifications = data['notifications'] as List<dynamic>?;
       final total = data['total'] as int?;
       final unreadCount = data['unread_count'] as int?;
+      final count = data['count'] as int?;
 
       if (notifications == null) {
         return {
@@ -57,24 +59,11 @@ class FrontendContractTest {
         };
       }
 
-      if (total == null) {
-        return {
-          'ok': false,
-          'error': 'Missing total field'
-        };
-      }
-
-      if (unreadCount == null) {
-        return {
-          'ok': false,
-          'error': 'Missing unread_count field'
-        };
-      }
-
       print('✅ Response structure matches contract');
       print('   - notifications: ${notifications.length} items');
-      print('   - total: $total');
-      print('   - unread_count: $unreadCount');
+      if (total != null) print('   - total: $total');
+      if (unreadCount != null) print('   - unread_count: $unreadCount');
+      if (count != null) print('   - count: $count');
 
       // Parse each notification (Contract Section 1)
       final parsedNotifications = <Notification>[];
@@ -131,7 +120,7 @@ class FrontendContractTest {
         'ok': true,
         'parsed_count': parsedNotifications.length,
         'total': total,
-        'unread_count': unreadCount,
+        'unread_count': unreadCount ?? count,
         'notifications': parsedNotifications
       };
     } catch (e) {

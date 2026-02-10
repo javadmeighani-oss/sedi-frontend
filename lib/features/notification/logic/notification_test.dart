@@ -7,6 +7,7 @@ class NotificationTest {
       id: "test_1",
       text:
           "صبح بخیر جواد 🌱\nامروز خوابت کمی کمتر بوده. می‌خوای یک تمرین تنفسی سریع انجام بدیم؟",
+      isSedi: true,
       isUser: false,
       type: "notification",
       title: "Good Morning",
@@ -19,6 +20,7 @@ class NotificationTest {
     return ChatMessage(
       id: "test_2",
       text: "مدتی هست ازت خبری نیست… حالت خوبه؟ 🌿",
+      isSedi: true,
       isUser: false,
       type: "notification",
       title: "Feeling Check",
@@ -31,6 +33,7 @@ class NotificationTest {
     return ChatMessage(
       id: "test_3",
       text: "❗ وضعیت ضربان قلبت غیرعادیه. لطفاً چند لحظه بشین و عمیق نفس بکش.",
+      isSedi: true,
       isUser: false,
       type: "notification",
       title: "Health Alert",

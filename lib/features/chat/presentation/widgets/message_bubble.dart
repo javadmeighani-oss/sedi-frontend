@@ -13,7 +13,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignment = isSedi ? Alignment.centerLeft : Alignment.centerRight;
+    final alignment = isSedi ? AlignmentDirectional.centerStart : AlignmentDirectional.centerEnd;
 
     final backgroundColor = isSedi
         ? AppTheme.backgroundWhite

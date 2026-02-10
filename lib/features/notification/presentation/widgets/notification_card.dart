@@ -1,212 +1,173 @@
-/// ============================================
-/// NotificationCard - Contract-Compliant UI Component
-/// ============================================
-/// 
-/// RESPONSIBILITY:
-/// - Render notification based on contract fields only
-/// - No business logic
-/// - No intelligence
-/// ============================================
-
+/// NotificationCard - Apple-like minimal UI.
+/// Neutral surfaces, subtle borders, Like/Dislike with selected state.
+/// Keeps import alias to avoid Flutter Notification name clash.
 import 'package:flutter/material.dart';
-import '../../../data/models/notification.dart';
-import '../../../data/models/notification_feedback.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../data/models/notification.dart' as sedi;
+import '../../../../data/models/notification_feedback.dart';
+import '../../utils/notification_ui_mapping.dart';
+
+enum SelectedReaction { none, like, dislike }
 
 class NotificationCard extends StatelessWidget {
-  final Notification notification;
-  final Function(NotificationFeedback) onFeedback;
+  final sedi.Notification notification;
+  final SelectedReaction selectedReaction;
+  /// When set, overrides notification.isRead for showing the unread dot (e.g. after markRead).
+  final bool? displayAsUnread;
+  final VoidCallback? onTap;
+  final void Function(NotificationFeedback) onLike;
+  final void Function(NotificationFeedback) onDislike;
 
   const NotificationCard({
     super.key,
     required this.notification,
-    required this.onFeedback,
+    this.selectedReaction = SelectedReaction.none,
+    this.displayAsUnread,
+    this.onTap,
+    required this.onLike,
+    required this.onDislike,
   });
+
+  String get _displayTitle {
+    if (notification.title != null && notification.title!.isNotEmpty) {
+      return notification.title!;
+    }
+    return defaultTitleForNotificationType(notification.type);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Determine visual style based on priority (structure only, no logic)
-    final priorityColor = _getPriorityColor(notification.priority);
-    final priorityBorderColor = _getPriorityBorderColor(notification.priority);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: priorityColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: priorityBorderColor, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title (Contract: optional title)
-          if (notification.title != null) ...[
-            Text(
-              notification.title!,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 6),
-          ],
-
-          // Message (Contract: required message)
-          Text(
-            notification.message,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black87,
-              height: 1.4,
-            ),
+    return Material(
+      color: AppTheme.backgroundWhite,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+            border: Border.all(color: AppTheme.borderInactive.withOpacity(0.6), width: 1),
           ),
-
-          const SizedBox(height: 10),
-
-          // Actions (Contract Section 4)
-          if (notification.actions != null && notification.actions!.isNotEmpty)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: notification.actions!.map((action) {
-                return GestureDetector(
-                  onTap: () => _handleAction(context, action),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: priorityBorderColor),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      action.label,
-                      style: TextStyle(
-                        color: priorityBorderColor,
-                        fontSize: 14,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (displayAsUnread ?? !notification.isRead)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8, top: 6),
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.pistachioGreen,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _displayTitle,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          notification.message,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            _timeLabel(notification.createdAt),
+                            const Spacer(),
+                            _likeButton(context),
+                            const SizedBox(width: 12),
+                            _dislikeButton(context),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              }).toList(),
-            ),
-
-          const SizedBox(height: 10),
-
-          // Feedback Actions (Contract Section 5: like/dislike)
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => _handleLike(context),
-                child: const Icon(
-                  Icons.thumb_up_alt_rounded,
-                  color: Colors.green,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                onTap: () => _handleDislike(context),
-                child: const Icon(
-                  Icons.thumb_down_alt_rounded,
-                  color: Colors.red,
-                  size: 22,
-                ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // Helper: Get color based on priority (structure only)
-  Color _getPriorityColor(NotificationPriority priority) {
-    switch (priority) {
-      case NotificationPriority.low:
-        return Colors.blue;
-      case NotificationPriority.normal:
-        return Colors.orange;
-      case NotificationPriority.high:
-        return Colors.orange;
-      case NotificationPriority.urgent:
-        return Colors.red;
-    }
-  }
-
-  Color _getPriorityBorderColor(NotificationPriority priority) {
-    switch (priority) {
-      case NotificationPriority.low:
-        return Colors.blue;
-      case NotificationPriority.normal:
-        return Colors.orange;
-      case NotificationPriority.high:
-        return Colors.deepOrange;
-      case NotificationPriority.urgent:
-        return Colors.red;
-    }
-  }
-
-  // Handle action click (Contract Section 4)
-  void _handleAction(BuildContext context, NotificationAction action) {
-    final feedback = NotificationFeedback.create(
-      notificationId: notification.id,
-      actionId: action.id,
-      reaction: FeedbackReaction.interact,
+  Widget _timeLabel(String createdAt) {
+    String label = createdAt;
+    try {
+      final dt = DateTime.tryParse(createdAt);
+      if (dt != null) {
+        final now = DateTime.now();
+        final diff = now.difference(dt);
+        if (diff.inMinutes < 60) label = '${diff.inMinutes}m ago';
+        else if (diff.inHours < 24) label = '${diff.inHours}h ago';
+        else if (diff.inDays < 7) label = '${diff.inDays}d ago';
+        else label = '${dt.month}/${dt.day}';
+      }
+    } catch (_) {}
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 12,
+        color: AppTheme.textSecondary.withOpacity(0.8),
+      ),
     );
-    onFeedback(feedback);
   }
 
-  // Handle like (Contract Section 5)
-  void _handleLike(BuildContext context) {
-    final feedback = NotificationFeedback.create(
-      notificationId: notification.id,
-      reaction: FeedbackReaction.like,
-    );
-    onFeedback(feedback);
-  }
-
-  // Handle dislike (Contract Section 5)
-  void _handleDislike(BuildContext context) async {
-    final reason = await _askReason(context);
-    final feedback = NotificationFeedback.create(
-      notificationId: notification.id,
-      reaction: FeedbackReaction.dislike,
-      feedbackText: reason,
-    );
-    onFeedback(feedback);
-  }
-
-  // Get feedback text for dislike (Contract Section 5)
-  Future<String?> _askReason(BuildContext context) async {
-    final controller = TextEditingController();
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Why disliked?"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: "Enter reason...",
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, null),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text("Submit"),
-            ),
-          ],
+  Widget _likeButton(BuildContext context) {
+    final isSelected = selectedReaction == SelectedReaction.like;
+    return GestureDetector(
+      onTap: () {
+        final feedback = NotificationFeedback.create(
+          notificationId: notification.id,
+          actionId: actionTapLike,
+          reaction: FeedbackReaction.like,
         );
+        onLike(feedback);
       },
+      child: Icon(
+        Icons.thumb_up_alt_outlined,
+        size: 20,
+        color: isSelected ? AppTheme.pistachioGreen : AppTheme.iconInactive,
+      ),
+    );
+  }
+
+  Widget _dislikeButton(BuildContext context) {
+    final isSelected = selectedReaction == SelectedReaction.dislike;
+    return GestureDetector(
+      onTap: () {
+        final feedback = NotificationFeedback.create(
+          notificationId: notification.id,
+          actionId: actionTapDislike,
+          reaction: FeedbackReaction.dislike,
+        );
+        onDislike(feedback);
+      },
+      child: Icon(
+        Icons.thumb_down_alt_outlined,
+        size: 20,
+        color: isSelected ? AppTheme.metalGrey : AppTheme.iconInactive,
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/brand_name.dart';
 
 /// ------------------------------------------------------------
 /// ChatHistoryPage
@@ -126,7 +127,7 @@ List<_HistoryDay> _mockHistory() {
   return [
     _HistoryDay(
       title: 'Today',
-      lastMessage: 'Sedi is here to help you…',
+      lastMessage: '${sediBrandName('en')} is here to help you…',
       date: DateTime.now(),
     ),
     _HistoryDay(

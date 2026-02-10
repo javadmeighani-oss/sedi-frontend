@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/brand_name.dart';
 import 'sedi_ring_anim.dart';
 
 /// ============================================
@@ -59,8 +60,10 @@ class SediHeader extends StatelessWidget {
                 width: logoSize * 0.7,
                 height: logoSize * 0.7,
                 errorBuilder: (_, __, ___) {
+                  final lang = Localizations.localeOf(context).languageCode;
+                  final brand = sediBrandName(lang);
                   return Text(
-                    'Sedi.',
+                    '$brand.',
                     style: TextStyle(
                       fontSize: logoSize * 0.24,
                       fontWeight: FontWeight.w800,

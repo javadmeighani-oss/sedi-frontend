@@ -11,9 +11,10 @@
 class UserProfile {
   // Basic Information
   final String? name; // User's name (for familiarity, optional)
-  final String? securityPassword; // Security password (for suspicious behavior verification)
+  final String? securityPassword; // Security password (optional; removed from onboarding)
   final int? userId; // Backend user ID (for anonymous users and registration)
-  
+  final String? guessedGender; // Optional: 'male' | 'female' | 'unknown' (soft guess from name, not shown in UI)
+
   // Preferences
   final String preferredLanguage; // 'en', 'fa', 'ar'
   
@@ -30,6 +31,7 @@ class UserProfile {
     this.name,
     this.securityPassword,
     this.userId,
+    this.guessedGender,
     this.preferredLanguage = 'en',
     this.hasSecurityPassword = false,
     this.securityPasswordSetAt,
@@ -44,6 +46,7 @@ class UserProfile {
       name: json['name'] as String?,
       securityPassword: json['security_password'] as String?,
       userId: json['user_id'] as int?,
+      guessedGender: json['guessed_gender'] as String?,
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
       hasSecurityPassword: json['has_security_password'] as bool? ?? false,
       securityPasswordSetAt: json['security_password_set_at'] != null
@@ -61,6 +64,7 @@ class UserProfile {
       if (name != null) 'name': name,
       if (securityPassword != null) 'security_password': securityPassword,
       if (userId != null) 'user_id': userId,
+      if (guessedGender != null) 'guessed_gender': guessedGender,
       'preferred_language': preferredLanguage,
       'has_security_password': hasSecurityPassword,
       if (securityPasswordSetAt != null)
@@ -76,6 +80,7 @@ class UserProfile {
     String? name,
     String? securityPassword,
     int? userId,
+    String? guessedGender,
     String? preferredLanguage,
     bool? hasSecurityPassword,
     DateTime? securityPasswordSetAt,
@@ -87,6 +92,7 @@ class UserProfile {
       name: name ?? this.name,
       securityPassword: securityPassword ?? this.securityPassword,
       userId: userId ?? this.userId,
+      guessedGender: guessedGender ?? this.guessedGender,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       hasSecurityPassword: hasSecurityPassword ?? this.hasSecurityPassword,
       securityPasswordSetAt: securityPasswordSetAt ?? this.securityPasswordSetAt,

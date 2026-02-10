@@ -9,13 +9,18 @@
 /// - Contract Section 1
 /// ============================================
 
-/// Notification Type Enum (Contract Section 2)
+/// Notification Type Enum (Contract Section 2 + backend types)
 enum NotificationType {
   info,
   alert,
   reminder,
   checkIn,
-  achievement;
+  achievement,
+  // Backend contract (Release B1)
+  morningBrief,
+  connectionPing,
+  healthAlert,
+  deviceDisconnected;
 
   static NotificationType fromString(String value) {
     switch (value.toLowerCase()) {
@@ -29,8 +34,16 @@ enum NotificationType {
         return NotificationType.checkIn;
       case 'achievement':
         return NotificationType.achievement;
+      case 'morning_brief':
+        return NotificationType.morningBrief;
+      case 'connection_ping':
+        return NotificationType.connectionPing;
+      case 'health_alert':
+        return NotificationType.healthAlert;
+      case 'device_disconnected':
+        return NotificationType.deviceDisconnected;
       default:
-        return NotificationType.info; // Default fallback
+        return NotificationType.info;
     }
   }
 
@@ -46,6 +59,14 @@ enum NotificationType {
         return 'check_in';
       case NotificationType.achievement:
         return 'achievement';
+      case NotificationType.morningBrief:
+        return 'morning_brief';
+      case NotificationType.connectionPing:
+        return 'connection_ping';
+      case NotificationType.healthAlert:
+        return 'health_alert';
+      case NotificationType.deviceDisconnected:
+        return 'device_disconnected';
     }
   }
 }
@@ -66,9 +87,10 @@ enum NotificationPriority {
       case 'high':
         return NotificationPriority.high;
       case 'urgent':
+      case 'critical': // Backend uses "critical"
         return NotificationPriority.urgent;
       default:
-        return NotificationPriority.normal; // Default fallback
+        return NotificationPriority.normal;
     }
   }
 
@@ -213,13 +235,25 @@ class Notification {
     required this.isRead,
   });
 
+  /// Parses from backend API shape: id (int), type, title, body, priority, is_read, created_at.
+  /// Also accepts legacy shape: id (string), message, created_at.
   factory Notification.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final idStr = id is int ? id.toString() : (id?.toString() ?? '');
+    final typeStr = json['type']?.toString() ?? 'info';
+    final priorityStr = json['priority']?.toString() ?? 'normal';
+    // Backend uses "body"; legacy uses "message"
+    final message = (json['body'] ?? json['message'])?.toString() ?? '';
+    final createdAt = json['created_at'];
+    final createdAtStr = createdAt is DateTime
+        ? createdAt.toIso8601String()
+        : (createdAt?.toString() ?? '');
     return Notification(
-      id: json['id'] as String,
-      type: NotificationType.fromString(json['type'] as String),
-      priority: NotificationPriority.fromString(json['priority'] as String),
+      id: idStr,
+      type: NotificationType.fromString(typeStr),
+      priority: NotificationPriority.fromString(priorityStr),
       title: json['title'] as String?,
-      message: json['message'] as String,
+      message: message,
       actions: json['actions'] != null
           ? (json['actions'] as List)
               .map((a) => NotificationAction.fromJson(a as Map<String, dynamic>))
@@ -228,7 +262,7 @@ class Notification {
       metadata: json['metadata'] != null
           ? NotificationMetadata.fromJson(json['metadata'] as Map<String, dynamic>)
           : null,
-      createdAt: json['created_at'] as String,
+      createdAt: createdAtStr,
       isRead: json['is_read'] as bool? ?? false,
     );
   }

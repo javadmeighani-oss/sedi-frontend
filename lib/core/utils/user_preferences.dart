@@ -6,6 +6,7 @@ class UserPreferences {
   static const String _userPasswordKey = 'user_password';
   static const String _userLanguageKey = 'user_language';
   static const String _isFirstTimeKey = 'is_first_time';
+  static const String _hasSeenIntroGreetingKey = 'has_seen_intro_greeting';
   
   /// بررسی اینکه آیا اولین بار است که کاربر وارد می‌شود
   static Future<bool> isFirstTime() async {
@@ -87,6 +88,25 @@ class UserPreferences {
     }
   }
   
+  /// Whether the user has seen the approved intro greeting (no duplicate on reopen).
+  static Future<bool> hasSeenIntroGreeting() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_hasSeenIntroGreetingKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> setHasSeenIntroGreeting(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_hasSeenIntroGreetingKey, value);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// بررسی رمز کاربر
   static Future<bool> verifyPassword(String password) async {
     try {

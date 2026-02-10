@@ -1,15 +1,18 @@
+import 'brand_name.dart';
+
 /// پیام‌های چندزبانه برنامه
 class AppMessages {
-  /// پیام خوشامدگویی بر اساس زبان
+  /// پیام خوشامدگویی بر اساس زبان (نام برند از brand_name)
   static String getWelcomeMessage(String language) {
+    final brand = sediBrandName(language);
     switch (language) {
       case 'fa':
-        return 'سلام! من صدی هستم 😊\nچطور می‌تونم کمکت کنم؟';
+        return 'سلام! من $brand هستم 😊\nچطور می‌تونم کمکت کنم؟';
       case 'ar':
-        return 'مرحبا! أنا صدي 😊\nكيف يمكنني مساعدتك؟';
+        return 'مرحبا! أنا $brand 😊\nكيف يمكنني مساعدتك؟';
       case 'en':
       default:
-        return 'Hello! I\'m Sedi 😊\nHow can I help you?';
+        return 'Hello! I\'m $brand 😊\nHow can I help you?';
     }
   }
   

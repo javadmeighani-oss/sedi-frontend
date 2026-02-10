@@ -85,6 +85,10 @@ flutter build apk --release
 flutter build appbundle --release
 ```
 
-## 🚀 GitHub Actions
+## 🚀 GitHub Actions و تست روی موبایل اندروید
 
-این پروژه برای build خودکار با GitHub Actions تنظیم شده است. فایل workflow در `.github/workflows/flutter-android.yml` قرار دارد.
+با پوش کردن کد به گیت‌هاب، workflow به‌صورت خودکار APK می‌سازد. برای **دانلود APK و نصب روی گوشی اندروید** راهنمای گام‌به‌گام را ببینید:
+
+- **[راهنمای ساخت APK با GitHub Actions و تست روی موبایل](docs/BUILD_ANDROID_GITHUB_ACTIONS.md)**
+
+خلاصه: پوش به `main`/`develop` → تب **Actions** در گیت‌هاب → دانلود Artifact با نام **sedi-android-apk** → نصب APK روی گوشی.
