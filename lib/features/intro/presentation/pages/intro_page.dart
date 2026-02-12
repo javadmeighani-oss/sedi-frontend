@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../onboarding/presentation/pages/onboarding_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../services/push/push_service.dart';
 
 /// ============================================
 /// IntroPage - Pre-Welcome Screen
@@ -145,7 +146,10 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     
     if (hasCompletedOnboarding) {
       // User has completed onboarding, go directly to chat
+      // Stage 19.2: Ensure FCM register for existing users (who skip onboarding/verification).
+      await tryRegisterStoredTokenAfterLogin();
       print('[IntroPage] ✅ Onboarding completed - navigating to ChatPage');
+      if (!context.mounted) return;
       Navigator.of(context).pushReplacement(
         _createCubeTransitionRouteToChat(),
       );

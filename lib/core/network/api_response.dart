@@ -6,11 +6,14 @@ class ApiResponse<T> {
   final bool ok;
   final T? data;
   final ApiError? error;
+  /// HTTP status code when available (e.g. from ApiClient); for logging/trace (Stage 19).
+  final int? statusCode;
 
   const ApiResponse({
     required this.ok,
     this.data,
     this.error,
+    this.statusCode,
   });
 
   /// Parse from JSON. [parser] converts the raw "data" object to T (or null).
@@ -35,7 +38,7 @@ class ApiResponse<T> {
         data = null;
       }
     }
-    return ApiResponse<T>(ok: ok, data: data, error: error);
+    return ApiResponse<T>(ok: ok, data: data, error: error, statusCode: null);
   }
 
   bool get isSuccess => ok && error == null;

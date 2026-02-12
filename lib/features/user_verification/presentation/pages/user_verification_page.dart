@@ -3,6 +3,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../core/utils/gender_guess.dart';
 import '../../../../data/models/user_profile.dart';
+import '../../../../services/push/push_service.dart';
 import '../../../chat/chat_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 
@@ -99,6 +100,7 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
 
       // Trigger notification sync once (new items may show as local notifications)
       NotificationSync.syncOnce();
+      await tryRegisterStoredTokenAfterLogin();
 
       // Close page after successful submission
       if (mounted) {

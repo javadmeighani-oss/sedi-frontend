@@ -12,8 +12,10 @@
 import '../../../../core/utils/language_detector.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../data/dto/lifestyle_summary_response.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../data/models/user_profile.dart';
+import '../../../../data/repositories/lifestyle_repository.dart';
 import '../chat_service.dart';
 import '../logic/greeting_templates.dart';
 import 'package:flutter/foundation.dart';
@@ -55,7 +57,51 @@ class ChatController extends ChangeNotifier {
   final List<ChatMessage> messages = [];
 
   final ChatService _chatService = ChatService();
+  final LifestyleRepository _lifestyleRepo = LifestyleRepository();
   bool _initialized = false;
+
+  /// Stage 17.2: Cached lifestyle summary (in-memory, session only)
+  LifestyleSummaryResponse? _cachedLifestyleSummary;
+  bool _lifestyleSummaryLoading = false;
+  String? _lifestyleSummaryError;
+
+  LifestyleSummaryResponse? get cachedLifestyleSummary => _cachedLifestyleSummary;
+  bool get lifestyleSummaryLoading => _lifestyleSummaryLoading;
+  String? get lifestyleSummaryError => _lifestyleSummaryError;
+
+  /// Fetch lifestyle summary. Uses cache unless [forceRefresh] or no cache.
+  Future<void> fetchLifestyleSummary({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedLifestyleSummary != null) {
+      notifyListeners();
+      return;
+    }
+    final userId = _userProfile.userId;
+    if (userId == null) {
+      _lifestyleSummaryError = 'Please sign in to see lifestyle summary';
+      notifyListeners();
+      return;
+    }
+    _lifestyleSummaryLoading = true;
+    _lifestyleSummaryError = null;
+    notifyListeners();
+    try {
+      final res = await _lifestyleRepo.fetchLifestyleSummary(
+        userId: userId,
+        lang: currentLanguage,
+      );
+      if (res.ok && res.data != null) {
+        _cachedLifestyleSummary = res.data;
+        _lifestyleSummaryError = null;
+      } else {
+        _lifestyleSummaryError = res.error?.message ?? 'Failed to load summary';
+      }
+    } catch (e) {
+      _lifestyleSummaryError = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _lifestyleSummaryLoading = false;
+      notifyListeners();
+    }
+  }
 
   // ===============================
   // Initialization

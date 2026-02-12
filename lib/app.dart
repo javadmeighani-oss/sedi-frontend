@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/navigation/app_navigator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/intro/presentation/pages/intro_page.dart';
 
@@ -9,6 +10,7 @@ class SediApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
 
       // ===============================

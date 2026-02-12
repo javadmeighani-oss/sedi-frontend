@@ -1,9 +1,7 @@
-/// Devices screen: list + register + revoke/rotate. Apple-like; RTL support.
+/// Devices screen: MVP ECG-only. Shows Sedi-connected ECG device or "Not connected" + Coming soon.
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/brand_name.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../logic/devices_controller.dart';
@@ -17,24 +15,14 @@ class DevicesPage extends StatefulWidget {
 
 class _DevicesPageState extends State<DevicesPage> {
   final DevicesController _controller = DevicesController();
-  final _deviceIdController = TextEditingController();
-  final _deviceTypeController = TextEditingController();
   bool _loading = true;
   String _language = 'en';
-  bool _registering = false;
 
   @override
   void initState() {
     super.initState();
     _loadLanguage();
     _load();
-  }
-
-  @override
-  void dispose() {
-    _deviceIdController.dispose();
-    _deviceTypeController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadLanguage() async {
@@ -50,138 +38,34 @@ class _DevicesPageState extends State<DevicesPage> {
 
   bool get _isRtl => _language == 'fa' || _language == 'ar';
 
-  Future<void> _register() async {
-    final id = _deviceIdController.text.trim();
-    if (id.isEmpty) {
-      _showSnackBar('Device ID is required', isError: true);
-      return;
+  static final _ecgTypes = {'ecg', 'heart_rate', 'heart-rate', 'hr'};
+  static final _connectedStatuses = {'active', 'connected', 'online'};
+
+  /// MVP: consider ECG-type device as first device with normalized type in [ecg, heart_rate, heart-rate, hr].
+  /// Normalization: assumes deviceType/status are non-nullable from DTO; if ever nullable, use (value ?? '').toLowerCase().trim().
+  DevicePublicInfo? get _ecgDevice {
+    for (final d in _controller.devices) {
+      final t = d.deviceType.toLowerCase().trim();
+      if (_ecgTypes.contains(t)) return d;
     }
-    setState(() {
-      _registering = true;
-      _controller.errorMessage = null;
-    });
-    final ok = await _controller.registerDevice(id, _deviceTypeController.text.trim().isEmpty ? null : _deviceTypeController.text.trim());
-    if (!mounted) return;
-    setState(() => _registering = false);
-    if (ok) {
-      _showSnackBar('Device registered');
-      _deviceIdController.clear();
-      _deviceTypeController.clear();
-    } else {
-      _showSnackBar(_controller.errorMessage ?? 'Failed to register', isError: true);
-    }
+    return null;
   }
 
-  void _onDeviceLongPress(DevicePublicInfo d) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppTheme.backgroundWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusMedium)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.block, color: AppTheme.textSecondary),
-              title: const Text('Revoke'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmRevoke(d.deviceId);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.refresh, color: AppTheme.textSecondary),
-              title: const Text('Rotate token'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmRotate(d.deviceId);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy, color: AppTheme.textSecondary),
-              title: const Text('Copy device ID'),
-              onTap: () {
-                Navigator.pop(ctx);
-                Clipboard.setData(ClipboardData(text: d.deviceId));
-                _showSnackBar('Device ID copied');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+  bool get _ecgConnected {
+    final d = _ecgDevice;
+    if (d == null) return false;
+    final s = d.status.toLowerCase().trim();
+    return _connectedStatuses.contains(s);
   }
 
-  Future<void> _confirmRevoke(String deviceId) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Revoke device'),
-        content: const Text('Revoke this device?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Revoke'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    setState(() {});
-    final success = await _controller.revokeDevice(deviceId);
-    if (!mounted) return;
-    setState(() {});
-    if (success) {
-      _showSnackBar('Device revoked');
-    } else {
-      _showSnackBar(_controller.errorMessage ?? 'Failed to revoke', isError: true);
+  String _lastSeenLabel(DateTime? lastSeenAt) {
+    if (lastSeenAt == null) return 'Never';
+    final n = DateTime.now();
+    final d = lastSeenAt;
+    if (d.year == n.year && d.month == n.month && d.day == n.day) {
+      return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     }
-  }
-
-  Future<void> _confirmRotate(String deviceId) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rotate token'),
-        content: const Text('Rotate device token?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Rotate'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    setState(() {});
-    final success = await _controller.rotateDeviceToken(deviceId);
-    if (!mounted) return;
-    setState(() {});
-    if (success) {
-      _showSnackBar('Token rotated');
-    } else {
-      _showSnackBar(_controller.errorMessage ?? 'Failed to rotate token', isError: true);
-    }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.pistachioGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -192,91 +76,11 @@ class _DevicesPageState extends State<DevicesPage> {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Register form
+          // Section: Connected devices
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
-              'Register device',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: TextField(
-              controller: _deviceIdController,
-              decoration: InputDecoration(
-                labelText: 'Device ID (required)',
-                hintText: 'e.g. ${sediBrandName('en')}001',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                  borderSide: const BorderSide(color: AppTheme.borderInactive),
-                ),
-              ),
-              textDirection: TextDirection.ltr,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: TextField(
-              controller: _deviceTypeController,
-              decoration: InputDecoration(
-                labelText: 'Device type (optional)',
-                hintText: 'e.g. heart_rate',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                  borderSide: const BorderSide(color: AppTheme.borderInactive),
-                ),
-              ),
-              textDirection: TextDirection.ltr,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: FilledButton(
-              onPressed: (_registering || _controller.isActionInProgress) ? null : _register,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.pistachioGreen,
-                foregroundColor: AppTheme.backgroundWhite,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
-              ),
-              child: _registering
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.backgroundWhite),
-                    )
-                  : const Text('Register'),
-            ),
-          ),
-          // Error banner
-          if (_controller.errorMessage != null && _controller.errorMessage!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Text(
-                  _controller.errorMessage!,
-                  style: TextStyle(color: Colors.red.shade800, fontSize: 14),
-                ),
-              ),
-            ),
-          // Devices list header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              'Devices',
+              'Connected devices',
               style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 13,
@@ -289,16 +93,19 @@ class _DevicesPageState extends State<DevicesPage> {
               padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator(color: AppTheme.pistachioGreen)),
             )
-          else if (_controller.devices.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Text(
-                'No devices registered yet.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-              ),
-            )
           else
-            ..._controller.devices.map((d) => _buildDeviceCard(d)),
+            _buildEcgCard(),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'When connected, ECG readings will appear in Vitals.',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -322,74 +129,107 @@ class _DevicesPageState extends State<DevicesPage> {
     return page;
   }
 
-  Widget _buildDeviceCard(DevicePublicInfo d) {
-    final deviceId = d.deviceId;
-    final deviceType = d.deviceType;
-    final status = deviceStatusLabel(d.status);
-    final lastSeen = deviceLastSeenLabel(d.lastSeenAt);
+  Widget _buildEcgCard() {
+    final connected = _ecgConnected;
+    final d = _ecgDevice;
 
-    return GestureDetector(
-      onLongPress: () => _onDeviceLongPress(d),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundWhite,
-          border: Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SelectableText(
-                      deviceId,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 14,
-                        color: AppTheme.textPrimary,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        border: Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ECG Device',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                      textDirection: TextDirection.ltr,
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Chest device',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  Icon(Icons.more_vert, size: 20, color: AppTheme.iconInactive),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Text(
-                    deviceType,
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                    textDirection: TextDirection.ltr,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: connected
+                        ? AppTheme.pistachioGreen.withOpacity(0.2)
+                        : AppTheme.borderInactive.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    status,
+                  child: Text(
+                    connected ? 'Connected' : 'Not connected',
                     style: TextStyle(
-                      color: status == 'Revoked' ? Colors.red.shade700 : AppTheme.textSecondary,
-                      fontSize: 13,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: connected ? AppTheme.textPrimary : AppTheme.textSecondary,
                     ),
-                    textDirection: TextDirection.ltr,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
+          if (connected && d != null && d.lastSeenAt != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Text(
-                'Last seen: $lastSeen',
+                'Last updated: ${_lastSeenLabel(d.lastSeenAt)}',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                 textDirection: TextDirection.ltr,
               ),
+            )
+          else if (!connected) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Text(
+                'Coming soon',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              ),
             ),
-          ],
-        ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.6,
+                  child: FilledButton(
+                    onPressed: () {},
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.pistachioGreen,
+                      foregroundColor: AppTheme.backgroundWhite,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      ),
+                    ),
+                    child: const Text('Connect'),
+                  ),
+                ),
+              ),
+            ),
+          ] else
+            const SizedBox(height: 8),
+        ],
       ),
     );
   }

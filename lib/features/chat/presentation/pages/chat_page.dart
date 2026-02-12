@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../state/chat_controller.dart';
 import '../widgets/input_bar.dart';
+import '../widgets/lifestyle_summary_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -13,7 +14,6 @@ import '../../../../core/utils/user_profile_manager.dart';
 import 'chat_history_page.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../health/presentation/pages/vitals_page.dart';
-import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notification/data/notification_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 import '../../../notification/presentation/pages/notifications_inbox_page.dart';
@@ -30,8 +30,16 @@ import '../../../notification/presentation/pages/notifications_inbox_page.dart';
 /// ============================================
 class ChatPage extends StatefulWidget {
   final String? initialMessage;
-  
-  const ChatPage({super.key, this.initialMessage});
+  /// Opened from push notification (deep link / OPEN_CHAT)
+  final bool fromNotification;
+  final int? notificationId;
+
+  const ChatPage({
+    super.key,
+    this.initialMessage,
+    this.fromNotification = false,
+    this.notificationId,
+  });
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -60,6 +68,87 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage);
     _refreshUnreadCount();
+    if (widget.fromNotification) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showFromNotificationBanner());
+    }
+  }
+
+  void _showFromNotificationBanner() {
+    if (!mounted) return;
+    final lang = _controller.currentLanguage;
+    final msg = lang == 'fa'
+        ? 'از اعلان باز شد'
+        : lang == 'ar'
+            ? 'تم الفتح من الإشعار'
+            : 'Opened from notification';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
+      ),
+    );
+  }
+
+  static bool _isLifestyleSummaryCommand(String text) {
+    final t = text.trim().toLowerCase();
+    if (t == '/lifestyle' || t == 'lifestyle summary') return true;
+    if (t == '/سبک' || t.contains('خلاصه سبک زندگی')) return true;
+    if (t == '/نمط' || t.contains('ملخص نمط الحياة')) return true;
+    return false;
+  }
+
+  void _handleSendText(String text) {
+    if (_isLifestyleSummaryCommand(text)) {
+      _showLifestyleSummarySheet(context);
+      return;
+    }
+    _controller.sendUserMessage(text);
+  }
+
+  void _showLifestyleSummarySheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => _LifestyleSummarySheetContent(
+          controller: _controller,
+          scrollController: scrollController,
+          onClose: () => Navigator.of(ctx).pop(),
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationSettingsSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _NotificationSettingsSheet(
+        onSend: (text) {
+          Navigator.of(ctx).pop();
+          _controller.sendUserMessage(text);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _controller.currentLanguage == 'fa'
+                    ? 'ارسال شد'
+                    : _controller.currentLanguage == 'ar'
+                        ? 'تم الإرسال'
+                        : 'Sent',
+              ),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        lang: _controller.currentLanguage,
+      ),
+    );
   }
 
   @override
@@ -259,7 +348,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.devices),
+                        icon: Image.asset(
+                          'assets/icons/device_ecg_icon.png',
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
+                        ),
                         iconSize: 24,
                         style: IconButton.styleFrom(
                           foregroundColor: AppTheme.primaryBlack,
@@ -303,20 +397,14 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                           );
                         },
                       ),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert, size: 24, color: AppTheme.primaryBlack),
-                        onSelected: (value) {
-                          if (value == 'lifestyle') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const LifestylePage(),
-                              ),
-                            );
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'lifestyle', child: Text('Lifestyle')),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.schedule_outlined),
+                        iconSize: 24,
+                        style: IconButton.styleFrom(
+                          foregroundColor: AppTheme.primaryBlack,
+                          minimumSize: const Size(44, 44),
+                        ),
+                        onPressed: () => _showNotificationSettingsSheet(context),
                       ),
                     ],
                   ),
@@ -393,7 +481,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 hintText: _inputHint(),
                 isRecording: _controller.isRecording,
                 recordingTime: _controller.recordingTimeFormatted,
-                onSendText: _controller.sendUserMessage,
+                onSendText: _handleSendText,
                 onStartRecording: _controller.startVoiceRecording,
                 onStopRecordingAndSend: _controller.stopVoiceRecording,
               ),
@@ -401,6 +489,176 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet content for lifestyle summary (Stage 17.2).
+class _LifestyleSummarySheetContent extends StatefulWidget {
+  final ChatController controller;
+  final ScrollController scrollController;
+  final VoidCallback onClose;
+
+  const _LifestyleSummarySheetContent({
+    required this.controller,
+    required this.scrollController,
+    required this.onClose,
+  });
+
+  @override
+  State<_LifestyleSummarySheetContent> createState() => _LifestyleSummarySheetContentState();
+}
+
+class _LifestyleSummarySheetContentState extends State<_LifestyleSummarySheetContent> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+    widget.controller.fetchLifestyleSummary(forceRefresh: false);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: CustomScrollView(
+        controller: widget.scrollController,
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => widget.controller.fetchLifestyleSummary(forceRefresh: true),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: widget.onClose,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: LifestyleSummaryCard(
+              data: widget.controller.cachedLifestyleSummary,
+              isLoading: widget.controller.lifestyleSummaryLoading,
+              error: widget.controller.lifestyleSummaryError,
+              onRetry: () => widget.controller.fetchLifestyleSummary(forceRefresh: true),
+              lang: widget.controller.currentLanguage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for notification settings quick actions (Stage 16.6.6).
+class _NotificationSettingsSheet extends StatefulWidget {
+  final void Function(String text) onSend;
+  final String lang;
+
+  const _NotificationSettingsSheet({required this.onSend, required this.lang});
+
+  @override
+  State<_NotificationSettingsSheet> createState() => _NotificationSettingsSheetState();
+}
+
+class _NotificationSettingsSheetState extends State<_NotificationSettingsSheet> {
+  final _timezoneController = TextEditingController(text: 'timezone: Asia/Tehran');
+
+  @override
+  void dispose() {
+    _timezoneController.dispose();
+    super.dispose();
+  }
+
+  String _l(String en, String fa, String ar) {
+    if (widget.lang == 'fa') return fa;
+    if (widget.lang == 'ar') return ar;
+    return en;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _l('Notification settings', 'تنظیمات اعلان‌ها', 'إعدادات الإشعارات'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryBlack,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.public, color: AppTheme.primaryBlack, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _timezoneController,
+                    decoration: const InputDecoration(
+                      hintText: 'timezone: Asia/Tehran',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      isDense: true,
+                    ),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () {
+                    final t = _timezoneController.text.trim();
+                    if (t.isNotEmpty) widget.onSend(t);
+                  },
+                  child: Text(_l('Send', 'ارسال', 'إرسال')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.bedtime_outlined, color: AppTheme.primaryBlack, size: 24),
+              title: Text(_l('Set quiet hours 22:00–08:00', 'تنظیم ساعات سکوت', 'تعيين ساعات الهدوء')),
+              trailing: FilledButton(
+                onPressed: () => widget.onSend('quiet hours 22:00-08:00'),
+                child: Text(_l('Send', 'ارسال', 'إرسال')),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.notifications_off_outlined, color: AppTheme.primaryBlack, size: 24),
+              title: Text(_l('Disable quiet hours', 'خاموش کردن ساعات سکوت', 'إيقاف ساعات الهدوء')),
+              trailing: FilledButton(
+                onPressed: () => widget.onSend('disable quiet hours'),
+                child: Text(_l('Send', 'ارسال', 'إرسال')),
+              ),
+            ),
+          ],
         ),
       ),
     );

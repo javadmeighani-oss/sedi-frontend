@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../auth/auth_service.dart';
@@ -62,6 +63,7 @@ class ApiClient {
       if (queryParams != null && queryParams.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParams);
       }
+      debugPrint('[API] POST $uri');
       final response = await http
           .post(
             uri,
@@ -71,6 +73,7 @@ class ApiClient {
           .timeout(timeout, onTimeout: () {
         throw Exception('Request timeout');
       });
+      debugPrint('[API] response status=${response.statusCode}');
 
       return _handleResponse<T>(response, parser);
     } catch (e) {
@@ -117,11 +120,13 @@ class ApiClient {
           code: 'PARSE_ERROR',
           message: 'Invalid JSON: ${response.body.length} bytes',
         ),
+        statusCode: response.statusCode,
       );
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return ApiResponse.fromJson<T>(json, parser);
+      final r = ApiResponse.fromJson<T>(json, parser);
+      return ApiResponse<T>(ok: r.ok, data: r.data, error: r.error, statusCode: response.statusCode);
     }
 
     // HTTP error: map to ApiResponse with error from body or status
@@ -134,7 +139,7 @@ class ApiClient {
                 json['message']?.toString() ??
                 'Request failed with status ${response.statusCode}',
           );
-    return ApiResponse<T>(ok: false, error: error);
+    return ApiResponse<T>(ok: false, error: error, statusCode: response.statusCode);
   }
 
   ApiResponse<T> _failureFromException<T>(Object e) {
@@ -149,6 +154,7 @@ class ApiClient {
     return ApiResponse<T>(
       ok: false,
       error: ApiError(code: code, message: msg),
+      statusCode: null,
     );
   }
 }

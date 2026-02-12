@@ -11,3 +11,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Firebase: Do NOT commit real google-services.json. Add locally for FCM. See frontend/docs/NOTIFICATIONS_V1_ANDROID.md
+google-services.json

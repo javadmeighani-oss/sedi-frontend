@@ -5,6 +5,7 @@ import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../core/utils/gender_guess.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../services/push/push_service.dart';
 import '../../../chat/chat_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../chat/presentation/widgets/sedi_header.dart';
@@ -278,6 +279,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       debugPrint('[OnboardingPage] Saving profile with userId: $userIdInt');
       await UserProfileManager.saveProfile(profile);
       debugPrint('[OnboardingPage] Profile saved successfully');
+      await tryRegisterStoredTokenAfterLogin();
     } catch (saveError) {
       debugPrint('[OnboardingPage] ❌ Error saving profile: $saveError');
       if (mounted) {
