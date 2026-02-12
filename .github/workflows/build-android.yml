@@ -22,6 +22,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Provide google-services.json for build
+        run: |
+          DIR="$GITHUB_WORKSPACE/android/app"
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > "$DIR/google-services.json"
+            echo "Using google-services.json from repository secret."
+          else
+            cp "$DIR/google-services.json.ci" "$DIR/google-services.json"
+            echo "Using CI placeholder google-services.json (set GOOGLE_SERVICES_JSON secret for real FCM)."
+          fi
+      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
