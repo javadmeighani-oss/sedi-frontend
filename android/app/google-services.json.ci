@@ -9,7 +9,10 @@
       "client_info": {
         "mobilesdk_app_id": "1:0:android:0",
         "android_client_info": { "package_name": "com.sedi.app" }
-      }
+      },
+      "api_key": [
+        { "current_key": "AIzaSyCI-placeholder-key-for-android-build-only" }
+      ]
     }
   ]
 }
