@@ -19,6 +19,14 @@ buildscript {
     }
 }
 
+// Compatibility shim for plugins (e.g. record_android) that read flutter.* in Gradle.
+// Keeps CI stable when plugin evaluation happens before Flutter injects defaults.
+ext.flutter = [
+    compileSdkVersion: 34,
+    minSdkVersion    : 21,
+    targetSdkVersion : 34
+]
+
 allprojects {
     repositories {
         google()
