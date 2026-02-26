@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// ============================================
 /// AppTheme - هویت بصری صدی
 /// ============================================
-/// 
+///
 /// RESPONSIBILITY:
 /// - فقط رنگ‌ها، radius، shadow
 /// - بدون UI widget
@@ -27,10 +27,14 @@ class AppTheme {
 
   /// سفید – بک‌گراند اصلی
   static const Color backgroundWhite = Color(0xFFFFFFFF);
+  static const Color dangerRed = Color(0xFFD32F2F);
 
   // ===============================
   // Semantic Colors
   // ===============================
+  static const Color primary = primaryBlack;
+  static const Color background = backgroundWhite;
+  static const Color surface = backgroundWhite;
 
   static const Color textPrimary = primaryBlack;
   static const Color textSecondary = metalGrey;
@@ -60,4 +64,34 @@ class AppTheme {
       offset: Offset(0, 2),
     ),
   ];
+
+  // ===============================
+  // Typography
+  // ===============================
+  static const TextStyle titleLarge = TextStyle(
+    color: textPrimary,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle titleMedium = TextStyle(
+    color: textPrimary,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle bodyPrimary = TextStyle(
+    color: textPrimary,
+    fontSize: 14,
+  );
+
+  static const TextStyle bodySecondary = TextStyle(
+    color: textSecondary,
+    fontSize: 14,
+  );
+
+  static const TextStyle caption = TextStyle(
+    color: textSecondary,
+    fontSize: 12,
+  );
 }

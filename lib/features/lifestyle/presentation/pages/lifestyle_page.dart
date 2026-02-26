@@ -1,12 +1,16 @@
-/// Lifestyle screen: context summary + manual update. Apple-like; RTL support.
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/user_preferences.dart';
-import '../../../../data/dto/lifestyle_context_response.dart';
-import '../../logic/lifestyle_controller.dart';
-import '../../logic/lifestyle_validation.dart';
+import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../core/widgets/app_states/app_empty_state.dart';
+import '../../../../core/widgets/app_states/app_error_state.dart';
+import '../../../../core/widgets/app_states/app_loading_state.dart';
+import '../../../../data/dto/lifestyle/lifestyle_entry_dto.dart';
+import '../../../../data/dto/lifestyle/lifestyle_update_request_dto.dart';
+import '../../../../data/models/lifestyle_state.dart';
+import '../../../../services/lifestyle/lifestyle_service.dart';
+import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 class LifestylePage extends StatefulWidget {
   const LifestylePage({super.key});
@@ -16,116 +20,86 @@ class LifestylePage extends StatefulWidget {
 }
 
 class _LifestylePageState extends State<LifestylePage> {
-  final LifestyleController _controller = LifestyleController();
-  final _sleepController = TextEditingController();
-  final _stepsController = TextEditingController();
-  final _caloriesController = TextEditingController();
-  final _stressController = TextEditingController();
+  final LifestyleService _service = LifestyleService();
+  LifestyleState _state = const LifestyleState();
   bool _loading = true;
-  String _language = 'en';
-  bool _submitting = false;
+  String? _error;
+  int? _userId;
+  String _lang = 'en';
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage();
-    _load();
+    _bootstrap();
   }
 
-  @override
-  void dispose() {
-    _sleepController.dispose();
-    _stepsController.dispose();
-    _caloriesController.dispose();
-    _stressController.dispose();
-    super.dispose();
+  Future<void> _bootstrap() async {
+    final profile = await UserProfileManager.loadProfile();
+    _lang =
+        profile.preferredLanguage.isNotEmpty ? profile.preferredLanguage : 'en';
+    _userId = await UserIdentityService.resolveUserId();
+    if (_userId == null && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
+      );
+      return;
+    }
+    await _load();
   }
 
-  Future<void> _loadLanguage() async {
-    final lang = await UserPreferences.getUserLanguage();
-    if (mounted) setState(() => _language = lang);
-  }
+  bool get _isRtl => _lang == 'fa' || _lang == 'ar';
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    await _controller.loadContext();
-    if (mounted) setState(() => _loading = false);
-  }
-
-  bool get _isRtl => _language == 'fa' || _language == 'ar';
-
-  String? get _sleepError {
-    final s = _sleepController.text.trim().replaceAll(',', '.');
-    if (s.isEmpty) return null;
-    final v = double.tryParse(s);
-    if (v == null) return 'Out of range';
-    return validateSleepHours(v) != null ? 'Out of range' : null;
-  }
-
-  String? get _stepsError {
-    final s = _stepsController.text.trim();
-    if (s.isEmpty) return null;
-    final v = int.tryParse(s);
-    if (v == null) return 'Out of range';
-    return validateSteps(v) != null ? 'Out of range' : null;
-  }
-
-  String? get _caloriesError {
-    final s = _caloriesController.text.trim();
-    if (s.isEmpty) return null;
-    final v = int.tryParse(s);
-    if (v == null) return 'Out of range';
-    return validateCalories(v) != null ? 'Out of range' : null;
-  }
-
-  String? get _stressError {
-    final s = _stressController.text.trim();
-    if (s.isEmpty) return null;
-    final v = int.tryParse(s);
-    if (v == null) return 'Out of range';
-    return validateStressLevel(v) != null ? 'Out of range' : null;
-  }
-
-  bool get _canSubmit =>
-      _sleepError == null && _stepsError == null && _caloriesError == null && _stressError == null &&
-      !_submitting && !_controller.isSubmitting;
-
-  Future<void> _submit() async {
-    if (!_canSubmit) return;
-    final sleep = double.tryParse(_sleepController.text.trim().replaceAll(',', '.'));
-    final steps = int.tryParse(_stepsController.text.trim());
-    final calories = int.tryParse(_caloriesController.text.trim());
-    final stress = int.tryParse(_stressController.text.trim());
-
-    setState(() => _submitting = true);
-    try {
-      final ok = await _controller.submitUpdate(
-        sleepHours: sleep,
-        steps: steps,
-        calories: calories,
-        stressLevel: stress,
-      );
-      if (!mounted) return;
-      if (ok) {
-        _showSnackBar('Lifestyle updated');
-        _sleepController.clear();
-        _stepsController.clear();
-        _caloriesController.clear();
-        _stressController.clear();
-        _load();
-      } else {
-        _showSnackBar(_controller.errorMessage ?? 'Failed to update', isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _submitting = false);
+    if (_userId == null) {
+      setState(() {
+        _loading = false;
+        _error = null;
+        _state = const LifestyleState();
+      });
+      return;
     }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final res = await _service.getLifestyle(userId: _userId!);
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (res.ok) {
+        _state = res.data ?? const LifestyleState();
+      } else {
+        _error = res.errorMessage;
+      }
+    });
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
+  Future<void> _saveOptimistic(
+      List<LifestyleEntryDto> entries, LifestyleState optimistic) async {
+    if (_userId == null) return;
+    final previous = _state;
+    setState(() {
+      _state = optimistic;
+    });
+
+    final req = LifestyleUpdateRequestDto(userId: _userId!, entries: entries);
+    final res = await _service.updateLifestyle(userId: _userId!, req: req);
+    if (!mounted) return;
+    if (!res.ok) {
+      setState(() {
+        _state = previous;
+      });
+      _showMessage(res.errorMessage);
+      return;
+    }
+    _showMessage('Saved');
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : AppTheme.pistachioGreen,
+        backgroundColor: AppTheme.primaryBlack,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -133,191 +107,460 @@ class _LifestylePageState extends State<LifestylePage> {
 
   @override
   Widget build(BuildContext context) {
-    final ctx = _controller.parsedContext;
-    final hasContext = ctx != null &&
-        (ctx.sleepHours != null || ctx.steps != null || ctx.calories != null || ctx.stressLevel != null);
-
-    Widget body = ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        // Context section
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(
-            'Context',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        if (_loading)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator(color: AppTheme.pistachioGreen)),
-          )
-        else if (!hasContext)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'No lifestyle context yet.',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-            ),
-          )
-        else
-          _buildContextRows(ctx),
-        const SizedBox(height: 24),
-        // Update form
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Text(
-            'Update',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        _buildField(
-          controller: _sleepController,
-          label: 'Sleep hours (0–24)',
-          hint: 'e.g. 7.5',
-          keyboard: const TextInputType.numberWithOptions(decimal: true),
-          errorText: _sleepError,
-        ),
-        _buildField(
-          controller: _stepsController,
-          label: 'Steps (0–100000)',
-          hint: 'e.g. 5000',
-          keyboard: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          errorText: _stepsError,
-        ),
-        _buildField(
-          controller: _caloriesController,
-          label: 'Calories (0–20000)',
-          hint: 'e.g. 2000',
-          keyboard: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          errorText: _caloriesError,
-        ),
-        _buildField(
-          controller: _stressController,
-          label: 'Stress level (0–10)',
-          hint: 'e.g. 2',
-          keyboard: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          errorText: _stressError,
-        ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: FilledButton(
-            onPressed: _canSubmit ? _submit : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.pistachioGreen,
-              foregroundColor: AppTheme.backgroundWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
-            ),
-            child: (_submitting || _controller.isSubmitting)
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.backgroundWhite),
-                  )
-                : const Text('Update lifestyle'),
-          ),
-        ),
-      ],
-    );
-
-    Widget page = Scaffold(
+    final page = Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       appBar: AppBar(
         title: const Text('Lifestyle'),
         backgroundColor: AppTheme.backgroundWhite,
         foregroundColor: AppTheme.primaryBlack,
       ),
-      body: body,
+      body: RefreshIndicator(
+        color: AppTheme.primaryBlack,
+        onRefresh: _load,
+        child: _buildBody(),
+      ),
     );
+    return Directionality(
+      textDirection: _isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: page,
+    );
+  }
 
-    if (_isRtl) {
-      page = Directionality(
-        textDirection: TextDirection.rtl,
-        child: page,
+  Widget _buildBody() {
+    if (_loading) {
+      return const ListView(
+        children: [
+          SizedBox(height: 120),
+          AppLoadingState(label: 'Loading lifestyle...'),
+        ],
       );
     }
-    return page;
-  }
-
-  Widget _buildContextRows(LifestyleContextResponse ctx) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTheme.borderInactive.withOpacity(0.5), width: 0.5)),
-      ),
-      child: Column(
+    if (_error != null) {
+      return ListView(
         children: [
-          if (ctx.sleepHours != null)
-            _contextRow('Sleep hours', '${ctx.sleepHours!.toStringAsFixed(1)} h'),
-          if (ctx.steps != null) _contextRow('Steps', '${ctx.steps}'),
-          if (ctx.calories != null) _contextRow('Calories', '${ctx.calories}'),
-          if (ctx.stressLevel != null) _contextRow('Stress level', '${ctx.stressLevel}'),
+          const SizedBox(height: 120),
+          AppErrorState(message: _error!, onRetry: _load),
         ],
-      ),
-    );
-  }
-
-  Widget _contextRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+      );
+    }
+    if (_state.isEmpty) {
+      return ListView(
         children: [
-          Text(
-            label,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
-            textDirection: TextDirection.ltr,
+          _todayChips(),
+          const SizedBox(height: 120),
+          const AppEmptyState(
+            title: 'Set your first lifestyle baseline',
+            subtitle: 'Add your sleep, activity, water, and mood today.',
           ),
         ],
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required TextInputType keyboard,
-    List<TextInputFormatter>? inputFormatters,
-    String? errorText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          errorText: errorText,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            borderSide: const BorderSide(color: AppTheme.borderInactive),
-          ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      children: [
+        _todayChips(),
+        const SizedBox(height: 12),
+        _sectionCard(
+          title: 'Sleep',
+          subtitle:
+              '${_state.sleepDurationHours?.toStringAsFixed(1) ?? '--'} h',
+          onTap: _editSleep,
         ),
-        keyboardType: keyboard,
-        inputFormatters: inputFormatters,
-        textDirection: TextDirection.ltr,
-        onChanged: (_) => setState(() {}),
+        _sectionCard(
+          title: 'Activity',
+          subtitle:
+              '${_state.stepsCount ?? '--'} steps • ${_state.exerciseMinutes ?? '--'} min',
+          onTap: _editActivity,
+        ),
+        _sectionCard(
+          title: 'Water',
+          subtitle: '${_state.hydrationMl?.toStringAsFixed(0) ?? '--'} ml',
+          onTap: _editWater,
+        ),
+        _sectionCard(
+          title: 'Mood / Stress',
+          subtitle: '${_state.mood ?? '--'} • ${_state.stressLevel ?? '--'}',
+          onTap: _editMoodStress,
+        ),
+      ],
+    );
+  }
+
+  Widget _todayChips() {
+    final chips = <String>[
+      if (_state.sleepDurationHours != null)
+        '${_state.sleepDurationHours!.toStringAsFixed(1)}h sleep',
+      if (_state.stepsCount != null) '${_state.stepsCount} steps',
+      if (_state.hydrationMl != null)
+        '${_state.hydrationMl!.toStringAsFixed(0)}ml water',
+      if (_state.stressLevel != null) 'stress ${_state.stressLevel}',
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: chips
+          .map(
+            (text) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.borderInactive.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+              ),
+              child: Text(
+                text,
+                style:
+                    const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Widget _sectionCard({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundWhite,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(color: AppTheme.borderInactive.withOpacity(0.3)),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                        color: AppTheme.textSecondary, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+          ],
+        ),
       ),
+    );
+  }
+
+  Future<void> _editSleep() async {
+    double sleep = _state.sleepDurationHours ?? 7.0;
+    String quality = _state.sleepQuality ?? 'normal';
+    await _editorSheet(
+      title: 'Sleep',
+      content: StatefulBuilder(
+        builder: (context, setLocal) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  const Text('Hours',
+                      style: TextStyle(color: AppTheme.textSecondary)),
+                  const Spacer(),
+                  Text(sleep.toStringAsFixed(1),
+                      style: const TextStyle(color: AppTheme.textPrimary)),
+                ],
+              ),
+              Slider(
+                value: sleep.clamp(0, 14),
+                min: 0,
+                max: 14,
+                divisions: 28,
+                activeColor: AppTheme.primaryBlack,
+                inactiveColor: AppTheme.borderInactive,
+                onChanged: (v) => setLocal(() => sleep = v),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: TextEditingController(text: quality),
+                decoration: const InputDecoration(
+                  labelText: 'Quality',
+                  labelStyle: TextStyle(color: AppTheme.textSecondary),
+                ),
+                onChanged: (v) => quality = v.trim(),
+              ),
+            ],
+          );
+        },
+      ),
+      onSave: () async {
+        final optimistic = _state.copyWith(
+          sleepDurationHours: sleep,
+          sleepQuality: quality,
+        );
+        await _saveOptimistic(
+          [
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'sleep_duration_hours', value: sleep),
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'sleep_quality', value: quality),
+          ],
+          optimistic,
+        );
+      },
+    );
+  }
+
+  Future<void> _editActivity() async {
+    int steps = _state.stepsCount ?? 4000;
+    int minutes = _state.exerciseMinutes ?? 20;
+    String level = _state.activityLevel ?? 'moderate';
+    await _editorSheet(
+      title: 'Activity',
+      content: StatefulBuilder(
+        builder: (context, setLocal) {
+          return Column(
+            children: [
+              _stepper(
+                label: 'Steps',
+                value: '$steps',
+                onMinus: () =>
+                    setLocal(() => steps = (steps - 500).clamp(0, 100000)),
+                onPlus: () =>
+                    setLocal(() => steps = (steps + 500).clamp(0, 100000)),
+              ),
+              const SizedBox(height: 8),
+              _stepper(
+                label: 'Exercise minutes',
+                value: '$minutes',
+                onMinus: () =>
+                    setLocal(() => minutes = (minutes - 5).clamp(0, 300)),
+                onPlus: () =>
+                    setLocal(() => minutes = (minutes + 5).clamp(0, 300)),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: TextEditingController(text: level),
+                decoration: const InputDecoration(
+                  labelText: 'Activity level',
+                  labelStyle: TextStyle(color: AppTheme.textSecondary),
+                ),
+                onChanged: (v) => level = v.trim(),
+              ),
+            ],
+          );
+        },
+      ),
+      onSave: () async {
+        final optimistic = _state.copyWith(
+          stepsCount: steps,
+          exerciseMinutes: minutes,
+          activityLevel: level,
+        );
+        await _saveOptimistic(
+          [
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'steps_count', value: steps),
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'exercise_minutes', value: minutes),
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'activity_level', value: level),
+          ],
+          optimistic,
+        );
+      },
+    );
+  }
+
+  Future<void> _editWater() async {
+    double water = _state.hydrationMl ?? 1200;
+    await _editorSheet(
+      title: 'Water',
+      content: StatefulBuilder(
+        builder: (context, setLocal) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  const Text('Hydration (ml)',
+                      style: TextStyle(color: AppTheme.textSecondary)),
+                  const Spacer(),
+                  Text(
+                    water.toStringAsFixed(0),
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              Slider(
+                value: water.clamp(0, 5000),
+                min: 0,
+                max: 5000,
+                divisions: 50,
+                activeColor: AppTheme.primaryBlack,
+                inactiveColor: AppTheme.borderInactive,
+                onChanged: (v) => setLocal(() => water = v),
+              ),
+            ],
+          );
+        },
+      ),
+      onSave: () async {
+        final optimistic = _state.copyWith(hydrationMl: water);
+        await _saveOptimistic(
+          [
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'hydration_ml', value: water)
+          ],
+          optimistic,
+        );
+      },
+    );
+  }
+
+  Future<void> _editMoodStress() async {
+    String mood = _state.mood ?? 'neutral';
+    String stress = _state.stressLevel ?? 'low';
+    await _editorSheet(
+      title: 'Mood / Stress',
+      content: StatefulBuilder(
+        builder: (context, setLocal) {
+          return Column(
+            children: [
+              TextField(
+                controller: TextEditingController(text: mood),
+                decoration: const InputDecoration(
+                  labelText: 'Mood',
+                  labelStyle: TextStyle(color: AppTheme.textSecondary),
+                ),
+                onChanged: (v) => mood = v.trim(),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: TextEditingController(text: stress),
+                decoration: const InputDecoration(
+                  labelText: 'Stress',
+                  labelStyle: TextStyle(color: AppTheme.textSecondary),
+                ),
+                onChanged: (v) => stress = v.trim(),
+              ),
+            ],
+          );
+        },
+      ),
+      onSave: () async {
+        final optimistic = _state.copyWith(mood: mood, stressLevel: stress);
+        await _saveOptimistic(
+          [
+            LifestyleEntryDto(domain: 'lifestyle', key: 'mood', value: mood),
+            LifestyleEntryDto(
+                domain: 'lifestyle', key: 'stress_level', value: stress),
+          ],
+          optimistic,
+        );
+      },
+    );
+  }
+
+  Widget _stepper({
+    required String label,
+    required String value,
+    required VoidCallback onMinus,
+    required VoidCallback onPlus,
+  }) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(color: AppTheme.textSecondary)),
+        const Spacer(),
+        IconButton(
+          onPressed: onMinus,
+          icon: const Icon(Icons.remove_circle_outline,
+              color: AppTheme.textSecondary),
+        ),
+        Text(value,
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15)),
+        IconButton(
+          onPressed: onPlus,
+          icon: const Icon(Icons.add_circle_outline,
+              color: AppTheme.primaryBlack),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _editorSheet({
+    required String title,
+    required Widget content,
+    required Future<void> Function() onSave,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.backgroundWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                content,
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel',
+                            style: TextStyle(color: AppTheme.textPrimary)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await onSave();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlack,
+                          foregroundColor: AppTheme.backgroundWhite,
+                        ),
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

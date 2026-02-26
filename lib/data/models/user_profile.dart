@@ -1,7 +1,7 @@
 /// ============================================
 /// UserProfile - User Information Model
 /// ============================================
-/// 
+///
 /// RESPONSIBILITY:
 /// - Store user profile information
 /// - Security credentials
@@ -11,24 +11,30 @@
 class UserProfile {
   // Basic Information
   final String? name; // User's name (for familiarity, optional)
-  final String? securityPassword; // Security password (optional; removed from onboarding)
+  final String? phoneNumber; // User phone from OTP auth
+  final String?
+      securityPassword; // Security password (optional; removed from onboarding)
   final int? userId; // Backend user ID (for anonymous users and registration)
-  final String? guessedGender; // Optional: 'male' | 'female' | 'unknown' (soft guess from name, not shown in UI)
+  final String?
+      guessedGender; // Optional: 'male' | 'female' | 'unknown' (soft guess from name, not shown in UI)
 
   // Preferences
   final String preferredLanguage; // 'en', 'fa', 'ar'
-  
+
   // Security & Trust
   final bool hasSecurityPassword; // Whether user has set security password
   final DateTime? securityPasswordSetAt; // When password was set
-  final int conversationCount; // Number of conversations (for familiarity tracking)
-  
+  final int
+      conversationCount; // Number of conversations (for familiarity tracking)
+
   // Status
   final bool isVerified; // Whether user is verified
-  final bool requiresSecurityCheck; // Whether security check is needed (suspicious behavior)
+  final bool
+      requiresSecurityCheck; // Whether security check is needed (suspicious behavior)
 
   UserProfile({
     this.name,
+    this.phoneNumber,
     this.securityPassword,
     this.userId,
     this.guessedGender,
@@ -44,6 +50,7 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       name: json['name'] as String?,
+      phoneNumber: json['phone_number'] as String?,
       securityPassword: json['security_password'] as String?,
       userId: json['user_id'] as int?,
       guessedGender: json['guessed_gender'] as String?,
@@ -62,6 +69,7 @@ class UserProfile {
   Map<String, dynamic> toJson() {
     return {
       if (name != null) 'name': name,
+      if (phoneNumber != null) 'phone_number': phoneNumber,
       if (securityPassword != null) 'security_password': securityPassword,
       if (userId != null) 'user_id': userId,
       if (guessedGender != null) 'guessed_gender': guessedGender,
@@ -78,6 +86,7 @@ class UserProfile {
   /// Copy with method for updates
   UserProfile copyWith({
     String? name,
+    String? phoneNumber,
     String? securityPassword,
     int? userId,
     String? guessedGender,
@@ -90,15 +99,18 @@ class UserProfile {
   }) {
     return UserProfile(
       name: name ?? this.name,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       securityPassword: securityPassword ?? this.securityPassword,
       userId: userId ?? this.userId,
       guessedGender: guessedGender ?? this.guessedGender,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       hasSecurityPassword: hasSecurityPassword ?? this.hasSecurityPassword,
-      securityPasswordSetAt: securityPasswordSetAt ?? this.securityPasswordSetAt,
+      securityPasswordSetAt:
+          securityPasswordSetAt ?? this.securityPasswordSetAt,
       conversationCount: conversationCount ?? this.conversationCount,
       isVerified: isVerified ?? this.isVerified,
-      requiresSecurityCheck: requiresSecurityCheck ?? this.requiresSecurityCheck,
+      requiresSecurityCheck:
+          requiresSecurityCheck ?? this.requiresSecurityCheck,
     );
   }
 
@@ -108,4 +120,3 @@ class UserProfile {
   /// Check if security password is required
   bool get needsSecurityPassword => !hasSecurityPassword && isFamiliar;
 }
-

@@ -19,12 +19,12 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   firebase_core: ^3.8.1
   firebase_messaging: ^15.1.6
+  record: ^5.1.2
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -33,9 +33,3 @@ flutter:
     - assets/images/
     - assets/icons/
 
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/images/sedi_app_icon.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/sedi_app_icon.png"

@@ -20,13 +20,17 @@ class ApiClient {
     this.timeout = const Duration(seconds: 15),
   }) : baseUrl = baseUrl ?? AppConfig.baseUrl;
 
-  Future<Map<String, String>> _headers() async {
+  Future<Map<String, String>> _headers(
+      {Map<String, String>? extraHeaders}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
     };
     final token = await AuthService.getToken();
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
+    }
+    if (extraHeaders != null && extraHeaders.isNotEmpty) {
+      headers.addAll(extraHeaders);
     }
     return headers;
   }
@@ -35,12 +39,14 @@ class ApiClient {
   Future<ApiResponse<T>> get<T>(
     String path, {
     Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
       final response = await http
-          .get(uri, headers: await _headers())
+          .get(uri, headers: await _headers(extraHeaders: extraHeaders))
           .timeout(timeout, onTimeout: () {
         throw Exception('Request timeout');
       });
@@ -56,6 +62,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -66,10 +73,10 @@ class ApiClient {
       debugPrint('[API] POST $uri');
       final response = await http
           .post(
-            uri,
-            headers: await _headers(),
-            body: body != null ? jsonEncode(body) : null,
-          )
+        uri,
+        headers: await _headers(extraHeaders: extraHeaders),
+        body: body != null ? jsonEncode(body) : null,
+      )
           .timeout(timeout, onTimeout: () {
         throw Exception('Request timeout');
       });
@@ -87,20 +94,101 @@ class ApiClient {
     return get<Map<String, dynamic>>(
       path,
       queryParams: queryParams,
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 
   /// POST that returns raw JSON as data.
   Future<ApiResponse<Map<String, dynamic>>> postRaw(String path,
-      {Map<String, dynamic>? body}) async {
+      {Map<String, dynamic>? body, Map<String, String>? extraHeaders}) async {
     return post<Map<String, dynamic>>(
       path,
       body: body,
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      extraHeaders: extraHeaders,
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
+  }
+
+  /// PUT [path] with optional [body]. Returns ApiResponse<T> using [parser] for body (or body["data"] if envelope).
+  Future<ApiResponse<T>> put<T>(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
+    required T? Function(Object? dataJson) parser,
+  }) async {
+    try {
+      var uri = Uri.parse('$baseUrl$path');
+      if (queryParams != null && queryParams.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParams);
+      }
+      debugPrint('[API] PUT $uri');
+      final response = await http
+          .put(
+        uri,
+        headers: await _headers(extraHeaders: extraHeaders),
+        body: body != null ? jsonEncode(body) : null,
+      )
+          .timeout(timeout, onTimeout: () {
+        throw Exception('Request timeout');
+      });
+      debugPrint('[API] response status=${response.statusCode}');
+      return _handleResponse<T>(response, parser);
+    } catch (e) {
+      return _failureFromException(e);
+    }
+  }
+
+  /// PUT that returns raw JSON. Treats whole response body as data (for backends that return object directly, no envelope).
+  Future<ApiResponse<Map<String, dynamic>>> putRaw(String path,
+      {Map<String, dynamic>? body, Map<String, String>? extraHeaders}) async {
+    try {
+      var uri = Uri.parse('$baseUrl$path');
+      debugPrint('[API] PUT $uri');
+      final response = await http
+          .put(
+        uri,
+        headers: await _headers(extraHeaders: extraHeaders),
+        body: body != null ? jsonEncode(body) : null,
+      )
+          .timeout(timeout, onTimeout: () {
+        throw Exception('Request timeout');
+      });
+      debugPrint('[API] response status=${response.statusCode}');
+      Map<String, dynamic> json;
+      try {
+        final decoded = jsonDecode(response.body);
+        json = decoded is Map
+            ? Map<String, dynamic>.from(decoded)
+            : <String, dynamic>{};
+      } catch (_) {
+        return ApiResponse<Map<String, dynamic>>(
+          ok: false,
+          error: ApiError(code: 'PARSE_ERROR', message: 'Invalid JSON'),
+          statusCode: response.statusCode,
+        );
+      }
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse<Map<String, dynamic>>(
+          ok: true,
+          data: json,
+          statusCode: response.statusCode,
+        );
+      }
+      final errorJson = json['error'];
+      final ApiError error = errorJson != null && errorJson is Map
+          ? ApiError.fromJson(Map<String, dynamic>.from(errorJson))
+          : ApiError(
+              code: 'HTTP_${response.statusCode}',
+              message: json['detail']?.toString() ??
+                  json['message']?.toString() ??
+                  'Request failed',
+            );
+      return ApiResponse<Map<String, dynamic>>(
+          ok: false, error: error, statusCode: response.statusCode);
+    } catch (e) {
+      return _failureFromException(e);
+    }
   }
 
   ApiResponse<T> _handleResponse<T>(
@@ -125,8 +213,27 @@ class ApiClient {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final r = ApiResponse.fromJson<T>(json, parser);
-      return ApiResponse<T>(ok: r.ok, data: r.data, error: r.error, statusCode: response.statusCode);
+      final hasEnvelope = json.containsKey('ok') ||
+          json.containsKey('data') ||
+          json.containsKey('error');
+      if (hasEnvelope) {
+        final r = ApiResponse.fromJson<T>(json, parser);
+        return ApiResponse<T>(
+            ok: r.ok,
+            data: r.data,
+            error: r.error,
+            statusCode: response.statusCode);
+      }
+      final parsed = parser(json);
+      return ApiResponse<T>(
+        ok: parsed != null,
+        data: parsed,
+        error: parsed == null
+            ? ApiError(
+                code: 'PARSE_ERROR', message: 'Failed to parse success payload')
+            : null,
+        statusCode: response.statusCode,
+      );
     }
 
     // HTTP error: map to ApiResponse with error from body or status
@@ -139,7 +246,8 @@ class ApiClient {
                 json['message']?.toString() ??
                 'Request failed with status ${response.statusCode}',
           );
-    return ApiResponse<T>(ok: false, error: error, statusCode: response.statusCode);
+    return ApiResponse<T>(
+        ok: false, error: error, statusCode: response.statusCode);
   }
 
   ApiResponse<T> _failureFromException<T>(Object e) {

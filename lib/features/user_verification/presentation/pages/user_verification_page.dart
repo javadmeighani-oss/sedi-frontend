@@ -64,8 +64,9 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']?.toString() ?? 'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.'),
-              backgroundColor: Colors.red,
+              content: Text(result['message']?.toString() ??
+                  'خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.'),
+              backgroundColor: AppTheme.dangerRed,
             ),
           );
         }
@@ -85,13 +86,14 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
       );
 
       final saved = await UserProfileManager.saveProfile(profile);
-      
+
       if (!saved) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('خطا در ذخیره اطلاعات محلی. لطفاً دوباره تلاش کنید.'),
-              backgroundColor: Colors.red,
+              content:
+                  Text('خطا در ذخیره اطلاعات محلی. لطفاً دوباره تلاش کنید.'),
+              backgroundColor: AppTheme.dangerRed,
             ),
           );
         }
@@ -111,7 +113,7 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطا: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.dangerRed,
           ),
         );
       }
@@ -128,10 +130,11 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final containerWidth = screenSize.width * 0.9; // 90% of screen width
-    final containerHeight = screenSize.height * 0.25; // 25% of screen height (1/4)
+    final containerHeight =
+        screenSize.height * 0.25; // 25% of screen height (1/4)
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.background.withOpacity(0),
       body: Stack(
         children: [
           // Semi-transparent background overlay (tap to dismiss)
@@ -298,7 +301,8 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
                   ),
                 ),
               )
@@ -318,11 +322,11 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
 Future<void> showUserVerificationDialog(BuildContext context) async {
   return showDialog(
     context: context,
-    barrierColor: Colors.transparent, // We handle background in the page itself
+    barrierColor: AppTheme.background
+        .withOpacity(0), // We handle background in the page itself
     barrierDismissible: false, // Prevent dismissing by tapping outside
     builder: (BuildContext context) {
       return const UserVerificationPage();
     },
   );
 }
-

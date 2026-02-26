@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,15 +9,24 @@ import '../widgets/input_bar.dart';
 import '../widgets/lifestyle_summary_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
+import '../../../../core/preferences/notification_prefs.dart';
+import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/brand_name.dart';
+import '../../../../core/utils/user_preferences.dart';
 import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../core/widgets/app_states/app_empty_state.dart';
+import '../../../../core/widgets/app_states/app_loading_state.dart';
+import '../../../../data/models/chat_message.dart';
+import '../../../onboarding/presentation/widgets/get_to_know_you_sheet.dart';
 import 'chat_history_page.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../health/presentation/pages/vitals_page.dart';
+import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notification/data/notification_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 import '../../../notification/presentation/pages/notifications_inbox_page.dart';
+import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 /// ============================================
 /// ChatPage - صفحه اصلی چت
@@ -30,6 +40,7 @@ import '../../../notification/presentation/pages/notifications_inbox_page.dart';
 /// ============================================
 class ChatPage extends StatefulWidget {
   final String? initialMessage;
+
   /// Opened from push notification (deep link / OPEN_CHAT)
   final bool fromNotification;
   final int? notificationId;
@@ -69,8 +80,28 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _controller.initialize(initialMessage: widget.initialMessage);
     _refreshUnreadCount();
     if (widget.fromNotification) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showFromNotificationBanner());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _showFromNotificationBanner());
     }
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _maybeShowGetToKnowYou());
+  }
+
+  /// If user reached Chat without completing get-to-know-you (e.g. onboarding skipped), show once.
+  Future<void> _maybeShowGetToKnowYou() async {
+    if (!mounted) return;
+    final completed = await UserPreferences.hasCompletedGetToKnowYou();
+    if (completed || !mounted) return;
+    final profile = await UserProfileManager.loadProfile();
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => GetToKnowYouSheet(
+        userId: profile.userId,
+        prefilledName: profile.name,
+      ),
+    );
   }
 
   void _showFromNotificationBanner() {
@@ -160,10 +191,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshUnreadCount() async {
-    final profile = await UserProfileManager.loadProfile();
-    final userId = profile.userId;
+    final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
-      if (mounted) setState(() => _unreadCount = 0);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
+      );
       return;
     }
     final resp = await _notificationService.fetchUnreadList(userId: userId);
@@ -198,7 +231,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _backPressTimer?.cancel(); // Cancel timer if active
     _controller.removeListener(_onControllerChanged); // Remove listener
-    _controller.removeListener(_scrollToBottomOnNewMessage); // Remove scroll listener
+    _controller
+        .removeListener(_scrollToBottomOnNewMessage); // Remove scroll listener
     _scrollController.dispose();
     _controller.dispose();
     super.dispose();
@@ -226,16 +260,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   /// Handle back button press with double tap to exit
   bool _handleBackPress() {
     final now = DateTime.now();
-    
+
     // If this is the first tap or more than 2 seconds have passed
     if (_lastBackPressTime == null ||
         now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
       // First tap: show message and start timer
       _lastBackPressTime = now;
-      
+
       // Cancel previous timer if exists
       _backPressTimer?.cancel();
-      
+
       // Show snackbar message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -253,7 +287,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           ),
         ),
       );
-      
+
       // Reset counter after 2 seconds
       _backPressTimer = Timer(const Duration(seconds: 2), () {
         if (mounted) {
@@ -262,7 +296,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           });
         }
       });
-      
+
       return false; // Prevent exit
     } else {
       // Second tap within 2 seconds: exit app
@@ -276,8 +310,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     // Get keyboard height to position InputBar above keyboard
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isRtl = _controller.currentLanguage == 'fa' ||
+        _controller.currentLanguage == 'ar';
 
-    return PopScope(
+    final content = PopScope(
       // Prevent back navigation to IntroPage
       // IntroPage should only appear once at app start
       // Implement double tap to exit functionality
@@ -295,202 +331,315 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         resizeToAvoidBottomInset: false, // We handle keyboard manually
         body: SafeArea(
           child: Stack(
-          children: [
-            // ================= MAIN CONTENT =================
-            Column(
-              children: [
-                // ================= TOP BAR =================
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_outlined),
-                            iconSize: 24,
-                            style: IconButton.styleFrom(
-                              foregroundColor: AppTheme.primaryBlack,
-                              minimumSize: const Size(44, 44),
+            children: [
+              // ================= MAIN CONTENT =================
+              Column(
+                children: [
+                  // ================= TOP BAR =================
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.notifications_outlined),
+                              iconSize: 24,
+                              style: IconButton.styleFrom(
+                                foregroundColor: AppTheme.primaryBlack,
+                                minimumSize: const Size(44, 44),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const NotificationsInboxPage(),
+                                      ),
+                                    )
+                                    .then((_) => _refreshUnreadCount());
+                              },
                             ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const NotificationsInboxPage(),
-                                ),
-                              ).then((_) => _refreshUnreadCount());
-                            },
-                          ),
-                          if (_unreadCount != null && _unreadCount! > 0)
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                                child: Text(
-                                  _unreadCount! > 99 ? '99+' : '$_unreadCount',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
+                            if (_unreadCount != null && _unreadCount! > 0)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.primaryBlack,
+                                    shape: BoxShape.circle,
                                   ),
-                                  textDirection: TextDirection.ltr,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 18, minHeight: 18),
+                                  child: Text(
+                                    _unreadCount! > 99
+                                        ? '99+'
+                                        : '$_unreadCount',
+                                    style: const TextStyle(
+                                      color: AppTheme.backgroundWhite,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textDirection: TextDirection.ltr,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: Image.asset(
-                          'assets/icons/device_ecg_icon.png',
-                          width: 22,
-                          height: 22,
-                          fit: BoxFit.contain,
+                          ],
                         ),
-                        iconSize: 24,
-                        style: IconButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlack,
-                          minimumSize: const Size(44, 44),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const DevicesPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.favorite_border),
-                        iconSize: 24,
-                        style: IconButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlack,
-                          minimumSize: const Size(44, 44),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const VitalsPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.history),
-                        iconSize: 24,
-                        style: IconButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlack,
-                          minimumSize: const Size(44, 44),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ChatHistoryPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.schedule_outlined),
-                        iconSize: 24,
-                        style: IconButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlack,
-                          minimumSize: const Size(44, 44),
-                        ),
-                        onPressed: () => _showNotificationSettingsSheet(context),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ================= HEADER =================
-                Padding(
-                  padding: const EdgeInsets.only(top: 2.4, bottom: 16), // 20% higher (top: 12 * 0.2 = 2.4, reduced bottom: 20 * 0.8 = 16)
-                  child: SediHeader(
-                    isThinking: _controller.isThinking,
-                    isAlert: _controller.isAlert,
-                    size: 134.4, // 20% smaller (168 * 0.8 = 134.4)
-                  ),
-                ),
-
-                // ================= MESSAGES AREA =================
-                Expanded(
-                  child: Stack(
-                    children: [
-                      // لیست تمام پیام‌ها (همه در یک لیست)
-                      ListView.builder(
-                        controller: _scrollController,
-                        reverse: true, // آخرین پیام در پایین
-                        physics: const AlwaysScrollableScrollPhysics(), // Enable manual scrolling
-                        padding: EdgeInsets.only(
-                          left: 16,
-                          right: 16,
-                          top: 9.6, // 20% more space (8 * 1.2 = 9.6)
-                          bottom: keyboardHeight > 0 
-                              ? 100 // Space for input bar when keyboard is open
-                              : 100, // Space for input bar when keyboard is closed
-                        ),
-                        itemCount: _controller.messages.length,
-                        itemBuilder: (context, index) {
-                          // از آخر به اول (چون reverse: true)
-                          final reverseIndex =
-                              _controller.messages.length - 1 - index;
-                          final msg = _controller.messages[reverseIndex];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 9.6),
-                            child: MessageBubble(
-                              message: msg.text,
-                              isSedi: msg.isSedi,
-                            ),
-                          );
-                        },
-                      ),
-
-                      // دکمه بازگشت به آخرین پیام (سمت چپ پایین، بالای چت باکس)
-                      if (_scrollController.hasClients &&
-                          _scrollController.offset > 100)
-                        Positioned(
-                          left: 16,
-                          bottom: keyboardHeight > 0 
-                              ? keyboardHeight + 60 // Position above input bar when keyboard is open
-                              : 100, // Position above input bar when keyboard is closed
-                          child: _ScrollToBottomButton(
-                            scrollController: _scrollController,
-                            onTap: _scrollToBottom,
+                        IconButton(
+                          icon: Image.asset(
+                            'assets/icons/device_ecg_icon.png',
+                            width: 22,
+                            height: 22,
+                            fit: BoxFit.contain,
                           ),
+                          iconSize: 24,
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlack,
+                            minimumSize: const Size(44, 44),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DevicesPage(),
+                              ),
+                            );
+                          },
                         ),
-                    ],
+                        IconButton(
+                          icon: const Icon(Icons.favorite_border),
+                          iconSize: 24,
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlack,
+                            minimumSize: const Size(44, 44),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const VitalsPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.history),
+                          iconSize: 24,
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlack,
+                            minimumSize: const Size(44, 44),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ChatHistoryPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.self_improvement_outlined),
+                          iconSize: 24,
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlack,
+                            minimumSize: const Size(44, 44),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const LifestylePage(),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.schedule_outlined),
+                          iconSize: 24,
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlack,
+                            minimumSize: const Size(44, 44),
+                          ),
+                          onPressed: () =>
+                              _showNotificationSettingsSheet(context),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
 
-            // ================= INPUT BAR (full width within SafeArea) =================
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: keyboardHeight,
-              child: InputBar(
-                hintText: _inputHint(),
-                isRecording: _controller.isRecording,
-                recordingTime: _controller.recordingTimeFormatted,
-                onSendText: _handleSendText,
-                onStartRecording: _controller.startVoiceRecording,
-                onStopRecordingAndSend: _controller.stopVoiceRecording,
+                  // ================= HEADER =================
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: 2.4,
+                        bottom:
+                            16), // 20% higher (top: 12 * 0.2 = 2.4, reduced bottom: 20 * 0.8 = 16)
+                    child: SediHeader(
+                      isThinking: _controller.isThinking,
+                      isAlert: _controller.isAlert,
+                      size: 134.4, // 20% smaller (168 * 0.8 = 134.4)
+                    ),
+                  ),
+
+                  // ================= MESSAGES AREA =================
+                  Expanded(
+                    child: _controller.conversationState ==
+                                ConversationState.initializing &&
+                            _controller.messages.isEmpty
+                        ? const AppLoadingState(
+                            label: 'Loading conversation...')
+                        : _controller.messages.isEmpty
+                            ? const AppEmptyState(
+                                title: 'No messages yet',
+                                subtitle:
+                                    'Start by sending your first message.',
+                              )
+                            : Stack(
+                                children: [
+                                  // لیست تمام پیام‌ها (همه در یک لیست)
+                                  ListView.builder(
+                                    controller: _scrollController,
+                                    reverse: true, // آخرین پیام در پایین
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(), // Enable manual scrolling
+                                    padding: EdgeInsets.only(
+                                      left: 16,
+                                      right: 16,
+                                      top:
+                                          9.6, // 20% more space (8 * 1.2 = 9.6)
+                                      bottom: keyboardHeight > 0
+                                          ? 100 // Space for input bar when keyboard is open
+                                          : 100, // Space for input bar when keyboard is closed
+                                    ),
+                                    itemCount: _controller.messages.length +
+                                        (_controller.isThinking ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      if (_controller.isThinking &&
+                                          index == 0) {
+                                        return const Padding(
+                                          padding: EdgeInsets.only(bottom: 9.6),
+                                          child: MessageBubble(
+                                            message: '...',
+                                            isSedi: true,
+                                            showTyping: true,
+                                          ),
+                                        );
+                                      }
+                                      // از آخر به اول (چون reverse: true)
+                                      final effectiveIndex =
+                                          _controller.isThinking
+                                              ? index - 1
+                                              : index;
+                                      final reverseIndex =
+                                          _controller.messages.length -
+                                              1 -
+                                              effectiveIndex;
+                                      final msg =
+                                          _controller.messages[reverseIndex];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 9.6),
+                                        child: MessageBubble(
+                                          message: msg.text,
+                                          isSedi: msg.isSedi,
+                                          isFailed: msg.isUser &&
+                                              msg.status ==
+                                                  ChatMessageStatus.failed,
+                                          onRetry: msg.isUser &&
+                                                  msg.status ==
+                                                      ChatMessageStatus.failed
+                                              ? () => _controller
+                                                  .retryFailedMessage(
+                                                      msg.localId)
+                                              : null,
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                  // دکمه بازگشت به آخرین پیام (سمت چپ پایین، بالای چت باکس)
+                                  if (_scrollController.hasClients &&
+                                      _scrollController.offset > 100)
+                                    Positioned(
+                                      left: 16,
+                                      bottom: keyboardHeight > 0
+                                          ? keyboardHeight +
+                                              60 // Position above input bar when keyboard is open
+                                          : 100, // Position above input bar when keyboard is closed
+                                      child: _ScrollToBottomButton(
+                                        scrollController: _scrollController,
+                                        onTap: _scrollToBottom,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                  ),
+                ],
               ),
-            ),
-            
-          ],
-        ),
+
+              // ================= INPUT BAR (full width within SafeArea) =================
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: keyboardHeight,
+                child: InputBar(
+                  hintText: _inputHint(),
+                  isRecording: _controller.isRecording,
+                  recordingTime: _controller.recordingTimeFormatted,
+                  onSendText: _handleSendText,
+                  onStartRecording: () {
+                    _controller.startVoiceRecording().then((ok) {
+                      if (!mounted) return;
+                      if (ok == false) {
+                        final msg = _controller.currentLanguage == 'fa'
+                            ? 'دسترسی به میکروفون لازم است'
+                            : _controller.currentLanguage == 'ar'
+                                ? 'مطلوب إذن الميكروفون'
+                                : 'Microphone permission required';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(msg),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.only(
+                                bottom: 100, left: 16, right: 16),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  onStopRecordingAndSend: () {
+                    _controller.stopVoiceRecording().then((path) {
+                      if (!mounted) return;
+                      if (path != null) {
+                        if (kDebugMode)
+                          debugPrint('[Audio] recorded file: $path');
+                        final msg = _controller.currentLanguage == 'fa'
+                            ? 'صدایت ضبط شد'
+                            : _controller.currentLanguage == 'ar'
+                                ? 'تم تسجيل الصوت'
+                                : 'Voice recorded';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(msg),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.only(
+                                bottom: 100, left: 16, right: 16),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+
+    return Directionality(
+      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: content,
     );
   }
 }
@@ -508,10 +657,12 @@ class _LifestyleSummarySheetContent extends StatefulWidget {
   });
 
   @override
-  State<_LifestyleSummarySheetContent> createState() => _LifestyleSummarySheetContentState();
+  State<_LifestyleSummarySheetContent> createState() =>
+      _LifestyleSummarySheetContentState();
 }
 
-class _LifestyleSummarySheetContentState extends State<_LifestyleSummarySheetContent> {
+class _LifestyleSummarySheetContentState
+    extends State<_LifestyleSummarySheetContent> {
   @override
   void initState() {
     super.initState();
@@ -543,7 +694,8 @@ class _LifestyleSummarySheetContentState extends State<_LifestyleSummarySheetCon
                 children: [
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: () => widget.controller.fetchLifestyleSummary(forceRefresh: true),
+                    onPressed: () => widget.controller
+                        .fetchLifestyleSummary(forceRefresh: true),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -558,7 +710,8 @@ class _LifestyleSummarySheetContentState extends State<_LifestyleSummarySheetCon
               data: widget.controller.cachedLifestyleSummary,
               isLoading: widget.controller.lifestyleSummaryLoading,
               error: widget.controller.lifestyleSummaryError,
-              onRetry: () => widget.controller.fetchLifestyleSummary(forceRefresh: true),
+              onRetry: () =>
+                  widget.controller.fetchLifestyleSummary(forceRefresh: true),
               lang: widget.controller.currentLanguage,
             ),
           ),
@@ -568,7 +721,7 @@ class _LifestyleSummarySheetContentState extends State<_LifestyleSummarySheetCon
   }
 }
 
-/// Bottom sheet for notification settings quick actions (Stage 16.6.6).
+/// Notification Settings V1: channel toggles, quiet hours, engagement, sound. Persisted locally.
 class _NotificationSettingsSheet extends StatefulWidget {
   final void Function(String text) onSend;
   final String lang;
@@ -576,16 +729,55 @@ class _NotificationSettingsSheet extends StatefulWidget {
   const _NotificationSettingsSheet({required this.onSend, required this.lang});
 
   @override
-  State<_NotificationSettingsSheet> createState() => _NotificationSettingsSheetState();
+  State<_NotificationSettingsSheet> createState() =>
+      _NotificationSettingsSheetState();
 }
 
-class _NotificationSettingsSheetState extends State<_NotificationSettingsSheet> {
-  final _timezoneController = TextEditingController(text: 'timezone: Asia/Tehran');
+class _NotificationSettingsSheetState
+    extends State<_NotificationSettingsSheet> {
+  bool _loaded = false;
+  final Map<String, bool> _channelEnabled = {};
+  String _quietStart = kDefaultQuietStart;
+  String _quietEnd = kDefaultQuietEnd;
+  String _engagementLevel = kDefaultEngagementLevel;
+  String _soundKey = kDefaultSoundKey;
 
   @override
-  void dispose() {
-    _timezoneController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    try {
+      final start = await NotificationPrefs.getQuietHoursStart();
+      final end = await NotificationPrefs.getQuietHoursEnd();
+      final engagement = await NotificationPrefs.getEngagementLevel();
+      final sound = await NotificationPrefs.getSoundKey();
+      final channelMap = <String, bool>{};
+      for (final ch in kNotificationChannels) {
+        channelMap[ch] = await NotificationPrefs.getChannelEnabled(ch);
+      }
+      if (mounted) {
+        setState(() {
+          _quietStart = start;
+          _quietEnd = end;
+          _engagementLevel = engagement;
+          _soundKey = sound;
+          _channelEnabled.addAll(channelMap);
+          _loaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          for (final ch in kNotificationChannels) {
+            _channelEnabled[ch] = true;
+          }
+          _loaded = true;
+        });
+      }
+    }
   }
 
   String _l(String en, String fa, String ar) {
@@ -594,72 +786,221 @@ class _NotificationSettingsSheetState extends State<_NotificationSettingsSheet> 
     return en;
   }
 
+  String _channelLabel(String channel) {
+    switch (channel) {
+      case 'companion':
+        return _l('Companion', 'همراه', 'الرفيق');
+      case 'health_alert':
+        return _l('Health alerts', 'هشدار سلامت', 'تنبيهات الصحة');
+      case 'medication':
+        return _l('Medication', 'دارو', 'الدواء');
+      case 'appointment':
+        return _l('Appointment', 'نوبت', 'الموعد');
+      case 'system':
+        return _l('System', 'سیستم', 'النظام');
+      default:
+        return channel;
+    }
+  }
+
+  Future<void> _pickTime(bool isStart) async {
+    final current = isStart ? _quietStart : _quietEnd;
+    final parts = current.split(':');
+    var h = 22;
+    var m = 30;
+    if (parts.length >= 2) {
+      h = int.tryParse(parts[0]) ?? h;
+      m = int.tryParse(parts[1]) ?? m;
+    }
+    final initial = TimeOfDay(hour: h.clamp(0, 23), minute: m.clamp(0, 59));
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+    );
+    if (picked == null || !mounted) return;
+    final value =
+        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    if (isStart) {
+      await NotificationPrefs.setQuietHoursStart(value);
+      if (mounted) setState(() => _quietStart = value);
+    } else {
+      await NotificationPrefs.setQuietHoursEnd(value);
+      if (mounted) setState(() => _quietEnd = value);
+    }
+  }
+
+  Widget _buildContent(BuildContext context) {
+    if (!_loaded) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppTheme.pistachioGreen),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _l('Notification settings', 'تنظیمات اعلان‌ها',
+                'إعدادات الإشعارات'),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryBlack,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Channel toggles
+          Text(
+            _l('Channels', 'کانال‌ها', 'القنوات'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...kNotificationChannels.map((channel) {
+            final enabled = _channelEnabled[channel] ?? true;
+            return SwitchListTile(
+              value: enabled,
+              onChanged: (v) async {
+                await NotificationPrefs.setChannelEnabled(channel, v);
+                if (mounted) setState(() => _channelEnabled[channel] = v);
+              },
+              title: Text(
+                _channelLabel(channel),
+                style:
+                    const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
+              ),
+            );
+          }),
+          const SizedBox(height: 16),
+          // Quiet hours
+          Text(
+            _l('Quiet hours', 'ساعات سکوت', 'ساعات الهدوء'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.bedtime_outlined,
+                      color: AppTheme.primaryBlack, size: 22),
+                  title:
+                      Text(_quietStart, style: const TextStyle(fontSize: 15)),
+                  subtitle: Text(_l('Start', 'شروع', 'بداية'),
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  onTap: () => _pickTime(true),
+                ),
+              ),
+              Expanded(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.wb_sunny_outlined,
+                      color: AppTheme.primaryBlack, size: 22),
+                  title: Text(_quietEnd, style: const TextStyle(fontSize: 15)),
+                  subtitle: Text(_l('End', 'پایان', 'نهاية'),
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  onTap: () => _pickTime(false),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Engagement frequency
+          Text(
+            _l('Companion frequency', 'تکرار همراه', 'تكرار الرفيق'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: ['low', 'normal', 'high'].map((level) {
+              final isSelected = _engagementLevel == level;
+              final label = level == 'low'
+                  ? _l('Low', 'کم', 'منخفض')
+                  : level == 'high'
+                      ? _l('High', 'زیاد', 'عالي')
+                      : _l('Normal', 'معمولی', 'عادي');
+              return ChoiceChip(
+                label: Text(label),
+                selected: isSelected,
+                onSelected: (v) async {
+                  if (!v) return;
+                  await NotificationPrefs.setEngagementLevel(level);
+                  if (mounted) setState(() => _engagementLevel = level);
+                },
+                selectedColor: AppTheme.pistachioGreen.withOpacity(0.3),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          // Sound
+          Text(
+            _l('Sound', 'صدای اعلان', 'صوت الإشعار'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...kSoundKeys.map((key) {
+            final label = key == 'default'
+                ? _l('Default', 'پیش‌فرض', 'افتراضي')
+                : key == 'soft'
+                    ? _l('Soft', 'ملایم', 'ناعم')
+                    : key == 'chime'
+                        ? _l('Chime', 'زنگ', 'نغمة')
+                        : key == 'pulse'
+                            ? _l('Pulse', 'پالس', 'نبض')
+                            : _l('Silent', 'بی‌صدا', 'صامت');
+            return RadioListTile<String>(
+              value: key,
+              groupValue: _soundKey,
+              onChanged: (v) async {
+                if (v == null) return;
+                await NotificationPrefs.setSoundKey(v);
+                if (mounted) setState(() => _soundKey = v);
+              },
+              title: Text(label, style: const TextStyle(fontSize: 15)),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isRtl = widget.lang == 'fa' || widget.lang == 'ar';
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _l('Notification settings', 'تنظیمات اعلان‌ها', 'إعدادات الإشعارات'),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryBlack,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(Icons.public, color: AppTheme.primaryBlack, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _timezoneController,
-                    decoration: const InputDecoration(
-                      hintText: 'timezone: Asia/Tehran',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      isDense: true,
-                    ),
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () {
-                    final t = _timezoneController.text.trim();
-                    if (t.isNotEmpty) widget.onSend(t);
-                  },
-                  child: Text(_l('Send', 'ارسال', 'إرسال')),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.bedtime_outlined, color: AppTheme.primaryBlack, size: 24),
-              title: Text(_l('Set quiet hours 22:00–08:00', 'تنظیم ساعات سکوت', 'تعيين ساعات الهدوء')),
-              trailing: FilledButton(
-                onPressed: () => widget.onSend('quiet hours 22:00-08:00'),
-                child: Text(_l('Send', 'ارسال', 'إرسال')),
-              ),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.notifications_off_outlined, color: AppTheme.primaryBlack, size: 24),
-              title: Text(_l('Disable quiet hours', 'خاموش کردن ساعات سکوت', 'إيقاف ساعات الهدوء')),
-              trailing: FilledButton(
-                onPressed: () => widget.onSend('disable quiet hours'),
-                child: Text(_l('Send', 'ارسال', 'إرسال')),
-              ),
-            ),
-          ],
-        ),
+      child: Directionality(
+        textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+        child: _buildContent(context),
       ),
     );
   }
@@ -668,7 +1009,7 @@ class _NotificationSettingsSheetState extends State<_NotificationSettingsSheet> 
 /// ============================================
 /// ScrollToBottomButton - دکمه برگشت به آخرین چت
 /// ============================================
-/// 
+///
 /// آیکن مثلث برعکس سفید داخل کادر دایره‌ای مشکی
 /// با کلیک رنگ کادر دایره‌ای به خاکستری تغییر می‌کند
 /// ============================================

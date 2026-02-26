@@ -36,7 +36,10 @@ class _InputBarState extends State<InputBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  static const double _pillHeight = 56.0;
+  static const double _pillMinHeight = 56.0;
+
+  /// Max height for multi-line input (~6 lines at 16px font + line spacing)
+  static const double _pillMaxHeight = 140.0;
   static const double _pillRadius = 18.0;
   static const double _internalPadding = 16.0;
   static const double _iconTapSize = 44.0;
@@ -79,9 +82,13 @@ class _InputBarState extends State<InputBar> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(_internalPadding, 8, _internalPadding, 8),
+      padding:
+          const EdgeInsets.fromLTRB(_internalPadding, 8, _internalPadding, 8),
       child: Container(
-        height: _pillHeight,
+        constraints: const BoxConstraints(
+          minHeight: _pillMinHeight,
+          maxHeight: _pillMaxHeight,
+        ),
         decoration: BoxDecoration(
           color: AppTheme.backgroundWhite,
           borderRadius: BorderRadius.circular(_pillRadius),
@@ -91,42 +98,57 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
         child: Material(
-          color: Colors.transparent,
+          color: AppTheme.backgroundWhite.withOpacity(0),
           child: InkWell(
             borderRadius: BorderRadius.circular(_pillRadius),
             onTap: () {
-              if (!widget.isRecording) FocusScope.of(context).requestFocus(_focusNode);
+              if (!widget.isRecording)
+                FocusScope.of(context).requestFocus(_focusNode);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: widget.isRecording
                         ? _buildRecordingContent()
-                        : TextField(
-                            controller: _textController,
-                            focusNode: _focusNode,
-                            enabled: !widget.isRecording,
-                            maxLines: 1,
-                            decoration: InputDecoration.collapsed(
-                              hintText: widget.hintText,
-                              hintStyle: const TextStyle(
-                                color: AppTheme.textSecondary,
+                        : ConstrainedBox(
+                            constraints: const BoxConstraints(
+                                maxHeight: _pillMaxHeight - 16),
+                            child: TextField(
+                              controller: _textController,
+                              focusNode: _focusNode,
+                              enabled: !widget.isRecording,
+                              minLines: 1,
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              decoration: InputDecoration.collapsed(
+                                hintText: widget.hintText,
+                                hintStyle: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
                                 fontSize: 16,
                               ),
+                              onSubmitted: (_) => _sendText(),
                             ),
-                            style: const TextStyle(
-                              color: AppTheme.textPrimary,
-                              fontSize: 16,
-                            ),
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => _sendText(),
                           ),
                   ),
                   const SizedBox(width: 8),
-                  if (isRtl) ...[_buildSendButton(hasText), const SizedBox(width: 4), _buildMicButton()] else ...[_buildMicButton(), const SizedBox(width: 4), _buildSendButton(hasText)],
+                  if (isRtl) ...[
+                    _buildSendButton(hasText),
+                    const SizedBox(width: 4),
+                    _buildMicButton()
+                  ] else ...[
+                    _buildMicButton(),
+                    const SizedBox(width: 4),
+                    _buildSendButton(hasText)
+                  ],
                 ],
               ),
             ),
@@ -198,7 +220,9 @@ class _InputBarState extends State<InputBar> {
           child: Icon(
             Icons.mic_rounded,
             size: 26,
-            color: widget.isRecording ? AppTheme.iconInactive : AppTheme.primaryBlack,
+            color: widget.isRecording
+                ? AppTheme.iconInactive
+                : AppTheme.primaryBlack,
           ),
         ),
       ),

@@ -1,6 +1,5 @@
 /// NotificationCard - Apple-like minimal UI.
-/// Neutral surfaces, subtle borders, Like/Dislike with selected state.
-/// Keeps import alias to avoid Flutter Notification name clash.
+/// Like/Dislike with selected state; dislike opens reason picker (V1: too_frequent, irrelevant, unclear).
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/notification.dart' as sedi;
@@ -8,6 +7,13 @@ import '../../../../data/models/notification_feedback.dart';
 import '../../utils/notification_ui_mapping.dart';
 
 enum SelectedReaction { none, like, dislike }
+
+/// Dislike reason labels (FA): خیلی زیاد بود, مرتبط نبود, واضح نبود
+const Map<String, String> _dislikeReasonLabels = {
+  'too_frequent': 'خیلی زیاد بود',
+  'irrelevant': 'مرتبط نبود',
+  'unclear': 'واضح نبود',
+};
 
 class NotificationCard extends StatelessWidget {
   final sedi.Notification notification;
@@ -155,19 +161,66 @@ class NotificationCard extends StatelessWidget {
   Widget _dislikeButton(BuildContext context) {
     final isSelected = selectedReaction == SelectedReaction.dislike;
     return GestureDetector(
-      onTap: () {
-        final feedback = NotificationFeedback.create(
-          notificationId: notification.id,
-          actionId: actionTapDislike,
-          reaction: FeedbackReaction.dislike,
-        );
-        onDislike(feedback);
-      },
+      onTap: () => _openDislikeReasonPicker(context),
       child: Icon(
         Icons.thumb_down_alt_outlined,
         size: 20,
         color: isSelected ? AppTheme.metalGrey : AppTheme.iconInactive,
       ),
     );
+  }
+
+  Future<void> _openDislikeReasonPicker(BuildContext context) async {
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppTheme.backgroundWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'مفید نبود',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...kFeedbackReasonValues.map((value) {
+                final label = _dislikeReasonLabels[value] ?? value;
+                return ListTile(
+                  title: Text(label, style: const TextStyle(color: AppTheme.textPrimary)),
+                  onTap: () => Navigator.of(ctx).pop(value),
+                );
+              }),
+              ListTile(
+                title: Text(
+                  'بدون دلیل',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                ),
+                onTap: () => Navigator.of(ctx).pop(null),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final feedback = NotificationFeedback.create(
+      notificationId: notification.id,
+      actionId: actionTapDislike,
+      reaction: FeedbackReaction.dislike,
+      reason: reason,
+    );
+    onDislike(feedback);
   }
 }

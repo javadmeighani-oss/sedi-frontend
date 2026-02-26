@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// Dialog for language selection
 class LanguageSelectionDialog extends StatelessWidget {
@@ -63,7 +64,7 @@ class LanguageSelectionDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -89,7 +90,7 @@ class LanguageSelectionDialog extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -98,7 +99,7 @@ class LanguageSelectionDialog extends StatelessWidget {
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Colors.grey.shade400,
+              color: AppTheme.iconInactive,
             ),
           ],
         ),
@@ -106,4 +107,3 @@ class LanguageSelectionDialog extends StatelessWidget {
     );
   }
 }
-

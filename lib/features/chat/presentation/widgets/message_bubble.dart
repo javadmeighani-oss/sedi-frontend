@@ -4,16 +4,24 @@ import '../../../../core/theme/app_theme.dart';
 class MessageBubble extends StatelessWidget {
   final String message;
   final bool isSedi;
+  final bool isFailed;
+  final VoidCallback? onRetry;
+  final bool showTyping;
 
   const MessageBubble({
     super.key,
     required this.message,
     required this.isSedi,
+    this.isFailed = false,
+    this.onRetry,
+    this.showTyping = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final alignment = isSedi ? AlignmentDirectional.centerStart : AlignmentDirectional.centerEnd;
+    final alignment = isSedi
+        ? AlignmentDirectional.centerStart
+        : AlignmentDirectional.centerEnd;
 
     final backgroundColor = isSedi
         ? AppTheme.backgroundWhite
@@ -54,15 +62,66 @@ class MessageBubble extends StatelessWidget {
           ),
           boxShadow: AppTheme.softShadow,
         ),
-        child: Text(
-          message,
-          textAlign: TextAlign.start,
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 15,
-            height: 1.45,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showTyping)
+              const _TypingDots()
+            else
+              Text(
+                message,
+                textAlign: TextAlign.start,
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 15,
+                  height: 1.45,
+                ),
+              ),
+            if (isFailed && onRetry != null) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: onRetry,
+                child: const Text(
+                  'Tap to retry',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _TypingDots extends StatelessWidget {
+  const _TypingDots();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _dot(),
+        const SizedBox(width: 4),
+        _dot(),
+        const SizedBox(width: 4),
+        _dot(),
+      ],
+    );
+  }
+
+  Widget _dot() {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: const BoxDecoration(
+        color: AppTheme.iconInactive,
+        shape: BoxShape.circle,
       ),
     );
   }

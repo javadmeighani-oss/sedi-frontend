@@ -48,12 +48,17 @@ enum FeedbackReaction {
   }
 }
 
+/// Feedback reason (V1 optional): too_frequent | irrelevant | unclear
+const List<String> kFeedbackReasonValues = ['too_frequent', 'irrelevant', 'unclear'];
+
 /// Feedback Payload (Contract Section 5)
 class NotificationFeedback {
   final String notificationId;
   final String? actionId;
   final FeedbackReaction reaction;
   final String? feedbackText;
+  /// Optional V1 reason: too_frequent | irrelevant | unclear (included in toBackendJson when set).
+  final String? reason;
   final String timestamp; // ISO 8601 datetime string
 
   NotificationFeedback({
@@ -61,6 +66,7 @@ class NotificationFeedback {
     this.actionId,
     required this.reaction,
     this.feedbackText,
+    this.reason,
     required this.timestamp,
   });
 
@@ -70,16 +76,21 @@ class NotificationFeedback {
       if (actionId != null) 'action_id': actionId,
       'reaction': reaction.toContractString(),
       if (feedbackText != null) 'feedback_text': feedbackText,
+      if (reason != null) 'reason': reason,
       'timestamp': timestamp,
     };
   }
 
-  /// Backend contract (Release B2): feedback (positive|negative|neutral), reason?, action?
+  /// Backend contract: reaction, timestamp, reason? (optional). Legacy: feedback, action still sent for compatibility.
   Map<String, dynamic> toBackendJson() {
+    final reasonValue = (reason != null && reason!.isNotEmpty) ? reason : feedbackText;
     final feedback = _reactionToBackendFeedback(reaction);
     return {
+      'reaction': reaction.toContractString(),
+      'timestamp': timestamp,
+      if (reasonValue != null && reasonValue.isNotEmpty) 'reason': reasonValue,
+      if (actionId != null && actionId!.isNotEmpty) 'action_id': actionId,
       'feedback': feedback,
-      if (feedbackText != null && feedbackText!.isNotEmpty) 'reason': feedbackText,
       if (actionId != null && actionId!.isNotEmpty) 'action': actionId,
     };
   }
@@ -102,12 +113,14 @@ class NotificationFeedback {
     String? actionId,
     required FeedbackReaction reaction,
     String? feedbackText,
+    String? reason,
   }) {
     return NotificationFeedback(
       notificationId: notificationId,
       actionId: actionId,
       reaction: reaction,
       feedbackText: feedbackText,
+      reason: reason,
       timestamp: DateTime.now().toIso8601String(),
     );
   }

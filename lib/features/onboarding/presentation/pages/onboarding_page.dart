@@ -1,14 +1,28 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../core/utils/user_preferences.dart';
+import '../../../../core/utils/messages.dart';
 import '../../../../core/utils/gender_guess.dart';
 import '../../../../data/models/user_profile.dart';
+import '../../../../data/repositories/user_knowledge_repository.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../services/push/push_service.dart';
 import '../../../chat/chat_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../chat/presentation/widgets/sedi_header.dart';
+
+/// Canonical goal keys for backend and local storage.
+const List<String> _goalKeys = [
+  'better_sleep',
+  'less_stress',
+  'reduce_pain',
+  'more_energy',
+  'weight_management',
+  'healthy_habits',
+];
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -23,6 +37,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   bool _isFormValid = false;
   bool _isSubmitting = false;
+  String _languagePref = 'auto';
+  final List<String> _selectedGoals = [];
 
   String _getSystemLanguage() {
     final locale = ui.PlatformDispatcher.instance.locale;
@@ -89,13 +105,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
   /// ============================================
   Future<void> _submitForm() async {
     debugPrint('[OnboardingPage] ========== SUBMIT FORM START ==========');
-    
+
     // Pre-flight checks
     if (_isSubmitting || !_isFormValid) {
-      debugPrint('[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
+      debugPrint(
+          '[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
       return;
     }
-    
+
     if (!(_formKey.currentState?.validate() ?? false)) {
       debugPrint('[OnboardingPage] ⚠️ Form validation failed');
       return;
@@ -105,15 +122,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
       debugPrint('[OnboardingPage] ⚠️ Widget not mounted, aborting');
       return;
     }
-    
+
     setState(() {
       _isSubmitting = true;
     });
-    
+
     final name = _nameController.text.trim();
     final systemLanguage = _getSystemLanguage();
 
-    debugPrint('[OnboardingPage] Form data: name="$name", language=$systemLanguage');
+    debugPrint(
+        '[OnboardingPage] Form data: name="$name", language=$systemLanguage');
 
     // ============================================
     // STEP 4: FIX try/catch STRUCTURE
@@ -123,7 +141,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // ============================================
     Map<String, dynamic>? onboardingResponse;
     Exception? onboardingException;
-    
+
     try {
       debugPrint('[OnboardingPage] ===== CALLING ONBOARDING API =====');
       final chatService = ChatService();
@@ -152,18 +170,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
         });
         final errorString = onboardingException.toString().toLowerCase();
         String errorMessage;
-        if (errorString.contains('timeout') || 
-            errorString.contains('connection') || 
+        if (errorString.contains('timeout') ||
+            errorString.contains('connection') ||
             errorString.contains('network') ||
             errorString.contains('socket')) {
-          errorMessage = 'Connection error. Please check your internet and try again.';
+          errorMessage =
+              'Connection error. Please check your internet and try again.';
         } else {
           errorMessage = 'Registration failed. Please try again.';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.dangerRed,
             duration: const Duration(seconds: 5),
           ),
         );
@@ -181,7 +200,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registration failed. Please try again.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.dangerRed,
             duration: Duration(seconds: 5),
           ),
         );
@@ -194,14 +213,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // ============================================
     debugPrint('[OnboardingPage] ===== ONBOARDING RESPONSE =====');
     debugPrint('[OnboardingPage] Full response: $onboardingResponse');
-    debugPrint('[OnboardingPage] Response keys: ${onboardingResponse.keys.toList()}');
-    
+    debugPrint(
+        '[OnboardingPage] Response keys: ${onboardingResponse.keys.toList()}');
+
     // Extract user_id
     final userId = onboardingResponse['user_id'];
     debugPrint('[OnboardingPage] USER_ID from response: $userId');
     debugPrint('[OnboardingPage] USER_ID type: ${userId?.runtimeType}');
     debugPrint('[OnboardingPage] USER_ID is null: ${userId == null}');
-    
+
     // Parse user_id to int
     int? userIdInt;
     if (userId == null) {
@@ -213,9 +233,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     } else {
       userIdInt = int.tryParse(userId.toString());
     }
-    
+
     debugPrint('[OnboardingPage] USER_ID parsed: $userIdInt');
-    debugPrint('[OnboardingPage] USER_ID is null after parsing: ${userIdInt == null}');
+    debugPrint(
+        '[OnboardingPage] USER_ID is null after parsing: ${userIdInt == null}');
     debugPrint('[OnboardingPage] ===== END ONBOARDING RESPONSE =====');
 
     // ============================================
@@ -224,15 +245,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // If user_id is null → registration FAILED
     if (!AppConfig.useLocalMode && userIdInt == null) {
       debugPrint('[OnboardingPage] ❌ ERROR: user_id is null');
-      debugPrint('[OnboardingPage] Exact place where error banner is triggered: user_id check failed');
+      debugPrint(
+          '[OnboardingPage] Exact place where error banner is triggered: user_id check failed');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(onboardingResponse['message']?.toString() ?? 'Registration failed. Please try again.'),
-            backgroundColor: Colors.red,
+            content: Text(onboardingResponse['message']?.toString() ??
+                'Registration failed. Please try again.'),
+            backgroundColor: AppTheme.dangerRed,
             duration: const Duration(seconds: 5),
           ),
         );
@@ -246,7 +269,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Registration is SUCCESSFUL
     // SAVE user_id, MARK as SUCCESS, NAVIGATE, RETURN IMMEDIATELY
     // ============================================
-    debugPrint('[OnboardingPage] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
+    debugPrint(
+        '[OnboardingPage] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
     debugPrint('[OnboardingPage] Proceeding to save profile and navigate...');
 
     // ============================================
@@ -259,7 +283,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // - DO NOT show ANY error related to chat
     // Registration == user creation ONLY
     // ============================================
-    
+
     // Soft gender guess from name (optional, not shown in UI)
     final guessed = guessGender(name, systemLanguage);
     final guessedGenderValue = guessedGenderToValue(guessed);
@@ -268,18 +292,49 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final profile = UserProfile(
         name: name.isNotEmpty ? name : null,
         securityPassword: null,
-        preferredLanguage: onboardingResponse['language']?.toString() ?? systemLanguage,
+        preferredLanguage:
+            onboardingResponse['language']?.toString() ?? systemLanguage,
         userId: userIdInt,
         guessedGender: guessedGenderValue,
         hasSecurityPassword: false,
         securityPasswordSetAt: null,
         isVerified: true,
       );
-      
+
       debugPrint('[OnboardingPage] Saving profile with userId: $userIdInt');
       await UserProfileManager.saveProfile(profile);
       debugPrint('[OnboardingPage] Profile saved successfully');
       await tryRegisterStoredTokenAfterLogin();
+
+      // Stage 24 UX Pack 02: persist get-to-know-you locally
+      await UserPreferences.savePreferredName(name);
+      await UserPreferences.saveLanguagePref(_languagePref);
+      await UserPreferences.saveGoals(List<String>.from(_selectedGoals));
+      await UserPreferences.setGetToKnowYouCompleted(true);
+
+      // Best-effort backend sync (fail-open; do not block)
+      if (userIdInt != null && !AppConfig.useLocalMode) {
+        final resolvedLang =
+            _languagePref == 'auto' ? systemLanguage : _languagePref;
+        final goalsJson =
+            _selectedGoals.isEmpty ? null : jsonEncode(_selectedGoals);
+        try {
+          final repo = UserKnowledgeRepository();
+          final resp = await repo.upsertKnowledge(
+            userId: userIdInt,
+            displayName: name,
+            language: resolvedLang,
+            goalsJson: goalsJson,
+          );
+          if (!resp.ok) {
+            debugPrint(
+                '[OnboardingPage] PUT /user/knowledge failed (best-effort): ${resp.errorMessage}');
+          }
+        } catch (e) {
+          debugPrint(
+              '[OnboardingPage] PUT /user/knowledge exception (best-effort): $e');
+        }
+      }
     } catch (saveError) {
       debugPrint('[OnboardingPage] ❌ Error saving profile: $saveError');
       if (mounted) {
@@ -289,7 +344,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Error saving profile. Please try again.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.dangerRed,
             duration: Duration(seconds: 5),
           ),
         );
@@ -311,7 +366,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Extract initial message (may be empty if chat failed - that's OK)
     final initialMessage = onboardingResponse['message']?.toString() ?? '';
     debugPrint('[OnboardingPage] Initial message: "$initialMessage"');
-    debugPrint('[OnboardingPage] Note: Message may be empty if chat failed - that is OK, chat handles it separately');
+    debugPrint(
+        '[OnboardingPage] Note: Message may be empty if chat failed - that is OK, chat handles it separately');
 
     // Navigate to chat (OUTSIDE try/catch)
     debugPrint('[OnboardingPage] Navigating to ChatPage...');
@@ -320,22 +376,42 @@ class _OnboardingPageState extends State<OnboardingPage> {
         builder: (context) => ChatPage(initialMessage: initialMessage),
       ),
     );
-    
+
     debugPrint('[OnboardingPage] ✅ Navigation completed');
     debugPrint('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
-    
+
     // Registration is COMPLETE - no error banner should appear
+  }
+
+  String _getGoalLabel(String key) {
+    final lang = _getSystemLanguage();
+    switch (key) {
+      case 'better_sleep':
+        return AppMessages.getGoalBetterSleep(lang);
+      case 'less_stress':
+        return AppMessages.getGoalLessStress(lang);
+      case 'reduce_pain':
+        return AppMessages.getGoalReducePain(lang);
+      case 'more_energy':
+        return AppMessages.getGoalMoreEnergy(lang);
+      case 'weight_management':
+        return AppMessages.getGoalWeightManagement(lang);
+      case 'healthy_habits':
+        return AppMessages.getGoalHealthyHabits(lang);
+      default:
+        return key;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final containerWidth = screenSize.width * 0.9;
-    final containerHeight = 200.0;
+    final lang = _getSystemLanguage();
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -348,26 +424,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
             Expanded(
-              child: Center(
-                child: Container(
-                  width: containerWidth,
-                  height: containerHeight,
-                  decoration: BoxDecoration(
-                    color: AppTheme.metalGrey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  ),
-                  child: Padding(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Container(
+                    width: containerWidth,
+                    margin: const EdgeInsets.only(bottom: 24),
                     padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.metalGrey.withOpacity(0.3),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusMedium),
+                    ),
                     child: Form(
                       key: _formKey,
                       child: Column(
-                        mainAxisSize: MainAxisSize.max,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildNameSection(),
-                          const Spacer(),
+                          _buildNameSection(lang),
+                          const SizedBox(height: 16),
+                          _buildLanguageSection(lang),
+                          const SizedBox(height: 16),
+                          _buildGoalsSection(lang),
+                          const SizedBox(height: 20),
                           _buildSubmitButton(),
-                          const SizedBox(height: 8),
                         ],
                       ),
                     ),
@@ -381,14 +461,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _buildNameSection() {
+  Widget _buildNameSection(String lang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8, left: 4),
           child: Text(
-            'Name',
+            AppMessages.getPreferredNameLabel(lang),
             style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 14,
@@ -410,9 +490,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: 'Enter your name',
-                hintStyle: TextStyle(color: AppTheme.textPrimary.withOpacity(0.5)),
+                hintStyle:
+                    TextStyle(color: AppTheme.textPrimary.withOpacity(0.5)),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               style: const TextStyle(
                 color: AppTheme.textPrimary,
@@ -432,11 +514,98 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  Widget _buildLanguageSection(String lang) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4),
+          child: Text(
+            AppMessages.getLanguageLabel(lang),
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppTheme.primaryBlack, width: 1.5),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _languagePref,
+              isExpanded: true,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              dropdownColor: AppTheme.metalGrey.withOpacity(0.95),
+              items: const [
+                DropdownMenuItem(value: 'auto', child: Text('Auto')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+                DropdownMenuItem(value: 'fa', child: Text('فارسی')),
+                DropdownMenuItem(value: 'ar', child: Text('العربية')),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _languagePref = value);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoalsSection(String lang) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4),
+          child: Text(
+            AppMessages.getGoalsLabel(lang),
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _goalKeys.map((key) {
+            final selected = _selectedGoals.contains(key);
+            final atMax = _selectedGoals.length >= 3 && !selected;
+            return FilterChip(
+              label: Text(_getGoalLabel(key)),
+              selected: selected,
+              onSelected: atMax
+                  ? null
+                  : (v) {
+                      setState(() {
+                        if (v) {
+                          if (_selectedGoals.length < 3)
+                            _selectedGoals.add(key);
+                        } else {
+                          _selectedGoals.remove(key);
+                        }
+                      });
+                    },
+              selectedColor: AppTheme.primaryBlack.withOpacity(0.2),
+              checkmarkColor: AppTheme.primaryBlack,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSubmitButton() {
     const buttonSize = 58.0;
     const iconSize = 34.0;
     final isEnabled = _isFormValid && !_isSubmitting;
-    
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: isEnabled ? _submitForm : null,
@@ -454,7 +623,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
                   ),
                 ),
               )

@@ -5,6 +5,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../logic/vitals_cache.dart';
 import '../../logic/vitals_controller.dart';
+import 'health_alerts_page.dart';
+import 'heart_rate_page.dart';
 import '../widgets/vital_value_tile.dart';
 
 class VitalsPage extends StatefulWidget {
@@ -45,6 +47,53 @@ class _VitalsPageState extends State<VitalsPage> {
     Widget body = ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const HeartRatePage()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.borderInactive),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusMedium),
+                    ),
+                  ),
+                  child: const Text(
+                    'Heart Rate',
+                    style: TextStyle(color: AppTheme.textPrimary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const HealthAlertsPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlack,
+                    foregroundColor: AppTheme.backgroundWhite,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusMedium),
+                    ),
+                  ),
+                  child: const Text('Health Alerts'),
+                ),
+              ),
+            ],
+          ),
+        ),
         // View-only note
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -71,7 +120,9 @@ class _VitalsPageState extends State<VitalsPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                _controller.lastSource == kSourceServer ? 'Source: Server' : 'Source: Local',
+                _controller.lastSource == kSourceServer
+                    ? 'Source: Server'
+                    : 'Source: Local',
                 style: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -84,9 +135,14 @@ class _VitalsPageState extends State<VitalsPage> {
         if (_loadingCache)
           const Padding(
             padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator(color: AppTheme.pistachioGreen)),
+            child: Center(
+                child:
+                    CircularProgressIndicator(color: AppTheme.pistachioGreen)),
           )
-        else if (_controller.lastVitals == null || (_controller.lastVitals!.heartRate == null && _controller.lastVitals!.spo2 == null && _controller.lastVitals!.temperature == null))
+        else if (_controller.lastVitals == null ||
+            (_controller.lastVitals!.heartRate == null &&
+                _controller.lastVitals!.spo2 == null &&
+                _controller.lastVitals!.temperature == null))
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Text(
@@ -96,11 +152,20 @@ class _VitalsPageState extends State<VitalsPage> {
           )
         else ...[
           if (_controller.lastVitals!.heartRate != null)
-            VitalValueTile(label: 'Heart rate', value: _controller.lastVitals!.heartRate!.round().toString(), unit: 'bpm'),
+            VitalValueTile(
+                label: 'Heart rate',
+                value: _controller.lastVitals!.heartRate!.round().toString(),
+                unit: 'bpm'),
           if (_controller.lastVitals!.spo2 != null)
-            VitalValueTile(label: 'SpO2', value: _controller.lastVitals!.spo2!.round().toString(), unit: '%'),
+            VitalValueTile(
+                label: 'SpO2',
+                value: _controller.lastVitals!.spo2!.round().toString(),
+                unit: '%'),
           if (_controller.lastVitals!.temperature != null)
-            VitalValueTile(label: 'Temperature', value: _controller.lastVitals!.temperature!.toStringAsFixed(1), unit: '°C'),
+            VitalValueTile(
+                label: 'Temperature',
+                value: _controller.lastVitals!.temperature!.toStringAsFixed(1),
+                unit: '°C'),
           if (_controller.lastVitals!.createdAt != null)
             VitalValueTile(
               label: 'Recorded',
@@ -164,7 +229,10 @@ class _VitalsPageState extends State<VitalsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: AppTheme.backgroundWhite,
-            border: Border(bottom: BorderSide(color: AppTheme.borderInactive.withOpacity(0.5), width: 0.5)),
+            border: Border(
+                bottom: BorderSide(
+                    color: AppTheme.borderInactive.withOpacity(0.5),
+                    width: 0.5)),
           ),
           child: Row(
             children: [
@@ -193,10 +261,13 @@ class _VitalsPageState extends State<VitalsPage> {
               spacing: 8,
               runSpacing: 6,
               children: history.take(5).map((CachedVitals e) {
-                final time = e.createdAt != null ? _formatDate(e.createdAt!) : '—';
-                final hr = e.heartRate != null ? '${e.heartRate!.round()} bpm' : '—';
+                final time =
+                    e.createdAt != null ? _formatDate(e.createdAt!) : '—';
+                final hr =
+                    e.heartRate != null ? '${e.heartRate!.round()} bpm' : '—';
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.borderInactive.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -204,9 +275,17 @@ class _VitalsPageState extends State<VitalsPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(time, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12), textDirection: TextDirection.ltr),
+                      Text(time,
+                          style: TextStyle(
+                              color: AppTheme.textSecondary, fontSize: 12),
+                          textDirection: TextDirection.ltr),
                       const SizedBox(width: 6),
-                      Text(hr, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w500), textDirection: TextDirection.ltr),
+                      Text(hr,
+                          style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                          textDirection: TextDirection.ltr),
                     ],
                   ),
                 );

@@ -71,6 +71,21 @@
 **اسکیماهای بک‌اند:** `backend/app/schemas/user.py` (UserCreate, UserResponse).  
 **فرانت:** `core/auth/auth_service.dart`, `auth_helper.dart`.
 
+#### OTP Auth (Stage 25)
+
+- `POST /auth/request_otp`
+  - Request body: `{ "phone": "string" }`
+  - Header (optional): `Accept-Language: en|fa|ar`
+  - Response envelope:
+    - success: `{ "ok": true, "data": { "ok": true, "next": "verify_otp" }, "error": null }`
+    - error: `{ "ok": false, "data": null, "error": { "code": "OTP_REQUEST_FAILED", "message": "..." } }`
+- `POST /auth/verify_otp`
+  - Request body: `{ "phone": "string", "code": "string(6)" }`
+  - Header (optional audit): `X-Device-Info`, `X-Client-IP`
+  - Response envelope:
+    - success: `{ "ok": true, "data": { "access_token": "...", "refresh_token": "...", "token_type": "bearer", "expires_in": 3600 }, "error": null }`
+    - error codes: `OTP_INVALID`, `OTP_EXPIRED`, `TOO_MANY_ATTEMPTS`
+
 ---
 
 ### ۳.۲ تعامل (چت، معرفی، onboarding)
@@ -78,13 +93,34 @@
 | متد | مسیر کامل | Request | Response | وضعیت فرانت |
 |-----|-----------|---------|----------|-------------|
 | POST | `/interact/introduce` | name, ... | InteractionResponse | دارد |
-| POST | `/interact/chat` | user_id, message (ChatRequest) | InteractionResponse | دارد (chat_repository) |
+| POST | `/interact/chat` | `ChatRequest`: `user_id` (required), `message` (required) | `InteractionResponse`: `message`, `language`, `user_id?`, `timestamp`, `requires_security_check?`, `detected_name?` | دارد |
 | POST | `/interact/onboarding` | OnboardingRequest (name) | - | دارد |
 | GET | `/interact/greeting` | - | - | بررسی شود |
-| GET | `/interact/history` | - | - | دارد |
+| GET | `/interact/history` | query: `user_id` (required), `limit` (1..50) | `{ user_id, messages[] }` | دارد |
 
 **InteractionResponse (بک‌اند):** `message`, `language`, `user_id`, `timestamp`, `requires_security_check`, `detected_name`.  
 **فرانت:** `data/dto/interact_request.dart`, `interact_response.dart`, `repositories/chat_repository.dart`.
+
+#### Chat Contract (V1 exact)
+
+- **Send message**
+  - `POST /interact/chat`
+  - Body (required): `{ "user_id": int, "message": string }`
+  - Header: `Authorization: Bearer <token>` (preferred in frontend), `Accept-Language` (supported by backend language resolver)
+  - Success `200` body (non-envelope on this route): `InteractionResponse`
+    - `message`, `language`, `user_id`, `timestamp`, optional `requires_security_check`, optional `detected_name`
+  - Errors:
+    - `400`: empty message / invalid user_id
+    - `404`: user not found
+    - `502`: GPT/provider failure (`{ error: "gpt_failure", detail: ... }`)
+    - `500`: internal processing error
+- **Chat history**
+  - `GET /interact/history?user_id={id}&limit={n}`
+  - Latest first (`created_at desc`)
+  - Response: `{ "user_id": int, "messages": [{ id, user_message, sedi_response, language, created_at }] }`
+- **Extended history (grouped UI history)**
+  - `GET /memory/history?user_id={id}&group=daily|weekly|monthly|yearly&limit&offset`
+  - Returns grouped items (`HistoryResponse`) with group pagination by bucket, not cursor.
 
 ---
 
@@ -103,10 +139,26 @@
 
 | متد | مسیر کامل | Request | Response | وضعیت فرانت |
 |-----|-----------|---------|----------|-------------|
-| POST | `/lifestyle/update` | LifestyleDataCreate | APIResponse | **نیاز به DTO و سرویس** |
-| GET | `/lifestyle/context` | - | APIResponse | **نیاز به سرویس** |
+| GET | `/lifestyle/context` | query: `user_id` (required) | `APIResponse` with MemoryContext keys | دارد |
+| POST | `/lifestyle/update` | `LifestyleUpdateRequest` | `APIResponse` | دارد |
+| GET | `/lifestyle/summary` | query: `user_id` (required), `lang` (optional) | `APIResponse` summary payload | دارد |
 
-**LifestyleDataCreate:** `user_id`, `sleep_hours?`, `steps?`, `calories?`, `stress_level?`.
+**LifestyleUpdateRequest (exact backend contract):**
+- `user_id: int` (required)
+- `entries: LifestyleEntry[]` (required)
+  - `domain: string` (e.g. `lifestyle`)
+  - `key: string` (e.g. `sleep_duration_hours`, `hydration_ml`, `steps_count`, `exercise_minutes`, `mood`, `stress_level`, `activity_level`, `sleep_quality`)
+  - `value: any`
+  - `confidence: float (0..1)` default `0.7`
+  - `source: string` default `manual`
+
+**GET /lifestyle/context -> data keys (MemoryContext):**
+- `sleep_duration_hours`, `sleep_quality`
+- `hydration_ml`
+- `activity_level`, `steps_count`, `exercise_minutes`
+- `mood`, `stress_level`
+
+**Envelope format:** all lifestyle endpoints use standard `{ ok, data, error }`.
 
 ---
 
@@ -125,6 +177,30 @@
 **NotificationFeedbackRequest:** `feedback` (positive|negative|neutral), `reason?`, `action?`.  
 **نوع اعلان (ثابت):** `morning_brief` | `connection_ping` | `health_alert` | `device_disconnected`.  
 **فرانت:** `features/notification/`, `data/models/notification.dart`, `notification_feedback.dart`.
+
+#### Notification Inbox Contract (V1)
+
+- `GET /notifications?user_id={id}`
+  - Query: `user_id` (required)
+  - Sorting: `created_at desc` (latest first)
+  - Response data:
+    - `notifications`: array of `{ id, user_id, type, title, body, priority, is_read, is_sent, scheduled_for, created_at }`
+    - `total`, `unread_count`
+  - Pagination: currently none in backend list endpoint (returns full list for user)
+- `GET /notifications/unread?user_id={id}&limit={n}&type={optional}`
+  - Query: `user_id` required, `limit` optional (default 20, max 100), `type` optional
+  - Response data:
+    - `notifications` (unread only, latest first), `count`, `total`, `unread_count`
+- `POST /notifications/{notification_id}/mark-read?user_id={id}`
+  - Idempotent mark-read endpoint
+  - Response data: `{ ok: true, notification_id, is_read: true }`
+- `POST /notifications/{notification_id}/feedback?user_id={optional}`
+  - Accepts contract/legacy payload; frontend can send:
+    - `{ reaction: "like"|"dislike", timestamp: ISO8601, feedback: "positive"|"negative" }`
+  - Response data: feedback recorded confirmation
+- Envelope for all above remains backend standard:
+  - success: `{ ok: true, data: ... , error: null }`
+  - failure: `{ ok: false, data: null, error: { code, message } }`
 
 ---
 
@@ -157,6 +233,21 @@
 | POST | `/device/ingest` | DeviceIngestRequest | DeviceIngestResponse | **نیاز به DTO و سرویس** |
 
 **DeviceIngestRequest:** `user_id`, `device_id?`, `event_type` (heart_rate|blood_pressure|glucose|temperature), `payload` (map), `recorded_at?`.
+
+#### Heart Rate / Health Alerts (V1)
+
+- **Heart-rate event ingest exists, listing does not exist (currently)**
+  - `POST /device/ingest` with `event_type = "heart_rate"` and payload like `{ "bpm": 82, "quality": "good" }`
+  - Stored in `device_events` model fields: `id`, `user_id`, `device_id`, `event_type`, `payload_json`, `recorded_at`, `received_at`, `dedupe_key`
+  - There is **no public read endpoint** for listing `device_events` by `user_id` in current included routers.
+- **Other health writes**
+  - `POST /health/add` writes to `health_data` and may create notifications.
+  - `POST /device_data/data/upload` (router not included in `main.py`) writes `health_data` and `lifestyle_data`.
+- **Health alerts source**
+  - Implemented via notifications contract (`/notifications` + `/notifications/unread`), using `type/channel/priority` fields.
+  - Preferred filter: `type/channel == "health_alert"`; fallbacks: `priority in {high, critical}` or localized title heuristics.
+- **Frontend TODO marker**
+  - When backend adds a read endpoint (example target: `GET /device/events?user_id=&event_type=heart_rate&limit=`), switch heart-rate list from notifications proxy to real device events.
 
 ---
 

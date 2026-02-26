@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../onboarding/presentation/pages/onboarding_page.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../services/push/push_service.dart';
@@ -124,48 +125,38 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
   }
 
   Future<void> _navigateToNextPage() async {
-    // Check if user has completed onboarding
-    // Onboarding is complete if:
-    // 1. Name is provided and not empty
-    // 2. Security password is provided and not empty
-    // 3. User is verified (isVerified = true) OR hasSecurityPassword = true
+    // OTP onboarding completion rule:
+    // completed iff user_id exists + verified + name + phone number.
     final profile = await UserProfileManager.loadProfile();
-    
-    final hasName = profile.name != null && profile.name!.isNotEmpty;
-    final hasPassword = profile.securityPassword != null && 
-                        profile.securityPassword!.isNotEmpty;
-    final isVerified = profile.isVerified || profile.hasSecurityPassword;
-    
-    final hasCompletedOnboarding = hasName && hasPassword && isVerified;
-    
-    print('[IntroPage] Checking onboarding status:');
-    print('[IntroPage] - hasName: $hasName (${profile.name})');
-    print('[IntroPage] - hasPassword: $hasPassword (${profile.securityPassword != null ? "***" : "null"})');
-    print('[IntroPage] - isVerified: $isVerified (isVerified: ${profile.isVerified}, hasSecurityPassword: ${profile.hasSecurityPassword})');
-    print('[IntroPage] - hasCompletedOnboarding: $hasCompletedOnboarding');
-    
+
+    final hasName = profile.name != null && profile.name!.trim().isNotEmpty;
+    final hasPhone =
+        profile.phoneNumber != null && profile.phoneNumber!.trim().isNotEmpty;
+    final hasUserId = profile.userId != null;
+    final isVerified = profile.isVerified;
+    final hasCompletedOnboarding =
+        hasUserId && isVerified && hasName && hasPhone;
+
     if (hasCompletedOnboarding) {
       // User has completed onboarding, go directly to chat
       // Stage 19.2: Ensure FCM register for existing users (who skip onboarding/verification).
       await tryRegisterStoredTokenAfterLogin();
-      print('[IntroPage] ✅ Onboarding completed - navigating to ChatPage');
       if (!context.mounted) return;
       Navigator.of(context).pushReplacement(
         _createCubeTransitionRouteToChat(),
       );
     } else {
-      // User needs to complete onboarding first
-      print('[IntroPage] ⚠️ Onboarding not completed - navigating to OnboardingPage');
+      // User needs to complete OTP flow first.
       Navigator.of(context).pushReplacement(
         _createCubeTransitionRouteToOnboarding(),
       );
     }
   }
-  
+
   PageRouteBuilder _createCubeTransitionRouteToOnboarding() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const OnboardingPage();
+        return const OtpLoginPage();
       },
       transitionDuration: const Duration(milliseconds: 600),
       reverseTransitionDuration: const Duration(milliseconds: 600),
@@ -206,7 +197,7 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
       },
     );
   }
-  
+
   PageRouteBuilder _createCubeTransitionRouteToChat() {
     final introPageState = this;
     return PageRouteBuilder(
@@ -255,7 +246,6 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -276,16 +266,10 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color(0xFF1A1A2E), // Deep space blue
-                        Color(0xFF16213E), // Dark blue
-                        Color(0xFF0F3460), // Midnight blue
-                        Color(0xFF533483), // Purple
-                        Color(0xFFE94560), // Deep pink-red
-                        Color(0xFFFF6B6B), // Coral red
-                        Color(0xFFFFA07A), // Light salmon
-                        Color(0xFFFFD700), // Gold (sunrise)
+                        AppTheme.primary,
+                        AppTheme.background,
                       ],
-                      stops: [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.0],
+                      stops: [0.15, 1.0],
                     ),
                   ),
                 );

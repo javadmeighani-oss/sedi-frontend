@@ -9,6 +9,7 @@ import 'core/notifications/fcm_setup.dart';
 import 'core/notifications/local_notifications_service.dart';
 import 'data/repositories/notification_repository.dart';
 import 'features/chat/presentation/pages/chat_page.dart';
+import 'services/notifications/inbox_refresh_bus.dart';
 import 'services/push/push_service.dart';
 
 void main() async {
@@ -51,10 +52,12 @@ Future<void> _setupFcm() async {
   // Foreground: show via local notifications
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     LocalNotificationsService.showRemoteNotification(message);
+    InboxRefreshBus.instance.triggerDebounced();
   });
 
   // Opened from background/terminated
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    InboxRefreshBus.instance.triggerDebounced();
     _navigateToChatFromMessage(message);
   });
 
@@ -62,6 +65,7 @@ Future<void> _setupFcm() async {
   final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
   if (initialMessage != null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      InboxRefreshBus.instance.triggerDebounced();
       _navigateToChatFromMessage(initialMessage);
     });
   }
@@ -99,6 +103,7 @@ void _handleNotificationResponse(String? actionId, String? payloadJson) {
     action: action,
     clientTs: DateTime.now().toIso8601String(),
   );
+  InboxRefreshBus.instance.triggerDebounced();
 
   if (action == 'open_chat') {
     _navigateToChat(notificationId: notificationId);
@@ -125,6 +130,7 @@ void _navigateToChatFromMessage(RemoteMessage message) {
   final notificationIdStr = data['notification_id']?.toString();
   final notificationId = int.tryParse(notificationIdStr ?? '');
   final id = (notificationId ?? 0) > 0 ? notificationId : null;
+  InboxRefreshBus.instance.triggerDebounced();
   if (id != null) _sendOpenChatFeedbackIfNeeded(id);
   _navigateToChat(notificationId: id);
 }
@@ -160,7 +166,8 @@ Future<void> _registerTokenOnStart() async {
     debugPrint('[FCM] saved token to prefs');
     debugPrint('[FCM] registerFcmTokenToBackend() called');
     final res = await registerFcmTokenToBackend(token);
-    debugPrint('[FCM] register result: status=${res.statusCode ?? '?'} ok=${res.ok}');
+    debugPrint(
+        '[FCM] register result: status=${res.statusCode ?? '?'} ok=${res.ok}');
   } catch (e) {
     print('[FCM] Token register error: $e');
   }

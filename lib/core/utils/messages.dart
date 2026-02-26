@@ -54,5 +54,103 @@ class AppMessages {
         return 'Welcome back $name! 😊';
     }
   }
+
+  // --- Get-to-know-you onboarding (Stage 24 UX Pack 02) ---
+
+  static String getPreferredNameLabel(String language) {
+    switch (language) {
+      case 'fa':
+        return 'نام دلخواه';
+      case 'ar':
+        return 'الاسم المفضل';
+      case 'en':
+      default:
+        return 'Preferred name';
+    }
+  }
+
+  static String getLanguageLabel(String language) {
+    switch (language) {
+      case 'fa':
+        return 'زبان';
+      case 'ar':
+        return 'اللغة';
+      case 'en':
+      default:
+        return 'Language';
+    }
+  }
+
+  static String getGoalsLabel(String language) {
+    switch (language) {
+      case 'fa':
+        return 'اهداف (حداکثر ۳)';
+      case 'ar':
+        return 'الأهداف (٣ كحد أقصى)';
+      case 'en':
+      default:
+        return 'Goals (up to 3)';
+    }
+  }
+
+  static String getLanguageAuto(String language) {
+    switch (language) {
+      case 'fa':
+        return 'خودکار';
+      case 'ar':
+        return 'تلقائي';
+      case 'en':
+      default:
+        return 'Auto';
+    }
+  }
+
+  static String getGoalBetterSleep(String lang) {
+    switch (lang) {
+      case 'fa': return 'خواب بهتر';
+      case 'ar': return 'نوم أفضل';
+      default: return 'Better sleep';
+    }
+  }
+
+  static String getGoalLessStress(String lang) {
+    switch (lang) {
+      case 'fa': return 'کمتر استرس';
+      case 'ar': return 'توتر أقل';
+      default: return 'Less stress';
+    }
+  }
+
+  static String getGoalReducePain(String lang) {
+    switch (lang) {
+      case 'fa': return 'کاهش درد';
+      case 'ar': return 'تقليل الألم';
+      default: return 'Reduce pain';
+    }
+  }
+
+  static String getGoalMoreEnergy(String lang) {
+    switch (lang) {
+      case 'fa': return 'انرژی بیشتر';
+      case 'ar': return 'طاقة أكثر';
+      default: return 'More energy';
+    }
+  }
+
+  static String getGoalWeightManagement(String lang) {
+    switch (lang) {
+      case 'fa': return 'مدیریت وزن';
+      case 'ar': return 'إدارة الوزن';
+      default: return 'Weight management';
+    }
+  }
+
+  static String getGoalHealthyHabits(String lang) {
+    switch (lang) {
+      case 'fa': return 'عادت‌های سالم';
+      case 'ar': return 'عادات صحية';
+      default: return 'Healthy habits';
+    }
+  }
 }
 
