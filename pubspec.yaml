@@ -26,6 +26,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+dependency_overrides:
+  # CI fix: align linux impl with the platform interface expected in the graph.
+  record_linux: 1.3.0
+
 flutter:
   uses-material-design: true
 

@@ -380,10 +380,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       return RefreshIndicator(
         onRefresh: _reload,
         color: AppTheme.primaryBlack,
-        child: const ListView(
+        child: ListView(
           children: [
             SizedBox(height: 160),
-            AppEmptyState(
+            const AppEmptyState(
               title: 'No notifications yet',
               subtitle: 'You are all caught up for now.',
             ),

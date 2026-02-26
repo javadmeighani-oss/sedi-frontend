@@ -90,10 +90,10 @@ class _HeartRatePageState extends State<HeartRatePage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const ListView(
+      return ListView(
         children: [
           SizedBox(height: 120),
-          AppLoadingState(label: 'Loading heart rate...'),
+          const AppLoadingState(label: 'Loading heart rate...'),
         ],
       );
     }
