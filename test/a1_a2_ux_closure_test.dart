@@ -311,8 +311,15 @@ void main() {
       );
       expect(ltrAncestors, findsWidgets);
 
-      final field = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(field.textDirection, TextDirection.ltr);
+      final fieldFinder = find.byType(TextFormField);
+      expect(fieldFinder, findsOneWidget);
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: fieldFinder,
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(editable.textDirection, TextDirection.ltr);
     });
   });
 }
