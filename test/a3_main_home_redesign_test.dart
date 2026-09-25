@@ -265,7 +265,13 @@ void main() {
     final orbRect = tester.getRect(find.byType(SediBrainOrb));
     expect(presenceRect.width, closeTo(366, 0.5));
     expect(orbRect.center.dx, closeTo(presenceRect.center.dx, 0.5));
-    expect(orbRect.width, inInclusiveRange(92, 104));
+    expect(
+      orbRect.width,
+      inInclusiveRange(
+        SediPresenceTokens.orbMinDiameter,
+        SediPresenceTokens.orbMaxDiameter,
+      ),
+    );
     expect(
       tester.getSize(find.byType(SediHorizontalResonanceVisualizer)).height,
       36,
@@ -289,6 +295,12 @@ void main() {
     );
     await tester.pump();
     expect(tester.getSize(find.byType(InkWell)).height, greaterThanOrEqualTo(44));
-    expect(tester.widget<Icon>(find.byType(Icon)).size, 18);
+    final chevron = find.descendant(
+      of: find.byType(InkWell),
+      matching: find.byType(CustomPaint),
+    );
+    expect(chevron, findsOneWidget);
+    expect(tester.getSize(chevron).width, closeTo(18 * 1.30, 0.01));
+    expect(tester.getSize(chevron).height, closeTo(18 * 1.30, 0.01));
   });
 }
