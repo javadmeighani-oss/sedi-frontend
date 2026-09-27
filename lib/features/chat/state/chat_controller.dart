@@ -274,26 +274,27 @@ class ChatController extends ChangeNotifier {
         sourceNotificationId: sourceNotificationId,
         healthSubjectId: activeHealthSubjectId,
         onDelta: (delta) {
-          pacer.enqueue(delta, (chunk) {
-            if (!streamStarted) {
-              streamStarted = true;
-              isThinking = false;
-              isSpeaking = true;
-              messages.add(
-                ChatMessage.assistant(text: chunk, localId: streamLocalId),
+          void apply(String delta) {
+          if (!streamStarted) {
+            streamStarted = true;
+            isThinking = false;
+            isSpeaking = true;
+            messages.add(
+              ChatMessage.assistant(text: delta, localId: streamLocalId),
+            );
+          } else {
+            final idx =
+                messages.indexWhere((m) => m.localId == streamLocalId);
+            if (idx >= 0) {
+              messages[idx] = ChatMessage.assistant(
+                text: messages[idx].text + delta,
+                localId: streamLocalId,
               );
-            } else {
-              final idx =
-                  messages.indexWhere((m) => m.localId == streamLocalId);
-              if (idx >= 0) {
-                messages[idx] = ChatMessage.assistant(
-                  text: messages[idx].text + chunk,
-                  localId: streamLocalId,
-                );
-              }
             }
-            notifyListeners();
-          });
+          }
+          notifyListeners();
+          }
+          pacer.enqueue(delta, apply);
         },
       );
       await pacer.whenIdle;
