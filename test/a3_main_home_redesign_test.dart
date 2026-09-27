@@ -202,8 +202,8 @@ void main() {
     expect(
       tester
           .widget<Semantics>(
-            find.descendant(
-              of: find.byType(Gate3TopNavigationTray),
+            find.ancestor(
+              of: find.byKey(const ValueKey('a3-top-tray-toggle')),
               matching: find.byType(Semantics),
             ),
           )
@@ -219,8 +219,8 @@ void main() {
     expect(
       tester
           .widget<Semantics>(
-            find.descendant(
-              of: find.byType(Gate3TopNavigationTray),
+            find.ancestor(
+              of: find.byKey(const ValueKey('a3-top-tray-toggle')),
               matching: find.byType(Semantics),
             ),
           )
