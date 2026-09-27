@@ -91,8 +91,11 @@ void main() {
     expect(sediOrbBrandLatin, 'Sedi.');
     expect(SediPresenceTokens.presenceGreen, const Color(0xFF86F83C));
     expect(SediPresenceTokens.amplitudeScale, 0.80);
-    expect(SediHorizontalResonanceVisualizer.height, 36);
+    expect(SediHorizontalResonanceVisualizer.height, 52);
     expect(SediHorizontalResonanceVisualizer.barCount, 98);
+    expect(vis.contains('heartbeatEnvelope'), isTrue);
+    expect(tray.contains('a3-top-tray-toggle'), isTrue);
+    expect(tray.contains('easeOutCubic'), isTrue);
   });
 
   test('canonical destinations + EN/FA/AR tray labels + RTL', () {
@@ -121,6 +124,16 @@ void main() {
     expect(listening < thinking, isTrue);
     expect(thinking < speaking, isTrue);
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, closeTo(0.80, 0.01));
+    expect(SediHorizontalResonanceVisualizer.height, 52);
+
+    final lub = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.08);
+    final dub = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.24);
+    final rest = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.62);
+    expect(lub, inInclusiveRange(0.0, 1.0));
+    expect(dub, inInclusiveRange(0.0, 1.0));
+    expect(lub, greaterThan(dub));
+    expect(dub, greaterThan(rest));
+    expect(rest, lessThan(0.08));
   });
 
   test('responsive orb diameter is 80% of prior tokens and clamped', () {
@@ -181,6 +194,40 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 240));
     expect(find.byType(Gate3MainIconRow), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('a3-top-tray-toggle')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+    expect(find.byType(Gate3MainIconRow), findsOneWidget);
+    expect(
+      tester
+          .widget<Semantics>(
+            find.descendant(
+              of: find.byType(Gate3TopNavigationTray),
+              matching: find.byType(Semantics),
+            ),
+          )
+          .properties
+          .label,
+      'Hide destinations',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('a3-top-tray-toggle')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+    expect(find.byType(Gate3MainIconRow), findsNothing);
+    expect(
+      tester
+          .widget<Semantics>(
+            find.descendant(
+              of: find.byType(Gate3TopNavigationTray),
+              matching: find.byType(Semantics),
+            ),
+          )
+          .properties
+          .label,
+      'Show destinations',
+    );
   });
 
   testWidgets('collapsed presence is higher and chat is taller than expanded',
@@ -274,7 +321,7 @@ void main() {
     );
     expect(
       tester.getSize(find.byType(SediHorizontalResonanceVisualizer)).height,
-      36,
+      52,
     );
   });
 

@@ -180,4 +180,98 @@ void main() {
       expect(caretBox.left, greaterThanOrEqualTo(digitBox.right));
     });
   });
+
+  group('OTP slot tap keyboard', () {
+    testWidgets('tap empty slot focuses numeric field and shows keyboard',
+        (tester) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      await pumpOtp(tester, controller: controller, focusNode: focusNode);
+      expect(focusNode.hasFocus, isFalse);
+
+      final fieldBefore = tester.widget<TextField>(find.byType(TextField));
+      expect(fieldBefore.autofocus, isFalse);
+      expect(fieldBefore.keyboardType, TextInputType.number);
+      expect(fieldBefore.controller, same(controller));
+      expect(fieldBefore.focusNode, same(focusNode));
+      expect(find.byType(TextField), findsOneWidget);
+      for (var i = 0; i < OtpInputHelper.codeLength; i++) {
+        expect(find.byKey(ValueKey('a2-otp-slot-$i')), findsOneWidget);
+      }
+
+      tester.testTextInput.log.clear();
+      await tester.tap(find.byKey(const ValueKey('a2-otp-slot-0')));
+      await tester.pump();
+
+      expect(focusNode.hasFocus, isTrue);
+      expect(controller.text, isEmpty);
+      expect(controller.selection.isCollapsed, isTrue);
+      expect(controller.selection.extentOffset, 0);
+      expect(
+        tester.testTextInput.log.map((call) => call.method),
+        contains('TextInput.show'),
+      );
+    });
+
+    testWidgets('tap filled slot keeps the full code and selects that slot',
+        (tester) async {
+      final controller = TextEditingController(text: '123456');
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      await pumpOtp(tester, controller: controller, focusNode: focusNode);
+      tester.testTextInput.log.clear();
+      await tester.tap(find.byKey(const ValueKey('a2-otp-slot-3')));
+      await tester.pump();
+
+      expect(focusNode.hasFocus, isTrue);
+      expect(controller.text, '123456');
+      expect(controller.selection.start, 3);
+      expect(controller.selection.end, 4);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).keyboardType,
+        TextInputType.number,
+      );
+      expect(
+        tester.testTextInput.log.map((call) => call.method),
+        contains('TextInput.show'),
+      );
+    });
+
+    testWidgets('tap while focus remains reopens the keyboard', (tester) async {
+      final controller = TextEditingController(text: '123456');
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+
+      await pumpOtp(tester, controller: controller, focusNode: focusNode);
+      await tester.tap(find.byKey(const ValueKey('a2-otp-slot-4')));
+      await tester.pump();
+      expect(focusNode.hasFocus, isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      // Android Back hides the IME and leaves the focus node focused.
+      tester.testTextInput.hide();
+      expect(focusNode.hasFocus, isTrue);
+      expect(tester.testTextInput.isVisible, isFalse);
+
+      tester.testTextInput.log.clear();
+      await tester.tap(find.byKey(const ValueKey('a2-otp-slot-1')));
+      await tester.pump();
+
+      expect(focusNode.hasFocus, isTrue);
+      expect(controller.text, '123456');
+      expect(controller.selection.start, 1);
+      expect(controller.selection.end, 2);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(
+        tester.testTextInput.log.map((call) => call.method),
+        contains('TextInput.show'),
+      );
+    });
+  });
 }

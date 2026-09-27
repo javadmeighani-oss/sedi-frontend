@@ -22,6 +22,7 @@ import '../../../services/chat/chat_service.dart' as v1chat;
 import '../../../services/chat/chat_stream_client.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
+import 'assistant_stream_pacer.dart';
 
 /// Current-day raw turns only. Backend [HistoryResponse.currentGroupKey] is day authority.
 List<ChatMessage> currentDayMessagesFromHistory(HistoryResponse history) {
@@ -264,6 +265,7 @@ class ChatController extends ChangeNotifier {
 
     final streamLocalId = 'sedi-stream-$localId';
     var streamStarted = false;
+    final pacer = AssistantStreamPacer();
 
     try {
       final streamed = await _streamClient.sendStreaming(
@@ -272,26 +274,29 @@ class ChatController extends ChangeNotifier {
         sourceNotificationId: sourceNotificationId,
         healthSubjectId: activeHealthSubjectId,
         onDelta: (delta) {
-          if (!streamStarted) {
-            streamStarted = true;
-            isThinking = false;
-            isSpeaking = true;
-            messages.add(
-              ChatMessage.assistant(text: delta, localId: streamLocalId),
-            );
-          } else {
-            final idx =
-                messages.indexWhere((m) => m.localId == streamLocalId);
-            if (idx >= 0) {
-              messages[idx] = ChatMessage.assistant(
-                text: messages[idx].text + delta,
-                localId: streamLocalId,
+          pacer.enqueue(delta, (chunk) {
+            if (!streamStarted) {
+              streamStarted = true;
+              isThinking = false;
+              isSpeaking = true;
+              messages.add(
+                ChatMessage.assistant(text: chunk, localId: streamLocalId),
               );
+            } else {
+              final idx =
+                  messages.indexWhere((m) => m.localId == streamLocalId);
+              if (idx >= 0) {
+                messages[idx] = ChatMessage.assistant(
+                  text: messages[idx].text + chunk,
+                  localId: streamLocalId,
+                );
+              }
             }
-          }
-          notifyListeners();
+            notifyListeners();
+          });
         },
       );
+      await pacer.whenIdle;
 
       if (streamed != null) {
         _setMessageStatus(localId, ChatMessageStatus.sent);
@@ -312,6 +317,7 @@ class ChatController extends ChangeNotifier {
         return;
       }
     } catch (e) {
+      pacer.cancel();
       isSpeaking = false;
       if (kDebugMode) {
         debugPrint('[ChatController] stream failed, JSON fallback: $e');

@@ -30,10 +30,12 @@ void main() {
     expect(bubble.contains('Tooltip('), isTrue);
     expect(bubble.contains("editLabel ?? 'Edit'"), isTrue);
     expect(bubble.contains('widget.onEdit'), isTrue);
-    expect(bubble.contains('Edit icon sits outside'), isTrue);
+    expect(bubble.contains('physically bottom-left'), isTrue);
     expect(bubble.contains('No standalone 44dp row'), isTrue);
-    expect(bubble.contains('logical START side'), isTrue);
-    expect(bubble.contains('CrossAxisAlignment.end'), isTrue);
+    expect(bubble.contains('slightly outside'), isTrue);
+    expect(bubble.contains('resolveTextDirection'), isTrue);
+    expect(bubble.contains('textDirection: textDirection'), isTrue);
+    expect(bubble.contains('textAlign: TextAlign.start'), isTrue);
     expect(bubble.contains('Read more'), isTrue);
     expect(bubble.contains('Read less'), isTrue);
     expect(bubble.contains('Tap to retry'), isTrue);
@@ -41,6 +43,8 @@ void main() {
     expect(bubble.contains('AlignmentDirectional.centerStart'), isTrue);
     expect(bubble.contains('maxWidth: 300'), isFalse);
     expect(bubble.contains('clamp(0.0, 300.0)'), isTrue);
+    expect(bubble.contains('left: -8'), isTrue);
+    expect(bubble.contains('bottom: -6'), isTrue);
 
     final bubbleBlock = RegExp(
       r'decoration: BoxDecoration\([\s\S]*?child: body,',
@@ -133,9 +137,11 @@ void main() {
 
     final hitRect = tester.getRect(editHit);
     final bubbleRect = tester.getRect(_decoratedUserBubble().first);
-    expect(hitRect.bottom, closeTo(bubbleRect.bottom, 1.0));
-    expect(hitRect.right, lessThanOrEqualTo(bubbleRect.left + 0.5));
-    expect(bubbleRect.contains(hitRect.center), isFalse);
+    expect(hitRect.left, lessThan(bubbleRect.left + 1));
+    expect(hitRect.left, greaterThan(bubbleRect.left - 24));
+    expect(hitRect.center.dx, lessThan(bubbleRect.center.dx));
+    expect(hitRect.bottom, greaterThan(bubbleRect.bottom - 8));
+    expect((hitRect.bottom - bubbleRect.bottom).abs(), lessThan(24));
 
     final assistant = find.ancestor(
       of: find.text('Assistant reply'),
@@ -182,8 +188,9 @@ void main() {
       _editHitTarget(find.byIcon(Icons.edit_outlined)),
     );
     final ltrDec = tester.getRect(_decoratedUserBubble());
-    expect(ltrHit.right, lessThanOrEqualTo(ltrDec.left + 0.5));
-    expect(ltrHit.bottom, closeTo(ltrDec.bottom, 1.0));
+    expect(ltrHit.left, lessThan(ltrDec.left + 1));
+    expect(ltrHit.center.dx, lessThan(ltrDec.center.dx));
+    expect(ltrHit.bottom, greaterThan(ltrDec.bottom - 8));
 
     await pumpDir(TextDirection.rtl);
     await tester.pump();
@@ -200,7 +207,44 @@ void main() {
       _editHitTarget(find.byIcon(Icons.edit_outlined)),
     );
     final rtlDec = tester.getRect(_decoratedUserBubble());
-    expect(rtlHit.left, greaterThanOrEqualTo(rtlDec.right - 0.5));
-    expect(rtlHit.bottom, closeTo(rtlDec.bottom, 1.0));
+    expect(rtlHit.left, lessThan(rtlDec.left + 1));
+    expect(rtlHit.center.dx, lessThan(rtlDec.center.dx));
+    expect(rtlHit.bottom, greaterThan(rtlDec.bottom - 8));
+  });
+
+  testWidgets('Persian user text is RTL/right-aligned; edit stays bottom-left',
+      (tester) async {
+    expect(MessageBubble.resolveTextDirection('سلام ۱۲۳'), TextDirection.rtl);
+    expect(MessageBubble.resolveTextDirection('مرحبا 45'), TextDirection.rtl);
+    expect(MessageBubble.resolveTextDirection('Hello ۱۲۳'), TextDirection.ltr);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.ltr,
+          child: MessageBubble(
+            message: 'سلام ۱۲۳',
+            isSedi: false,
+            onEdit: _noop,
+            editLabel: 'Edit',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final userText = tester.widget<Text>(find.text('سلام ۱۲۳'));
+    expect(userText.textDirection, TextDirection.rtl);
+    expect(userText.textAlign, TextAlign.start);
+
+    final hit = tester.getRect(
+      _editHitTarget(find.byIcon(Icons.edit_outlined)),
+    );
+    final dec = tester.getRect(_decoratedUserBubble());
+    expect(hit.left, lessThan(dec.left + 1));
+    expect(hit.center.dx, lessThan(dec.center.dx));
+    expect(hit.bottom, greaterThan(dec.bottom - 8));
   });
 }
+
+void _noop() {}

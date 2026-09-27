@@ -110,6 +110,13 @@ void main() {
       final phoneField = widgets.substring(phoneStart, phoneEnd);
       expect(phoneField.contains('Directionality('), isTrue);
       expect(phoneField.contains('textDirection: TextDirection.ltr'), isTrue);
+      expect(phoneField.contains('prefixIcon:'), isTrue);
+      expect(phoneField.contains('prefix:'), isFalse);
+      expect(phoneField.contains('prefixIcon: null'), isFalse);
+      expect(phoneField.contains('CrossAxisAlignment.center'), isTrue);
+      expect(phoneField.contains('Icons.phone_outlined'), isTrue);
+      expect(phoneField.contains('start: 18'), isTrue);
+      expect(phoneField.contains('prefixIconConstraints:'), isTrue);
 
       final e164 = File(
         'lib/features/auth_otp/presentation/a2_phone_e164.dart',

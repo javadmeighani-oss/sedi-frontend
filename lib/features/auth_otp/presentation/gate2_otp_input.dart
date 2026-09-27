@@ -314,12 +314,6 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
     widget.controller.addListener(_handleControllerChanged);
     widget.focusNode.addListener(_handleFocusChanged);
     _lastCode = OtpInputHelper.sanitize(widget.controller.text);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.enabled) return;
-      if (!widget.focusNode.hasFocus) {
-        widget.focusNode.requestFocus();
-      }
-    });
   }
 
   @override
@@ -370,6 +364,9 @@ class _Gate2OtpInputState extends State<Gate2OtpInput> {
     if (!widget.focusNode.hasFocus) {
       widget.focusNode.requestFocus();
     }
+    // Back dismisses the Android IME without dropping focus. requestFocus()
+    // is then a no-op, so the keyboard must be shown explicitly on every tap.
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
   }
 
   /// Tap a slot to activate it. Never truncates later digits.

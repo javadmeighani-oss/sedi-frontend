@@ -411,7 +411,8 @@ class Gate2Widgets {
     );
   }
 
-  /// Compact phone row: `[ +XX ▼ ] [ national number ]` inside existing field geometry.
+  /// Compact LTR phone row. Icon, dial code, and chevron share one prefix slot
+  /// so they stay vertically aligned with the national number.
   static Widget phoneField({
     required TextEditingController controller,
     required String hint,
@@ -442,14 +443,26 @@ class Gate2Widgets {
             fontSize: A2Layout.controlFontSize,
           ),
           decoration: _inputDecoration(hint, Icons.phone_outlined).copyWith(
-            prefixIcon: null,
+            contentPadding: const EdgeInsets.fromLTRB(0, 15, 14, 15),
             prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-            prefix: Padding(
-              padding: const EdgeInsets.only(left: 4, right: 6),
-              child: _DialCodePrefix(
-                dialCode: dialCode,
-                enabled: dialCodeEnabled && !readOnly,
-                onChanged: onDialCodeChanged,
+            prefixIcon: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 18, end: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.phone_outlined,
+                    color: AppTheme.gate2TextMuted,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  _DialCodePrefix(
+                    dialCode: dialCode,
+                    enabled: dialCodeEnabled && !readOnly,
+                    onChanged: onDialCodeChanged,
+                  ),
+                ],
               ),
             ),
           ),
@@ -766,6 +779,7 @@ class _DialCodePrefix extends StatelessWidget {
             textDirection: TextDirection.ltr,
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   dialCode.displayDial,

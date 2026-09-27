@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Presentation-only collapsible tray around the A3 destination icon row.
-class Gate3TopNavigationTray extends StatelessWidget {
+class Gate3TopNavigationTray extends StatefulWidget {
   final bool expanded;
   final VoidCallback onToggle;
   final Widget child;
@@ -11,7 +11,7 @@ class Gate3TopNavigationTray extends StatelessWidget {
   final String collapseLabel;
 
   static const Duration toggleDuration = Duration(milliseconds: 240);
-  static const Curve toggleCurve = Curves.easeInOutCubic;
+  static const Curve toggleCurve = Curves.easeOutCubic;
   static const double handleHeight = 44;
 
   const Gate3TopNavigationTray({
@@ -24,7 +24,45 @@ class Gate3TopNavigationTray extends StatelessWidget {
   });
 
   @override
+  State<Gate3TopNavigationTray> createState() => _Gate3TopNavigationTrayState();
+}
+
+class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _size;
+
+  @override
+  void initState() {
+    super.initState();
+    _size = AnimationController(
+      vsync: this,
+      duration: Gate3TopNavigationTray.toggleDuration,
+      value: widget.expanded ? 1 : 0,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+  }
+
+  @override
+  void didUpdateWidget(covariant Gate3TopNavigationTray oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.expanded != widget.expanded) {
+      _size.animateTo(
+        widget.expanded ? 1 : 0,
+        curve: Gate3TopNavigationTray.toggleCurve,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _size.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showIcons = widget.expanded || _size.value > 0.001;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: Color(0xFFFFFFFF),
@@ -38,31 +76,37 @@ class Gate3TopNavigationTray extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClipRect(
-            child: AnimatedSize(
-              duration: toggleDuration,
-              curve: toggleCurve,
-              alignment: Alignment.topCenter,
-              child: expanded
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                      child: child,
-                    )
-                  : const SizedBox(width: double.infinity, height: 0),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onToggle,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: _size.value,
+                child: showIcons
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        child: widget.child,
+                      )
+                    : const SizedBox(width: double.infinity, height: 0),
+              ),
             ),
           ),
           Semantics(
             button: true,
-            label: expanded ? collapseLabel : expandLabel,
+            label: widget.expanded
+                ? widget.collapseLabel
+                : widget.expandLabel,
             child: Material(
               color: const Color(0x00000000),
               child: InkWell(
-                onTap: onToggle,
+                key: const ValueKey('a3-top-tray-toggle'),
+                onTap: widget.onToggle,
                 child: SizedBox(
                   width: double.infinity,
-                  height: handleHeight,
+                  height: Gate3TopNavigationTray.handleHeight,
                   child: Center(
-                    child: _TrayChevron(expanded: expanded),
+                    child: _TrayChevron(expanded: widget.expanded),
                   ),
                 ),
               ),

@@ -45,6 +45,21 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     }
   }
 
+  /// Deterministic lub-dub pulse on [phase01] in `0..1`. Two peaks, then rest.
+  static double heartbeatEnvelope(double phase01) {
+    final p = phase01 - phase01.floorToDouble();
+    return (_lubDub(p, 0.00, 0.16) + _lubDub(p, 0.18, 0.12) * 0.62)
+        .clamp(0.0, 1.0)
+        .toDouble();
+  }
+
+  static double _lubDub(double p, double start, double width) {
+    final t = p - start;
+    if (t < 0 || t > width) return 0;
+    final x = t / width;
+    return math.sin(x * math.pi) * math.exp(-x * 1.8);
+  }
+
   const SediHorizontalResonanceVisualizer({
     super.key,
     required this.state,
@@ -189,9 +204,10 @@ class _HorizontalResonancePainter extends CustomPainter {
     final pitch = size.width / count;
     final barWidth = (pitch * 0.38).clamp(1.0, 1.8).toDouble();
     final midY = size.height / 2;
-    final maxHalf = size.height * 0.46;
-    final animated =
-        phase * SediHorizontalResonanceVisualizer.phaseSpeed * math.pi * 2;
+    final maxHalf = size.height * 0.50;
+    final cycle =
+        (phase * SediHorizontalResonanceVisualizer.phaseSpeed) % 1.0;
+    final beat = SediHorizontalResonanceVisualizer.heartbeatEnvelope(cycle);
     final total = math.max(globalBarTotal, 1);
 
     final paint = Paint()
@@ -202,17 +218,16 @@ class _HorizontalResonancePainter extends CustomPainter {
 
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
-      final t = total <= 1 ? 0.0 : globalIndex / (total - 1);
-      // Smooth cluster envelopes (deterministic).
-      final clusterA = math.sin((t * 3.2 + animated) * math.pi);
-      final clusterB = math.sin((t * 7.1 - animated * 0.7) * math.pi) * 0.55;
-      final clusterC = math.cos((t * 2.0 + animated * 0.45) * math.pi) * 0.35;
-      final envelope = ((clusterA + clusterB + clusterC) / 2.0 + 1) / 2.0;
+      final t = total <= 1 ? 0.5 : globalIndex / (total - 1);
+      // Soft center dome — bars pulse together, not independently scribbled.
+      final spatial = 0.72 + 0.28 * math.sin(t * math.pi);
+      final envelope = 0.22 + beat * 0.78;
 
       // Idle stays near-flat; speaking gets largest controlled variation.
-      final variation = 0.12 + density * 0.88;
-      final heightFactor =
-          (0.08 + energy * (0.35 + envelope * variation)).clamp(0.06, 1.0).toDouble();
+      final variation = 0.18 + density * 0.82;
+      final heightFactor = (0.10 + energy * (0.32 + envelope * variation) * spatial)
+          .clamp(0.06, 1.0)
+          .toDouble();
       final half = maxHalf *
           heightFactor *
           SediHorizontalResonanceVisualizer.amplitudeScale;

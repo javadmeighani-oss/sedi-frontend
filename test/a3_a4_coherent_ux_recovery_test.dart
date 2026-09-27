@@ -207,7 +207,7 @@ void main() {
       expect(thinking < speaking, isTrue);
       expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
       expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
-      expect(SediHorizontalResonanceVisualizer.height, 36);
+      expect(SediHorizontalResonanceVisualizer.height, 52);
     });
 
     testWidgets('horizontal visualizer present for all four states',

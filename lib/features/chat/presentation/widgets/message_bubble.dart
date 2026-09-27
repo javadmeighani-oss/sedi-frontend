@@ -10,6 +10,26 @@ class MessageBubble extends StatefulWidget {
   final String? editLabel;
   final bool showTyping;
 
+  /// First-strong-character direction for bidi-safe user text.
+  static TextDirection resolveTextDirection(String text) {
+    for (final rune in text.runes) {
+      if (_isRtlLetter(rune)) return TextDirection.rtl;
+      if (_isLtrLetter(rune)) return TextDirection.ltr;
+    }
+    return TextDirection.ltr;
+  }
+
+  static bool _isRtlLetter(int rune) {
+    return (rune >= 0x0590 && rune <= 0x08FF) ||
+        (rune >= 0xFB1D && rune <= 0xFDFF) ||
+        (rune >= 0xFE70 && rune <= 0xFEFF);
+  }
+
+  static bool _isLtrLetter(int rune) {
+    return (rune >= 0x0041 && rune <= 0x005A) ||
+        (rune >= 0x0061 && rune <= 0x007A);
+  }
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -39,6 +59,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         ? AlignmentDirectional.centerStart
         : AlignmentDirectional.centerEnd;
     final shouldCollapse = _canCollapseUserMessage && !_expanded;
+    final textDirection = MessageBubble.resolveTextDirection(widget.message);
 
     final text = widget.showTyping
         ? const _TypingDots()
@@ -46,6 +67,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             widget.message,
             maxLines: shouldCollapse ? 2 : null,
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
+            textDirection: textDirection,
             textAlign: TextAlign.start,
             style: const TextStyle(
               color: AppTheme.textPrimary,
@@ -54,8 +76,10 @@ class _MessageBubbleState extends State<MessageBubble> {
             ),
           );
 
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final column = Column(
+      crossAxisAlignment: widget.isSedi
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         text,
@@ -89,6 +113,13 @@ class _MessageBubbleState extends State<MessageBubble> {
         ],
       ],
     );
+
+    final body = widget.isSedi
+        ? column
+        : Directionality(
+            textDirection: textDirection,
+            child: column,
+          );
 
     final showEdit = !widget.isSedi &&
         !widget.showTyping &&
@@ -131,8 +162,8 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
 
     // User only: visual container/bubble with collapse + retry.
-    // Edit icon sits outside the decorated bubble, adjacent on the
-    // logical START side and bottom-aligned. No standalone 44dp row.
+    // Edit icon is physically bottom-left, visually attached to the
+    // bubble edge (slightly outside). No standalone 44dp row.
     return Align(
       alignment: alignment,
       child: Padding(
@@ -177,12 +208,20 @@ class _MessageBubbleState extends State<MessageBubble> {
 
             if (!hasEdit) return bubble;
 
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+            final Widget edit = editAction!;
+            return Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
               children: [
-                editAction!,
-                bubble,
+                Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: bubble,
+                ),
+                Positioned(
+                  left: -8,
+                  bottom: -6,
+                  child: edit,
+                ),
               ],
             );
           },

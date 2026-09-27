@@ -11,7 +11,7 @@ class SediPresenceTokens {
   static const double orbMinDiameter = 73.6;
   static const double orbMaxDiameter = 83.2;
 
-  static const double visualizerHeight = 36;
+  static const double visualizerHeight = 52;
   static const double barPitch = 4;
   static const int barCountMin = 96;
   static const int barCountMax = 100;

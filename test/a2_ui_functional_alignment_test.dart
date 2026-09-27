@@ -6,9 +6,11 @@ import 'package:sedi_app/core/locale/sedi_locale_registry.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/data/dto/auth/otp_request.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_language_sync.dart';
+import 'package:sedi_app/features/auth_otp/presentation/a2_phone_e164.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_otp_error_mapper.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_stable_enable.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
+import 'package:sedi_app/features/auth_otp/presentation/gate2_widgets.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_safe_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/otp_login_localization.dart';
@@ -376,6 +378,64 @@ void main() {
         Localizations.localeOf(tester.element(find.byType(OtpLoginPage))),
         const Locale('en'),
       );
+    });
+  });
+
+  group('A2 phone prefix alignment', () {
+    testWidgets('RTL page keeps one LTR prefix row vertically aligned',
+        (tester) async {
+      final controller = TextEditingController(text: '9121234567');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              body: Center(
+                child: Gate2Widgets.phoneField(
+                  controller: controller,
+                  hint: 'Mobile',
+                  dialCode: A2PhoneE164.defaultDialCode,
+                  onDialCodeChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byIcon(Icons.phone_outlined), findsOneWidget);
+      expect(find.text('+98'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
+      expect(find.text('9121234567'), findsOneWidget);
+
+      final dial = tester.widget<Text>(find.text('+98'));
+      expect(dial.textDirection, TextDirection.ltr);
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byType(TextFormField),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(editable.textDirection, TextDirection.ltr);
+
+      final field = tester.getRect(find.byType(TextFormField));
+      final icon = tester.getRect(find.byIcon(Icons.phone_outlined));
+      final code = tester.getRect(find.text('+98'));
+      final chevron = tester.getRect(find.byIcon(Icons.arrow_drop_down));
+      final number = tester.getRect(find.text('9121234567'));
+
+      expect(icon.left - field.left, inInclusiveRange(16, 36));
+      expect(icon.center.dx, lessThan(field.center.dx));
+      expect(icon.right, lessThan(code.left));
+      expect(code.right, lessThanOrEqualTo(chevron.left));
+      expect(chevron.right, lessThanOrEqualTo(number.left));
+
+      expect((icon.center.dy - code.center.dy).abs(), lessThan(2));
+      expect((code.center.dy - chevron.center.dy).abs(), lessThan(2));
+      expect((icon.center.dy - number.center.dy).abs(), lessThan(5));
     });
   });
 }
