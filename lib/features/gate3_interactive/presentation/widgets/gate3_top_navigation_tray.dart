@@ -93,6 +93,7 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
             ),
           ),
           Semantics(
+            key: const ValueKey('a3-top-tray-semantics'),
             button: true,
             label: widget.expanded
                 ? widget.collapseLabel

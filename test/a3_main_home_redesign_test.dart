@@ -202,10 +202,7 @@ void main() {
     expect(
       tester
           .widget<Semantics>(
-            find.ancestor(
-              of: find.byKey(const ValueKey('a3-top-tray-toggle')),
-              matching: find.byType(Semantics),
-            ),
+            find.byKey(const ValueKey('a3-top-tray-semantics')),
           )
           .properties
           .label,
@@ -219,10 +216,7 @@ void main() {
     expect(
       tester
           .widget<Semantics>(
-            find.ancestor(
-              of: find.byKey(const ValueKey('a3-top-tray-toggle')),
-              matching: find.byType(Semantics),
-            ),
+            find.byKey(const ValueKey('a3-top-tray-semantics')),
           )
           .properties
           .label,
