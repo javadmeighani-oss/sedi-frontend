@@ -166,8 +166,8 @@ class _MessageBubbleState extends State<MessageBubble> {
 
     // User only: visual container/bubble with collapse + retry.
     // The group stays physical-right for all locales. Edit sits fully
-    // outside, below the bubble, aligned to the bubble's physical
-    // bottom-left. Compact visual icon; 44dp hit target. Edit width is
+    // outside, below the bubble, aligned to the physical bottom-left.
+    // Compact visual icon; 44dp hit target. Edit width is
     // not subtracted from the approved bubble max width.
     return Align(
       alignment: alignment,
