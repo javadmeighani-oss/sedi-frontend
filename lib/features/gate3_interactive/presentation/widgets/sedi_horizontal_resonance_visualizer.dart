@@ -56,8 +56,9 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   /// Deterministic audio/voice resonance in `0..1`.
   /// Visual-only. Not microphone, I9, heart-rate, or clinical data.
   ///
-  /// Broad traveling sine clusters with soft interference. No impulse,
-  /// sharp spike, or per-frame noise.
+  /// Orb-centered mirror: equal distance from 0.5 yields the same shape.
+  /// Shared [phase01] on both sides. Broad traveling sine clusters with
+  /// soft interference. No impulse, sharp spike, or per-frame noise.
   static double audioResonanceShape(
     double relativeX,
     double phase01, [
@@ -65,15 +66,19 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   ]) {
     final x = relativeX - relativeX.floorToDouble();
     final p = phase01 - phase01.floorToDouble();
-    final travel = (x - p) - (x - p).floorToDouble();
+    // 0 at the orb/centerline, 1 at either outer edge.
+    final centerDistance = (x - 0.5).abs() * 2.0;
+    final travel =
+        (centerDistance - p) - (centerDistance - p).floorToDouble();
 
-    // Integer cycles only so the wrap at travel=0/1 stays continuous.
+    // Integer cycles in radial distance so wrap stays continuous.
     final humpA = 0.5 + 0.5 * math.sin(travel * math.pi * 4.0);
     final humpB = 0.5 + 0.5 * math.sin((travel + 0.27) * math.pi * 2.0);
-    final humpC = 0.5 + 0.5 * math.sin((x * math.pi * 2.0) + (p * math.pi * 2.0));
+    final humpC = 0.5 +
+        0.5 * math.sin((centerDistance * math.pi * 2.0) + (p * math.pi * 2.0));
     final mix = 0.42 * humpA + 0.33 * humpB + 0.25 * humpC;
 
-    final bell = math.exp(-math.pow((x - 0.5) / 0.62, 2));
+    final bell = math.exp(-math.pow((centerDistance - 0.42) / 0.58, 2));
     final lifted = mix * (0.78 + 0.22 * bell);
     final contrast = 0.55 + 0.45 * density.clamp(0.0, 1.0);
     return (0.12 + lifted * contrast).clamp(0.0, 1.0).toDouble();
@@ -246,7 +251,7 @@ class _HorizontalResonancePainter extends CustomPainter {
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
       final relativeX = total <= 1 ? 0.5 : globalIndex / (total - 1);
-      // Traveling audio-resonance envelope across X. Bars stay columns.
+      // Radial audio-resonance; left/right at equal |x-0.5| match.
       final shape = SediHorizontalResonanceVisualizer.audioResonanceShape(
         relativeX,
         cycle,

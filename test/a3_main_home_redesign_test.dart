@@ -95,6 +95,7 @@ void main() {
     expect(SediHorizontalResonanceVisualizer.barCount, 98);
     expect(vis.contains('audioResonanceShape'), isTrue);
     expect(vis.contains('peakCeiling'), isTrue);
+    expect(vis.contains('centerDistance'), isTrue);
     expect(vis.contains('ecgShape'), isFalse);
     expect(vis.contains('heartbeatEnvelope'), isFalse);
     expect(vis.contains('QRS'), isFalse);
@@ -140,25 +141,60 @@ void main() {
       lessThan(SediHorizontalResonanceVisualizer.previousSpeakingPeak),
     );
 
-    const phase = 0.18;
-    final left = SediHorizontalResonanceVisualizer.audioResonanceShape(0.12, phase);
-    final mid = SediHorizontalResonanceVisualizer.audioResonanceShape(0.50, phase);
-    final right = SediHorizontalResonanceVisualizer.audioResonanceShape(0.88, phase);
-    expect(left, inInclusiveRange(0.0, 1.0));
-    expect(mid, inInclusiveRange(0.0, 1.0));
-    expect(right, inInclusiveRange(0.0, 1.0));
-    expect(left, isNot(closeTo(mid, 0.02)));
+    const phases = [0.00, 0.17, 0.41, 0.73];
+    const pairs = [
+      [0.05, 0.95],
+      [0.12, 0.88],
+      [0.20, 0.80],
+      [0.31, 0.69],
+      [0.42, 0.58],
+    ];
+    var maxMirrorDelta = 0.0;
+    for (final phase in phases) {
+      final center = SediHorizontalResonanceVisualizer.audioResonanceShape(
+        0.50,
+        phase,
+      );
+      expect(center, inInclusiveRange(0.0, 1.0));
+      expect(
+        SediHorizontalResonanceVisualizer.audioResonanceShape(0.50, phase),
+        closeTo(center, 1e-12),
+      );
+      for (final pair in pairs) {
+        final left = SediHorizontalResonanceVisualizer.audioResonanceShape(
+          pair[0],
+          phase,
+        );
+        final right = SediHorizontalResonanceVisualizer.audioResonanceShape(
+          pair[1],
+          phase,
+        );
+        expect(left, inInclusiveRange(0.0, 1.0));
+        expect(right, closeTo(left, 1e-9));
+        final delta = (left - right).abs();
+        if (delta > maxMirrorDelta) maxMirrorDelta = delta;
+      }
+    }
+    expect(maxMirrorDelta, lessThan(1e-9));
 
+    const phase = 0.18;
     var maxStep = 0.0;
+    var minVal = 1.0;
+    var maxVal = 0.0;
     var prev = SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
+    minVal = prev;
+    maxVal = prev;
     for (var i = 1; i <= 97; i++) {
       final x = i / 97;
       final next = SediHorizontalResonanceVisualizer.audioResonanceShape(x, phase);
       final step = (next - prev).abs();
       if (step > maxStep) maxStep = step;
+      if (next < minVal) minVal = next;
+      if (next > maxVal) maxVal = next;
       prev = next;
     }
     expect(maxStep, lessThan(0.12));
+    expect(maxVal - minVal, greaterThan(0.20));
 
     final speakingCapped = SediHorizontalResonanceVisualizer.heightFactorFor(
       energy: speaking,

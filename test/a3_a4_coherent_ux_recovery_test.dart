@@ -212,15 +212,49 @@ void main() {
       expect(SediHorizontalResonanceVisualizer.barCount, 98);
       expect(SediHorizontalResonanceVisualizer.peakCeiling, closeTo(0.65, 0.001));
 
-      const phase = 0.22;
-      final a = SediHorizontalResonanceVisualizer.audioResonanceShape(0.18, phase);
-      final b = SediHorizontalResonanceVisualizer.audioResonanceShape(0.52, phase);
-      expect(a, inInclusiveRange(0.0, 1.0));
-      expect(b, inInclusiveRange(0.0, 1.0));
-      expect(a, isNot(closeTo(b, 0.02)));
+      const phases = [0.00, 0.17, 0.41, 0.73];
+      const pairs = [
+        [0.05, 0.95],
+        [0.12, 0.88],
+        [0.20, 0.80],
+        [0.31, 0.69],
+        [0.42, 0.58],
+      ];
+      var maxMirrorDelta = 0.0;
+      for (final phase in phases) {
+        final center = SediHorizontalResonanceVisualizer.audioResonanceShape(
+          0.50,
+          phase,
+        );
+        expect(center, inInclusiveRange(0.0, 1.0));
+        expect(
+          SediHorizontalResonanceVisualizer.audioResonanceShape(0.50, phase),
+          closeTo(center, 1e-12),
+        );
+        for (final pair in pairs) {
+          final left = SediHorizontalResonanceVisualizer.audioResonanceShape(
+            pair[0],
+            phase,
+          );
+          final right = SediHorizontalResonanceVisualizer.audioResonanceShape(
+            pair[1],
+            phase,
+          );
+          expect(left, inInclusiveRange(0.0, 1.0));
+          expect(right, closeTo(left, 1e-9));
+          final delta = (left - right).abs();
+          if (delta > maxMirrorDelta) maxMirrorDelta = delta;
+        }
+      }
+      expect(maxMirrorDelta, lessThan(1e-9));
 
+      const phase = 0.22;
       var maxStep = 0.0;
+      var minVal = 1.0;
+      var maxVal = 0.0;
       var prev = SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
+      minVal = prev;
+      maxVal = prev;
       for (var i = 1; i <= 97; i++) {
         final next = SediHorizontalResonanceVisualizer.audioResonanceShape(
           i / 97,
@@ -228,9 +262,12 @@ void main() {
         );
         final step = (next - prev).abs();
         if (step > maxStep) maxStep = step;
+        if (next < minVal) minVal = next;
+        if (next > maxVal) maxVal = next;
         prev = next;
       }
       expect(maxStep, lessThan(0.12));
+      expect(maxVal - minVal, greaterThan(0.20));
 
       final speakingCapped = SediHorizontalResonanceVisualizer.heightFactorFor(
         energy: speaking,
@@ -251,6 +288,7 @@ void main() {
         'sedi_horizontal_resonance_visualizer.dart',
       ).readAsStringSync();
       expect(vis.contains('audioResonanceShape'), isTrue);
+      expect(vis.contains('centerDistance'), isTrue);
       expect(vis.contains('ecgShape'), isFalse);
       expect(vis.contains('heartbeatEnvelope'), isFalse);
       expect(vis.contains('QRS'), isFalse);
