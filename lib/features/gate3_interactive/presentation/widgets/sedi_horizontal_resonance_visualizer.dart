@@ -7,8 +7,9 @@ import 'sedi_presence_tokens.dart';
 
 /// Horizontal anti-aliased bar-column resonance visualizer.
 ///
-/// Deterministic ECG-inspired traveling waveform — no per-frame random
-/// noise and not a scribble path. Visual-only; not I9 / physiology.
+/// Deterministic audio/voice resonance — no per-frame random noise,
+/// no scribble path, and no ECG/medical grammar. Visual-only; not I9,
+/// microphone amplitude, or physiology.
 /// State authority is [Gate3InteractionState] (same as circular ring).
 ///
 /// When [phaseListenable] is provided, phase advances from that shared
@@ -33,6 +34,12 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   static const double phaseSpeed = 0.85;
   static const double amplitudeScale = SediPresenceTokens.amplitudeScale;
 
+  /// Previous speaking heightFactor peak (energy 0.92 × full envelope).
+  static const double previousSpeakingPeak = 0.98;
+
+  /// Hard ceiling after state energy. ~35% below [previousSpeakingPeak].
+  static const double peakCeiling = 0.65;
+
   static double targetEnergy(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
@@ -46,28 +53,39 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     }
   }
 
-  /// Deterministic ECG-inspired amplitude in `0..1` for a wrapped phase.
-  /// Visual-only waveform. Not physiology, heart-rate, or I9 data.
+  /// Deterministic audio/voice resonance in `0..1`.
+  /// Visual-only. Not microphone, I9, heart-rate, or clinical data.
   ///
-  /// Cycle: long baseline → small P-like → narrow/high QRS-like →
-  /// broader medium T-like → long rest.
-  static double ecgShape(double x) {
-    final p = x - x.floorToDouble();
-    const baseline = 0.04;
-    return (baseline +
-            _ecgPulse(p, 0.14, 0.10, 0.20) +
-            _ecgPulse(p, 0.28, 0.08, 1.00) +
-            _ecgPulse(p, 0.40, 0.18, 0.45))
-        .clamp(0.0, 1.0)
-        .toDouble();
+  /// Broad traveling sine clusters with soft interference. No impulse,
+  /// sharp spike, or per-frame noise.
+  static double audioResonanceShape(
+    double relativeX,
+    double phase01, [
+    double density = 1.0,
+  ]) {
+    final x = relativeX - relativeX.floorToDouble();
+    final p = phase01 - phase01.floorToDouble();
+    final travel = (x - p) - (x - p).floorToDouble();
+
+    // Integer cycles only so the wrap at travel=0/1 stays continuous.
+    final humpA = 0.5 + 0.5 * math.sin(travel * math.pi * 4.0);
+    final humpB = 0.5 + 0.5 * math.sin((travel + 0.27) * math.pi * 2.0);
+    final humpC = 0.5 + 0.5 * math.sin((x * math.pi * 2.0) + (p * math.pi * 2.0));
+    final mix = 0.42 * humpA + 0.33 * humpB + 0.25 * humpC;
+
+    final bell = math.exp(-math.pow((x - 0.5) / 0.62, 2));
+    final lifted = mix * (0.78 + 0.22 * bell);
+    final contrast = 0.55 + 0.45 * density.clamp(0.0, 1.0);
+    return (0.12 + lifted * contrast).clamp(0.0, 1.0).toDouble();
   }
 
-  static double _ecgPulse(double p, double start, double width, double peak) {
-    var t = p - start;
-    if (t < 0) t += 1.0;
-    if (t > width) return 0;
-    final u = t / width;
-    return peak * math.sin(u * math.pi);
+  static double heightFactorFor({
+    required double energy,
+    required double envelope,
+    required double density,
+  }) {
+    final raw = 0.06 + energy * envelope * (0.35 + 0.65 * density);
+    return math.min(raw, peakCeiling).clamp(0.06, peakCeiling).toDouble();
   }
 
   const SediHorizontalResonanceVisualizer({
@@ -228,16 +246,19 @@ class _HorizontalResonancePainter extends CustomPainter {
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
       final relativeX = total <= 1 ? 0.5 : globalIndex / (total - 1);
-      // Traveling ECG-inspired envelope across X. Bars stay columns.
-      final shape = SediHorizontalResonanceVisualizer.ecgShape(
-        relativeX - cycle,
+      // Traveling audio-resonance envelope across X. Bars stay columns.
+      final shape = SediHorizontalResonanceVisualizer.audioResonanceShape(
+        relativeX,
+        cycle,
+        density,
       );
 
-      // Idle stays near-flat; speaking gets the clearest waveform.
-      final heightFactor =
-          (0.06 + energy * shape * (0.35 + 0.65 * density))
-              .clamp(0.06, 1.0)
-              .toDouble();
+      // Idle stays near-flat; speaking is strongest but hard-capped.
+      final heightFactor = SediHorizontalResonanceVisualizer.heightFactorFor(
+        energy: energy,
+        envelope: shape,
+        density: density,
+      );
       final half = maxHalf *
           heightFactor *
           SediHorizontalResonanceVisualizer.amplitudeScale;

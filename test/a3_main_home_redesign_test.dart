@@ -93,9 +93,14 @@ void main() {
     expect(SediPresenceTokens.amplitudeScale, 0.80);
     expect(SediHorizontalResonanceVisualizer.height, 52);
     expect(SediHorizontalResonanceVisualizer.barCount, 98);
-    expect(vis.contains('ecgShape'), isTrue);
-    expect(vis.contains('relativeX - cycle'), isTrue);
+    expect(vis.contains('audioResonanceShape'), isTrue);
+    expect(vis.contains('peakCeiling'), isTrue);
+    expect(vis.contains('ecgShape'), isFalse);
     expect(vis.contains('heartbeatEnvelope'), isFalse);
+    expect(vis.contains('QRS'), isFalse);
+    expect(vis.contains('not I9'), isTrue);
+    expect(vis.contains('Random('), isFalse);
+    expect(vis.contains('random('), isFalse);
     expect(tray.contains('a3-top-tray-toggle'), isTrue);
     expect(tray.contains('easeOutCubic'), isTrue);
   });
@@ -127,17 +132,41 @@ void main() {
     expect(thinking < speaking, isTrue);
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, closeTo(0.80, 0.01));
     expect(SediHorizontalResonanceVisualizer.height, 52);
+    expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
+    expect(SediHorizontalResonanceVisualizer.barCount, 98);
+    expect(SediHorizontalResonanceVisualizer.peakCeiling, closeTo(0.65, 0.001));
+    expect(
+      SediHorizontalResonanceVisualizer.peakCeiling,
+      lessThan(SediHorizontalResonanceVisualizer.previousSpeakingPeak),
+    );
 
-    final p = SediHorizontalResonanceVisualizer.ecgShape(0.19);
-    final qrs = SediHorizontalResonanceVisualizer.ecgShape(0.32);
-    final t = SediHorizontalResonanceVisualizer.ecgShape(0.49);
-    final rest = SediHorizontalResonanceVisualizer.ecgShape(0.78);
-    expect(p, inInclusiveRange(0.0, 1.0));
-    expect(qrs, inInclusiveRange(0.0, 1.0));
-    expect(qrs, greaterThan(t));
-    expect(t, greaterThan(p));
-    expect(p, greaterThan(rest));
-    expect(rest, lessThan(0.08));
+    const phase = 0.18;
+    final left = SediHorizontalResonanceVisualizer.audioResonanceShape(0.12, phase);
+    final mid = SediHorizontalResonanceVisualizer.audioResonanceShape(0.50, phase);
+    final right = SediHorizontalResonanceVisualizer.audioResonanceShape(0.88, phase);
+    expect(left, inInclusiveRange(0.0, 1.0));
+    expect(mid, inInclusiveRange(0.0, 1.0));
+    expect(right, inInclusiveRange(0.0, 1.0));
+    expect(left, isNot(closeTo(mid, 0.02)));
+
+    var maxStep = 0.0;
+    var prev = SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
+    for (var i = 1; i <= 97; i++) {
+      final x = i / 97;
+      final next = SediHorizontalResonanceVisualizer.audioResonanceShape(x, phase);
+      final step = (next - prev).abs();
+      if (step > maxStep) maxStep = step;
+      prev = next;
+    }
+    expect(maxStep, lessThan(0.12));
+
+    final speakingCapped = SediHorizontalResonanceVisualizer.heightFactorFor(
+      energy: speaking,
+      envelope: 1.0,
+      density: 1.0,
+    );
+    expect(speakingCapped, closeTo(SediHorizontalResonanceVisualizer.peakCeiling, 0.001));
+    expect(speakingCapped, lessThan(SediHorizontalResonanceVisualizer.previousSpeakingPeak));
   });
 
   test('responsive orb diameter is 80% of prior tokens and clamped', () {

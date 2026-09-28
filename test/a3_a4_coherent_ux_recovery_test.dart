@@ -209,23 +209,52 @@ void main() {
       expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
       expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
       expect(SediHorizontalResonanceVisualizer.height, 52);
+      expect(SediHorizontalResonanceVisualizer.barCount, 98);
+      expect(SediHorizontalResonanceVisualizer.peakCeiling, closeTo(0.65, 0.001));
 
-      final p = SediHorizontalResonanceVisualizer.ecgShape(0.19);
-      final qrs = SediHorizontalResonanceVisualizer.ecgShape(0.32);
-      final t = SediHorizontalResonanceVisualizer.ecgShape(0.49);
-      final baseline = SediHorizontalResonanceVisualizer.ecgShape(0.78);
-      expect(qrs, greaterThan(t));
-      expect(t, greaterThan(p));
-      expect(p, greaterThan(baseline));
-      expect(baseline, lessThan(0.08));
-      expect(
-        SediHorizontalResonanceVisualizer.ecgShape(0.00),
-        isNot(closeTo(qrs, 0.20)),
+      const phase = 0.22;
+      final a = SediHorizontalResonanceVisualizer.audioResonanceShape(0.18, phase);
+      final b = SediHorizontalResonanceVisualizer.audioResonanceShape(0.52, phase);
+      expect(a, inInclusiveRange(0.0, 1.0));
+      expect(b, inInclusiveRange(0.0, 1.0));
+      expect(a, isNot(closeTo(b, 0.02)));
+
+      var maxStep = 0.0;
+      var prev = SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
+      for (var i = 1; i <= 97; i++) {
+        final next = SediHorizontalResonanceVisualizer.audioResonanceShape(
+          i / 97,
+          phase,
+        );
+        final step = (next - prev).abs();
+        if (step > maxStep) maxStep = step;
+        prev = next;
+      }
+      expect(maxStep, lessThan(0.12));
+
+      final speakingCapped = SediHorizontalResonanceVisualizer.heightFactorFor(
+        energy: speaking,
+        envelope: 1.0,
+        density: 1.0,
       );
       expect(
-        SediHorizontalResonanceVisualizer.ecgShape(0.32 - 0.0),
-        greaterThan(SediHorizontalResonanceVisualizer.ecgShape(0.32 - 0.16)),
+        speakingCapped,
+        closeTo(SediHorizontalResonanceVisualizer.peakCeiling, 0.001),
       );
+      expect(
+        speakingCapped,
+        lessThan(SediHorizontalResonanceVisualizer.previousSpeakingPeak),
+      );
+
+      final vis = File(
+        'lib/features/gate3_interactive/presentation/widgets/'
+        'sedi_horizontal_resonance_visualizer.dart',
+      ).readAsStringSync();
+      expect(vis.contains('audioResonanceShape'), isTrue);
+      expect(vis.contains('ecgShape'), isFalse);
+      expect(vis.contains('heartbeatEnvelope'), isFalse);
+      expect(vis.contains('QRS'), isFalse);
+      expect(vis.contains('not I9'), isTrue);
     });
 
     test('A3-03R pacer cadence holds across an empty-queue restart', () async {
