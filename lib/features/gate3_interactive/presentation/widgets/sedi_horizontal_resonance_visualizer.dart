@@ -7,7 +7,8 @@ import 'sedi_presence_tokens.dart';
 
 /// Horizontal anti-aliased bar-column resonance visualizer.
 ///
-/// Deterministic clustered motion — no per-frame random noise.
+/// Deterministic ECG-inspired traveling waveform — no per-frame random
+/// noise and not a scribble path. Visual-only; not I9 / physiology.
 /// State authority is [Gate3InteractionState] (same as circular ring).
 ///
 /// When [phaseListenable] is provided, phase advances from that shared
@@ -45,19 +46,28 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     }
   }
 
-  /// Deterministic lub-dub pulse on [phase01] in `0..1`. Two peaks, then rest.
-  static double heartbeatEnvelope(double phase01) {
-    final p = phase01 - phase01.floorToDouble();
-    return (_lubDub(p, 0.00, 0.16) + _lubDub(p, 0.18, 0.12) * 0.62)
+  /// Deterministic ECG-inspired amplitude in `0..1` for a wrapped phase.
+  /// Visual-only waveform. Not physiology, heart-rate, or I9 data.
+  ///
+  /// Cycle: long baseline → small P-like → narrow/high QRS-like →
+  /// broader medium T-like → long rest.
+  static double ecgShape(double x) {
+    final p = x - x.floorToDouble();
+    const baseline = 0.04;
+    return (baseline +
+            _ecgPulse(p, 0.14, 0.10, 0.20) +
+            _ecgPulse(p, 0.28, 0.08, 1.00) +
+            _ecgPulse(p, 0.40, 0.18, 0.45))
         .clamp(0.0, 1.0)
         .toDouble();
   }
 
-  static double _lubDub(double p, double start, double width) {
-    final t = p - start;
-    if (t < 0 || t > width) return 0;
-    final x = t / width;
-    return math.sin(x * math.pi) * math.exp(-x * 1.8);
+  static double _ecgPulse(double p, double start, double width, double peak) {
+    var t = p - start;
+    if (t < 0) t += 1.0;
+    if (t > width) return 0;
+    final u = t / width;
+    return peak * math.sin(u * math.pi);
   }
 
   const SediHorizontalResonanceVisualizer({
@@ -207,7 +217,6 @@ class _HorizontalResonancePainter extends CustomPainter {
     final maxHalf = size.height * 0.50;
     final cycle =
         (phase * SediHorizontalResonanceVisualizer.phaseSpeed) % 1.0;
-    final beat = SediHorizontalResonanceVisualizer.heartbeatEnvelope(cycle);
     final total = math.max(globalBarTotal, 1);
 
     final paint = Paint()
@@ -218,23 +227,24 @@ class _HorizontalResonancePainter extends CustomPainter {
 
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
-      final t = total <= 1 ? 0.5 : globalIndex / (total - 1);
-      // Soft center dome — bars pulse together, not independently scribbled.
-      final spatial = 0.72 + 0.28 * math.sin(t * math.pi);
-      final envelope = 0.22 + beat * 0.78;
+      final relativeX = total <= 1 ? 0.5 : globalIndex / (total - 1);
+      // Traveling ECG-inspired envelope across X. Bars stay columns.
+      final shape = SediHorizontalResonanceVisualizer.ecgShape(
+        relativeX - cycle,
+      );
 
-      // Idle stays near-flat; speaking gets largest controlled variation.
-      final variation = 0.18 + density * 0.82;
-      final heightFactor = (0.10 + energy * (0.32 + envelope * variation) * spatial)
-          .clamp(0.06, 1.0)
-          .toDouble();
+      // Idle stays near-flat; speaking gets the clearest waveform.
+      final heightFactor =
+          (0.06 + energy * shape * (0.35 + 0.65 * density))
+              .clamp(0.06, 1.0)
+              .toDouble();
       final half = maxHalf *
           heightFactor *
           SediHorizontalResonanceVisualizer.amplitudeScale;
 
       final x = pitch * (i + 0.5);
       final baseOpacity =
-          (0.18 + energy * 0.55 + envelope * 0.2).clamp(0.12, 0.92).toDouble();
+          (0.18 + energy * 0.55 + shape * 0.2).clamp(0.12, 0.92).toDouble();
       final finalOpacity =
           (baseOpacity * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0);
       paint.color = _presence.withOpacity(finalOpacity);

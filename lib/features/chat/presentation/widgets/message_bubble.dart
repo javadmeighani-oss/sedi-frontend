@@ -55,11 +55,13 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final alignment = widget.isSedi
-        ? AlignmentDirectional.centerStart
-        : AlignmentDirectional.centerEnd;
+    // Physical sides, not locale-dependent directional START/END.
+    final alignment =
+        widget.isSedi ? Alignment.centerLeft : Alignment.centerRight;
     final shouldCollapse = _canCollapseUserMessage && !_expanded;
     final textDirection = MessageBubble.resolveTextDirection(widget.message);
+    final textAlign =
+        textDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left;
 
     final text = widget.showTyping
         ? const _TypingDots()
@@ -68,7 +70,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             maxLines: shouldCollapse ? 2 : null,
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
             textDirection: textDirection,
-            textAlign: TextAlign.start,
+            textAlign: textAlign,
             style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 15,
@@ -135,7 +137,8 @@ class _MessageBubbleState extends State<MessageBubble> {
           child: SizedBox(
             width: 44,
             height: 44,
-            child: Center(
+            child: Align(
+              alignment: Alignment.topLeft,
               child: Icon(
                 Icons.edit_outlined,
                 size: 16,
@@ -162,22 +165,20 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
 
     // User only: visual container/bubble with collapse + retry.
-    // Edit icon is physically bottom-left, visually attached to the
-    // bubble edge (slightly outside). No standalone 44dp row.
+    // The group stays physical-right for all locales. Edit sits fully
+    // outside, below the bubble, aligned to the bubble's physical
+    // bottom-left. Compact visual icon; 44dp hit target. Edit width is
+    // not subtracted from the approved bubble max width.
     return Align(
       alignment: alignment,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final hasEdit = editAction != null;
-            final actionW = hasEdit ? 44.0 : 0.0;
             final available = constraints.maxWidth.isFinite
                 ? constraints.maxWidth
-                : 300 + actionW;
-            final bubbleMax = hasEdit
-                ? (available - actionW).clamp(0.0, 300.0).toDouble()
-                : available.clamp(0.0, 300.0).toDouble();
+                : 300.0;
+            final bubbleMax = available.clamp(0.0, 300.0).toDouble();
 
             final bubble = ConstrainedBox(
               constraints: BoxConstraints(maxWidth: bubbleMax),
@@ -206,23 +207,19 @@ class _MessageBubbleState extends State<MessageBubble> {
               ),
             );
 
-            if (!hasEdit) return bubble;
+            if (editAction == null) return bubble;
 
-            final Widget edit = editAction!;
-            return Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: bubble,
-                ),
-                Positioned(
-                  left: -8,
-                  bottom: -6,
-                  child: edit,
-                ),
-              ],
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  bubble,
+                  const SizedBox(height: 4),
+                  editAction!,
+                ],
+              ),
             );
           },
         ),

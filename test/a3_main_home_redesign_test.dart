@@ -93,7 +93,9 @@ void main() {
     expect(SediPresenceTokens.amplitudeScale, 0.80);
     expect(SediHorizontalResonanceVisualizer.height, 52);
     expect(SediHorizontalResonanceVisualizer.barCount, 98);
-    expect(vis.contains('heartbeatEnvelope'), isTrue);
+    expect(vis.contains('ecgShape'), isTrue);
+    expect(vis.contains('relativeX - cycle'), isTrue);
+    expect(vis.contains('heartbeatEnvelope'), isFalse);
     expect(tray.contains('a3-top-tray-toggle'), isTrue);
     expect(tray.contains('easeOutCubic'), isTrue);
   });
@@ -126,13 +128,15 @@ void main() {
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, closeTo(0.80, 0.01));
     expect(SediHorizontalResonanceVisualizer.height, 52);
 
-    final lub = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.08);
-    final dub = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.24);
-    final rest = SediHorizontalResonanceVisualizer.heartbeatEnvelope(0.62);
-    expect(lub, inInclusiveRange(0.0, 1.0));
-    expect(dub, inInclusiveRange(0.0, 1.0));
-    expect(lub, greaterThan(dub));
-    expect(dub, greaterThan(rest));
+    final p = SediHorizontalResonanceVisualizer.ecgShape(0.19);
+    final qrs = SediHorizontalResonanceVisualizer.ecgShape(0.32);
+    final t = SediHorizontalResonanceVisualizer.ecgShape(0.49);
+    final rest = SediHorizontalResonanceVisualizer.ecgShape(0.78);
+    expect(p, inInclusiveRange(0.0, 1.0));
+    expect(qrs, inInclusiveRange(0.0, 1.0));
+    expect(qrs, greaterThan(t));
+    expect(t, greaterThan(p));
+    expect(p, greaterThan(rest));
     expect(rest, lessThan(0.08));
   });
 

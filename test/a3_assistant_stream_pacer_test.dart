@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/features/chat/state/assistant_stream_pacer.dart';
 
 void main() {
-  test('UI reveal delay is 60% of the previous frame-yield speed', () {
-    expect(AssistantStreamPacer.speedFactor, closeTo(0.60, 0.001));
+  test('UI reveal delay is 30% of the previous frame-yield speed', () {
+    expect(AssistantStreamPacer.speedFactor, closeTo(0.30, 0.001));
+    expect(AssistantStreamPacer.previousYield, const Duration(milliseconds: 16));
     expect(
       AssistantStreamPacer.revealDelay.inMicroseconds,
       (AssistantStreamPacer.previousYield.inMicroseconds /
@@ -16,14 +17,7 @@ void main() {
       AssistantStreamPacer.revealDelay.inMicroseconds,
       greaterThan(AssistantStreamPacer.previousYield.inMicroseconds),
     );
-    expect(
-      AssistantStreamPacer.revealDelay.inMilliseconds,
-      greaterThanOrEqualTo(26),
-    );
-    expect(
-      AssistantStreamPacer.revealDelay.inMilliseconds,
-      lessThanOrEqualTo(28),
-    );
+    expect(AssistantStreamPacer.revealDelay.inMilliseconds, 53);
   });
 
   test('chunks flush in order; first paint is immediate', () async {
@@ -38,6 +32,38 @@ void main() {
     await pacer.whenIdle;
     expect(seen, ['a', 'b', 'c']);
     expect(pacer.isIdle, isTrue);
+  });
+
+  test('second paint cannot bypass cadence after the queue drains', () async {
+    final seen = <String>[];
+    final pacer = AssistantStreamPacer();
+    pacer.enqueue('a', seen.add);
+    await pacer.whenIdle;
+    expect(seen, ['a']);
+    expect(pacer.isIdle, isTrue);
+
+    pacer.enqueue('b', seen.add);
+    expect(seen, ['a']);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(seen, ['a']);
+    await pacer.whenIdle;
+    expect(seen, ['a', 'b']);
+    expect(pacer.isIdle, isTrue);
+  });
+
+  test('cancel drops remaining chunks and whenIdle completes', () async {
+    final seen = <String>[];
+    final pacer = AssistantStreamPacer();
+    pacer.enqueue('a', seen.add);
+    pacer.enqueue('b', seen.add);
+    pacer.enqueue('c', seen.add);
+    expect(seen, ['a']);
+    pacer.cancel();
+    await pacer.whenIdle;
+    expect(seen, ['a']);
+    expect(pacer.isIdle, isTrue);
+    pacer.enqueue('d', seen.add);
+    expect(seen, ['a']);
   });
 
   test('ChatController uses the UI pacer; stream client is unchanged', () {

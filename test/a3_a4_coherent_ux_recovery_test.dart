@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/calendar_date_math.dart';
 import 'package:sedi_app/features/chat/presentation/widgets/message_bubble.dart';
+import 'package:sedi_app/features/chat/state/assistant_stream_pacer.dart';
 import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_state.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
 import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
@@ -208,6 +209,38 @@ void main() {
       expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
       expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
       expect(SediHorizontalResonanceVisualizer.height, 52);
+
+      final p = SediHorizontalResonanceVisualizer.ecgShape(0.19);
+      final qrs = SediHorizontalResonanceVisualizer.ecgShape(0.32);
+      final t = SediHorizontalResonanceVisualizer.ecgShape(0.49);
+      final baseline = SediHorizontalResonanceVisualizer.ecgShape(0.78);
+      expect(qrs, greaterThan(t));
+      expect(t, greaterThan(p));
+      expect(p, greaterThan(baseline));
+      expect(baseline, lessThan(0.08));
+      expect(
+        SediHorizontalResonanceVisualizer.ecgShape(0.00),
+        isNot(closeTo(qrs, 0.20)),
+      );
+      expect(
+        SediHorizontalResonanceVisualizer.ecgShape(0.32 - 0.0),
+        greaterThan(SediHorizontalResonanceVisualizer.ecgShape(0.32 - 0.16)),
+      );
+    });
+
+    test('A3-03R pacer cadence holds across an empty-queue restart', () async {
+      expect(AssistantStreamPacer.speedFactor, closeTo(0.30, 0.001));
+      expect(AssistantStreamPacer.revealDelay.inMilliseconds, 53);
+      final seen = <String>[];
+      final pacer = AssistantStreamPacer();
+      pacer.enqueue('a', seen.add);
+      await pacer.whenIdle;
+      pacer.enqueue('b', seen.add);
+      expect(seen, ['a']);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(seen, ['a']);
+      await pacer.whenIdle;
+      expect(seen, ['a', 'b']);
     });
 
     testWidgets('horizontal visualizer present for all four states',
