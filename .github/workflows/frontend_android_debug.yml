@@ -302,13 +302,14 @@ jobs:
             echo "FAIL: versionCode mismatch"
             exit 1
           fi
-          CERTS=$("$APKSIGNER" verify --print-certs "$APK")
-          SIGNER_COUNT=$(printf '%s\n' "$CERTS" | grep -c 'Signer #.*certificate SHA-256 digest:' || true)
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK" 2>&1)
+          SIGNER_COUNT=$(printf '%s\n' "$CERTS" | grep -ci 'certificate SHA-256 digest:' || true)
           if [ "$SIGNER_COUNT" != "1" ]; then
             echo "FAIL: expected exactly one signer, got ${SIGNER_COUNT}"
+            printf '%s\n' "$CERTS" | grep -i 'SHA-256 digest:' || true
             exit 1
           fi
-          ACTUAL_FP=$(printf '%s\n' "$CERTS" | sed -n 's/.*SHA-256 digest:[[:space:]]*//p' | head -n1 | tr -d '[:space:]:' | tr 'A-F' 'a-f')
+          ACTUAL_FP=$(printf '%s\n' "$CERTS" | grep -i 'certificate SHA-256 digest:' | head -n1 | awk '{print $NF}' | tr -d '[:space:]:' | tr 'A-F' 'a-f')
           if [ "$ACTUAL_FP" != "$EXPECTED_FP" ]; then
             echo "FAIL: signer SHA-256 mismatch"
             echo "EXPECTED_FP=${EXPECTED_FP}"
