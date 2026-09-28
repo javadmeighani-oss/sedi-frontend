@@ -231,8 +231,91 @@ jobs:
             test/gate2_post_otp_profile_load_test.dart \
             test/gate2_post_otp_router_test.dart
 
+      - name: Prepare Sedi physical signing (fail-closed)
+        env:
+          SEDI_ANDROID_KEYSTORE_B64: ${{ secrets.SEDI_ANDROID_KEYSTORE_B64 }}
+          SEDI_ANDROID_KEY_ALIAS: ${{ secrets.SEDI_ANDROID_KEY_ALIAS }}
+          SEDI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SEDI_ANDROID_KEYSTORE_PASSWORD }}
+          SEDI_ANDROID_KEY_PASSWORD: ${{ secrets.SEDI_ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SEDI_ANDROID_KEYSTORE_B64:-}" ] || \
+             [ -z "${SEDI_ANDROID_KEY_ALIAS:-}" ] || \
+             [ -z "${SEDI_ANDROID_KEYSTORE_PASSWORD:-}" ] || \
+             [ -z "${SEDI_ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "FAIL: one or more Sedi Android signing secrets are absent"
+            exit 1
+          fi
+          KEYSTORE_PATH="${RUNNER_TEMP}/sedi-physical-update.p12"
+          printf '%s' "$SEDI_ANDROID_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER))
+          echo "SEDI_ANDROID_KEYSTORE_PATH=${KEYSTORE_PATH}" >> "$GITHUB_ENV"
+          echo "SEDI_PHYSICAL_BUILD_NUMBER=${BUILD_NUMBER}" >> "$GITHUB_ENV"
+          echo "SEDI_PHYSICAL_SIGNING_PREPARED=YES"
+          echo "PHYSICAL_BUILD_NUMBER=${BUILD_NUMBER}"
+
       - name: Build debug APK
-        run: flutter build apk --debug
+        env:
+          SEDI_ANDROID_KEYSTORE_PATH: ${{ env.SEDI_ANDROID_KEYSTORE_PATH }}
+          SEDI_ANDROID_KEY_ALIAS: ${{ secrets.SEDI_ANDROID_KEY_ALIAS }}
+          SEDI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SEDI_ANDROID_KEYSTORE_PASSWORD }}
+          SEDI_ANDROID_KEY_PASSWORD: ${{ secrets.SEDI_ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER="${SEDI_PHYSICAL_BUILD_NUMBER:?FAIL missing physical build number}"
+          flutter build apk --debug --build-number "$BUILD_NUMBER"
+
+      - name: Verify physical APK package, versionCode, and signer (fail-closed)
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          test -f "$APK"
+          EXPECTED_FP_FILE="android/signing/sedi_physical_cert_sha256.txt"
+          test -f "$EXPECTED_FP_FILE"
+          EXPECTED_FP=$(tr -d '[:space:]:' < "$EXPECTED_FP_FILE" | tr 'A-F' 'a-f')
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK" ]; then
+            echo "FAIL: ANDROID_SDK_ROOT/ANDROID_HOME unset"
+            exit 1
+          fi
+          BT=$(ls -d "$SDK"/build-tools/* 2>/dev/null | sort | tail -n1)
+          if [ -z "$BT" ]; then
+            echo "FAIL: Android build-tools not found"
+            exit 1
+          fi
+          AAPT="$BT/aapt"
+          APKSIGNER="$BT/apksigner"
+          test -x "$AAPT"
+          test -x "$APKSIGNER"
+          BADGING=$("$AAPT" dump badging "$APK")
+          PACKAGE=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          VERSION_CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='[^']*' versionCode='\([^']*\)'.*/\1/p")
+          echo "APK_PACKAGE=${PACKAGE}"
+          echo "APK_VERSION_CODE=${VERSION_CODE}"
+          echo "EXPECTED_VERSION_CODE=${SEDI_PHYSICAL_BUILD_NUMBER}"
+          if [ "$PACKAGE" != "com.sedi.app" ]; then
+            echo "FAIL: package mismatch"
+            exit 1
+          fi
+          if [ "$VERSION_CODE" != "$SEDI_PHYSICAL_BUILD_NUMBER" ]; then
+            echo "FAIL: versionCode mismatch"
+            exit 1
+          fi
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK")
+          SIGNER_COUNT=$(printf '%s\n' "$CERTS" | grep -c 'Signer #.*certificate SHA-256 digest:' || true)
+          if [ "$SIGNER_COUNT" != "1" ]; then
+            echo "FAIL: expected exactly one signer, got ${SIGNER_COUNT}"
+            exit 1
+          fi
+          ACTUAL_FP=$(printf '%s\n' "$CERTS" | sed -n 's/.*SHA-256 digest:[[:space:]]*//p' | head -n1 | tr -d '[:space:]:' | tr 'A-F' 'a-f')
+          if [ "$ACTUAL_FP" != "$EXPECTED_FP" ]; then
+            echo "FAIL: signer SHA-256 mismatch"
+            echo "EXPECTED_FP=${EXPECTED_FP}"
+            echo "ACTUAL_FP=${ACTUAL_FP}"
+            exit 1
+          fi
+          echo "PHYSICAL_SIGNER_VERIFIED=YES"
 
       - name: Upload canonical real-Firebase debug APK artifact
         uses: actions/upload-artifact@v4

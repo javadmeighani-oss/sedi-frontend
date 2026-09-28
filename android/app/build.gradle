@@ -25,6 +25,21 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
+// Physical CI signing is env-driven only. Local checkouts without these
+// variables keep ordinary debug signing and never fabricate secrets.
+def sediKeystorePath = System.getenv("SEDI_ANDROID_KEYSTORE_PATH")
+def sediKeyAlias = System.getenv("SEDI_ANDROID_KEY_ALIAS")
+def sediStorePassword = System.getenv("SEDI_ANDROID_KEYSTORE_PASSWORD")
+def sediKeyPassword = System.getenv("SEDI_ANDROID_KEY_PASSWORD")
+def useSediPhysicalSigning = false
+if (sediKeystorePath && sediKeyAlias && sediStorePassword && sediKeyPassword) {
+    def kf = file(sediKeystorePath)
+    if (!kf.isFile()) {
+        throw new GradleException("SEDI physical signing env is set but keystore file is missing")
+    }
+    useSediPhysicalSigning = true
+}
+
 android {
     namespace "com.sedi.app"
     compileSdk 34
@@ -50,7 +65,24 @@ android {
         versionName flutterVersionName
     }
 
+    signingConfigs {
+        if (useSediPhysicalSigning) {
+            sediPhysical {
+                storeFile file(sediKeystorePath)
+                storePassword sediStorePassword
+                keyAlias sediKeyAlias
+                keyPassword sediKeyPassword
+                storeType "pkcs12"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (useSediPhysicalSigning) {
+                signingConfig signingConfigs.sediPhysical
+            }
+        }
         release {
             signingConfig signingConfigs.debug
         }
