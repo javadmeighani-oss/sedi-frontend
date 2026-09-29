@@ -144,9 +144,11 @@ void main() {
     final inbox = _read(
       'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
     );
-    expect(inbox.contains('AppGateRouter.goToHeart'), isTrue);
-    expect(inbox.contains('fromNotification: true'), isTrue);
+    // A4: Inbox is history/archive only — Talk-to-Sedi lives on push actions, not inbox.
+    expect(inbox.contains('AppGateRouter.goToHeart'), isFalse);
+    expect(inbox.contains('fromNotification: true'), isFalse);
     expect(inbox.contains('ChatPage'), isFalse);
+    expect(inbox.contains('categoryLabel'), isTrue);
 
     final bootstrap = _read('lib/core/notifications/notification_bootstrap.dart');
     expect(bootstrap.contains('AppGateRouter.goToHeart'), isTrue);
