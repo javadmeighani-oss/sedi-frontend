@@ -25,7 +25,16 @@ void main() {
       final v3 = channels.firstWhere((c) => c.id == channelMorningV3);
       final v2 = channels.firstWhere((c) => c.id == channelMorningV2);
       expect(v3.playSound, isTrue);
-      expect(v3.sound.toString(), contains(androidSoundResource));
+      expect(v3.sound, isNotNull);
+      expect(androidSoundResource, 'sedi_alarm');
+      final localSrc =
+          _read('lib/core/notifications/local_notifications_service.dart');
+      expect(localSrc.contains("channelMorningV3"), isTrue);
+      expect(localSrc.contains("androidSoundResource"), isTrue);
+      expect(
+        localSrc.contains("RawResourceAndroidNotificationSound(androidSoundResource)"),
+        isTrue,
+      );
       expect(v2.playSound, isFalse);
       final (imp3, _, play3, _) = channelImportanceFor(channelMorningV3);
       final (imp2, _, play2, _) = channelImportanceFor(channelMorningV2);
