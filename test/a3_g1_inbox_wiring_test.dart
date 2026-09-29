@@ -112,10 +112,10 @@ void main() {
     expect(fa.emptySubtitle, isNot(en.emptySubtitle));
     expect(ar.emptySubtitle, isNot(en.emptySubtitle));
 
-    expect(en.like, 'Like');
-    expect(fa.like, isNot(en.like));
-    expect(ar.like, isNot(en.like));
-    expect(en.dislike, 'Dislike');
+    expect(en.fallbackTitle, 'Notification');
+    expect(fa.fallbackTitle, 'اعلان');
+    expect(ar.fallbackTitle, 'إشعار');
+    expect(en.categoryLabel('daily_status'), 'Daily status');
     expect(en.markAsRead, 'Mark as read');
     expect(en.loading, contains('Loading'));
 
@@ -143,7 +143,7 @@ void main() {
     expect(src.contains('_loadMore'), isTrue);
     expect(src.contains('_reload'), isTrue);
     expect(src.contains('_dedupeById'), isTrue);
-    expect(src.contains('sendFeedback'), isTrue);
+    expect(src.contains('sendFeedback'), isFalse);
     expect(src.contains('HealthSubject'), isFalse);
     expect(src.contains('MANAGED_SUBJECT'), isFalse);
     expect(src.contains('caregiver'), isFalse);

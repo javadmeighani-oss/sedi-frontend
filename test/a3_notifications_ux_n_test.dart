@@ -6,8 +6,7 @@ import 'package:sedi_app/features/notifications/presentation/notification_inbox_
 String _read(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('Notifications inbox is a white card destination with weighted detail CTAs',
-      () {
+  test('Notifications inbox is history-only white card destination', () {
     final src = _read(
       'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
     );
@@ -18,17 +17,20 @@ void main() {
     expect(src.contains('_loadMore'), isTrue);
     expect(src.contains('_reload'), isTrue);
     expect(src.contains('_markReadOptimistic'), isTrue);
-    expect(src.contains("action: 'open_chat'"), isTrue);
-    expect(src.contains('AppGateRouter.goToHeart'), isTrue);
-    expect(src.contains('wasThisUseful'), isTrue);
-    expect(src.contains('continueInChat'), isTrue);
+    expect(src.contains("action: 'open_chat'"), isFalse);
+    expect(src.contains('AppGateRouter.goToHeart'), isFalse);
+    expect(src.contains('wasThisUseful'), isFalse);
+    expect(src.contains('continueInChat'), isFalse);
     expect(src.contains('InboxFilter.all'), isTrue);
     expect(src.contains('InboxFilter.unread'), isTrue);
     expect(src.contains('HealthSubject'), isFalse);
+    expect(src.contains('categoryLabel'), isTrue);
+    expect(src.contains('isScrollControlled: true'), isTrue);
 
-    expect(NotificationInboxL10n('en').continueInChat, 'Continue with Sedi');
-    expect(NotificationInboxL10n('en').wasThisUseful, 'Was this useful?');
+    expect(NotificationInboxL10n('en').fallbackTitle, 'Notification');
     expect(NotificationInboxL10n('fa').isRtl, isTrue);
     expect(NotificationInboxL10n('ar').isRtl, isTrue);
+    expect(NotificationInboxL10n('fa').fallbackTitle, 'اعلان');
+    expect(NotificationInboxL10n('ar').fallbackTitle, 'إشعار');
   });
 }

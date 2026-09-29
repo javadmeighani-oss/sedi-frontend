@@ -169,7 +169,8 @@ jobs:
           flutter test \
             test/a3_fe1_icon_badge_inbox_test.dart \
             test/a3_g1_inbox_wiring_test.dart \
-            test/notification_sync_and_badge_test.dart
+            test/notification_sync_and_badge_test.dart \
+            test/a4_android_ux_integration_test.dart
 
       - name: Targeted A2 functional alignment tests
         run: |

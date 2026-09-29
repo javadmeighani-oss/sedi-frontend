@@ -6,19 +6,19 @@ import '../navigation/session_gate_resolver.dart';
 import '../navigation/app_navigator.dart';
 import 'fcm_setup.dart';
 import 'local_notifications_service.dart';
+import 'pending_notification_actions.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../../services/notifications/inbox_refresh_bus.dart';
 import '../../services/push/push_service.dart';
 
-/// A4 notification / FCM bootstrap — kept separate from A1 startup.
-///
-/// Does not redesign A4 UI; structural isolation only.
+/// A4 notification / FCM bootstrap — presentation/interaction only.
 class NotificationBootstrap {
   NotificationBootstrap._();
 
-  /// Dedupe: avoid sending open_chat feedback twice for same notification.
-  static final _feedbackSentIds = <int>{};
-  static const int _maxFeedbackDedupSize = 50;
+  /// Session-local open_chat navigation dedupe (feedback durability uses pending queue).
+  static final Set<int> _openChatNavigatedIds = <int>{};
+  static const int _maxNavDedup = 50;
+  static bool _draining = false;
 
   static Future<void> setup() async {
     debugPrint('[FCM] setup start');
@@ -54,11 +54,51 @@ class NotificationBootstrap {
       });
     }
 
+    // Local-notification terminated launch (Gate4 data-only path).
+    await _recoverLocalNotificationLaunch();
+
+    // Drain any pending actions from background/terminated taps.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      drainPendingActions();
+    });
+
     _registerTokenOnStart();
     FirebaseMessaging.instance.onTokenRefresh.listen((String newToken) {
       debugPrint('[FCM] onTokenRefresh fired: ${_maskToken(newToken)}');
       _registerTokenOnStart();
     });
+  }
+
+  /// Call on app resume to retry transient feedback failures.
+  static Future<void> onAppResumed() => drainPendingActions();
+
+  static Future<void> _recoverLocalNotificationLaunch() async {
+    try {
+      final details =
+          await LocalNotificationsService.getNotificationAppLaunchDetails();
+      if (details == null || details.didNotificationLaunchApp != true) return;
+      final response = details.notificationResponse;
+      if (response == null) return;
+      final payload = parseNotificationPayload(response.payload);
+      if (payload == null) return;
+      final id = int.tryParse(payload['notification_id']?.toString() ?? '');
+      if (id == null || id <= 0) return;
+      final action = (response.actionId == null || response.actionId!.isEmpty)
+          ? 'open_chat'
+          : response.actionId!;
+      await PendingNotificationActions.enqueue(
+        notificationId: id,
+        actionId: action,
+      );
+      // Navigate for open_chat after session check (same as foreground path).
+      if (action == 'open_chat') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _navigateToChat(notificationId: id);
+        });
+      }
+    } catch (e) {
+      debugPrint('[FCM] local launch recover failed: $e');
+    }
   }
 
   static void _handleNotificationResponse(
@@ -74,21 +114,16 @@ class NotificationBootstrap {
     final notificationId = int.tryParse(notificationIdStr);
     if (notificationId == null) return;
 
-    final action = actionId ?? 'open_chat';
-    final repo = NotificationRepository();
+    // Body tap → same open_chat seam.
+    final action = (actionId == null || actionId.isEmpty) ? 'open_chat' : actionId;
 
-    if (action == 'open_chat') {
-      _feedbackSentIds.add(notificationId);
-      if (_feedbackSentIds.length > _maxFeedbackDedupSize) {
-        _feedbackSentIds.remove(_feedbackSentIds.first);
-      }
-    }
-
-    repo.sendFeedback(
+    // Persist then drain so process-death / slow network remain correct.
+    // ignore: discarded_futures
+    PendingNotificationActions.enqueue(
       notificationId: notificationId,
-      action: action,
-      clientTs: DateTime.now().toIso8601String(),
-    );
+      actionId: action,
+    ).then((_) => drainPendingActions());
+
     InboxRefreshBus.instance.triggerDebounced();
 
     if (action == 'open_chat') {
@@ -96,32 +131,55 @@ class NotificationBootstrap {
     }
   }
 
-  static void _sendOpenChatFeedbackIfNeeded(int? notificationId) {
-    if (notificationId == null || notificationId <= 0) return;
-    if (_feedbackSentIds.contains(notificationId)) return;
-    _feedbackSentIds.add(notificationId);
-    if (_feedbackSentIds.length > _maxFeedbackDedupSize) {
-      final first = _feedbackSentIds.first;
-      _feedbackSentIds.remove(first);
+  static Future<void> drainPendingActions() async {
+    if (_draining) return;
+    _draining = true;
+    try {
+      final hasSession = await SessionGateResolver.hasValidSession();
+      if (!hasSession) return;
+
+      final repo = NotificationRepository();
+      await PendingNotificationActions.drain((item) async {
+        final resp = await repo.sendFeedback(
+          notificationId: item.notificationId,
+          action: item.actionId,
+          clientTs: item.clientTs,
+        );
+        return resp.ok;
+      });
+    } catch (e) {
+      debugPrint('[FCM] drainPendingActions error: $e');
+    } finally {
+      _draining = false;
     }
-    NotificationRepository().sendFeedback(
-      notificationId: notificationId,
-      action: 'open_chat',
-      clientTs: DateTime.now().toIso8601String(),
-    );
   }
 
   static void _navigateToChatFromMessage(RemoteMessage message) {
     final data = message.data;
-    final notificationIdStr = data['notification_id']?.toString();
+    final notificationIdStr = data['notification_id']?.toString() ??
+        data['source_notification_id']?.toString();
     final notificationId = int.tryParse(notificationIdStr ?? '');
     final id = (notificationId ?? 0) > 0 ? notificationId : null;
     InboxRefreshBus.instance.triggerDebounced();
-    if (id != null) _sendOpenChatFeedbackIfNeeded(id);
+    if (id != null) {
+      // ignore: discarded_futures
+      PendingNotificationActions.enqueue(
+        notificationId: id,
+        actionId: 'open_chat',
+      ).then((_) => drainPendingActions());
+    }
     _navigateToChat(notificationId: id);
   }
 
   static Future<void> _navigateToChat({int? notificationId}) async {
+    if (notificationId != null && notificationId > 0) {
+      if (_openChatNavigatedIds.contains(notificationId)) return;
+      _openChatNavigatedIds.add(notificationId);
+      if (_openChatNavigatedIds.length > _maxNavDedup) {
+        _openChatNavigatedIds.remove(_openChatNavigatedIds.first);
+      }
+    }
+
     final context = navigatorKey.currentContext;
     if (context == null) return;
 

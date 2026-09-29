@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/locale/sedi_locale_controller.dart';
 import 'core/locale/sedi_locale_registry.dart';
 import 'core/navigation/app_navigator.dart';
+import 'core/notifications/notification_bootstrap.dart';
 import 'core/theme/app_theme.dart';
 import 'features/intro/presentation/pages/intro_page.dart';
 
@@ -22,14 +23,22 @@ class SediApp extends StatefulWidget {
   State<SediApp> createState() => _SediAppState();
 }
 
-class _SediAppState extends State<SediApp> {
+class _SediAppState extends State<SediApp> with WidgetsBindingObserver {
   final SediLocaleController _locale = SediLocaleController.instance;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _locale.addListener(_onLocaleChanged);
     // Locale is resolved in main() before runApp to avoid an async EN flash.
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      NotificationBootstrap.onAppResumed();
+    }
   }
 
   void _onLocaleChanged() {
@@ -38,6 +47,7 @@ class _SediAppState extends State<SediApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _locale.removeListener(_onLocaleChanged);
     super.dispose();
   }

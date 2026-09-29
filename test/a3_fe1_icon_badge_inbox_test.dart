@@ -69,30 +69,28 @@ void main() {
     expect(like.containsKey('reason'), isFalse);
   });
 
-  test('Inbox wires open_chat + dislike-reason and keeps no clinical inference',
-      () {
+  test('Inbox is history-only without action/feedback controls', () {
     final inbox = _read(
       'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
     );
-    expect(inbox.contains("action: 'open_chat'"), isTrue);
-    expect(inbox.contains('continueInChat'), isTrue);
-    expect(inbox.contains('_pickDislikeReason'), isTrue);
-    expect(inbox.contains('too_frequent'), isTrue);
-    expect(inbox.contains('AppGateRouter.goToHeart'), isTrue);
+    expect(inbox.contains("action: 'open_chat'"), isFalse);
+    expect(inbox.contains('continueInChat'), isFalse);
+    expect(inbox.contains('_pickDislikeReason'), isFalse);
+    expect(inbox.contains('AppGateRouter.goToHeart'), isFalse);
     expect(inbox.contains('InboxRefreshBus.instance.triggerDebounced'), isTrue);
     expect(inbox.contains('HealthSubject'), isFalse);
     expect(inbox.contains('gadget_provenance'), isFalse);
     expect(inbox.contains('SELF'), isFalse);
     expect(inbox.contains('OTHER'), isFalse);
+    expect(inbox.contains('categoryLabel'), isTrue);
 
     final en = NotificationInboxL10n('en');
     final fa = NotificationInboxL10n('fa');
     final ar = NotificationInboxL10n('ar');
-    expect(en.continueInChat, 'Continue with Sedi');
-    expect(fa.continueInChat, isNot(en.continueInChat));
-    expect(ar.continueInChat, isNot(en.continueInChat));
-    expect(en.dislikeReasonTooFrequent, 'Too frequent');
-    expect(fa.dislikeReasonTooFrequent, isNot(en.dislikeReasonTooFrequent));
-    expect(ar.dislikeReasonUnclear, isNot(en.dislikeReasonUnclear));
+    expect(en.fallbackTitle, 'Notification');
+    expect(fa.fallbackTitle, 'اعلان');
+    expect(ar.fallbackTitle, 'إشعار');
+    expect(fa.isRtl, isTrue);
+    expect(ar.isRtl, isTrue);
   });
 }

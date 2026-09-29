@@ -28,8 +28,6 @@ class NotificationInboxPage extends StatefulWidget {
 class _NotificationInboxPageState extends State<NotificationInboxPage> {
   final NotificationsService _service = NotificationsService();
   final Set<int> _pendingReadIds = <int>{};
-  final Set<int> _likedIds = <int>{};
-  final Set<int> _dislikedIds = <int>{};
   final ScrollController _scrollController = ScrollController();
 
   List<NotificationItem> _items = const <NotificationItem>[];
@@ -180,230 +178,91 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     InboxRefreshBus.instance.triggerDebounced();
   }
 
-  Future<void> _sendFeedback(
-    NotificationItem item, {
-    required bool liked,
-    String? reason,
-  }) async {
-    if (liked && _likedIds.contains(item.id)) return;
-    if (!liked && _dislikedIds.contains(item.id)) return;
-
-    if (liked) {
-      setState(() {
-        _likedIds.add(item.id);
-        _dislikedIds.remove(item.id);
-      });
-    } else {
-      setState(() {
-        _dislikedIds.add(item.id);
-        _likedIds.remove(item.id);
-      });
-    }
-
-    final resp = await _service.sendFeedback(
-      item.id,
-      liked: liked,
-      reason: liked ? null : reason,
-    );
-    if (!mounted) return;
-    if (!resp.ok) {
-      _showMessage(resp.errorMessage);
-      return;
-    }
-    InboxRefreshBus.instance.triggerDebounced();
-  }
-
-  Future<void> _continueToChat(NotificationItem item) async {
-    await _markReadOptimistic(item);
-    final resp = await _service.sendFeedback(
-      item.id,
-      liked: true,
-      action: 'open_chat',
-    );
-    if (!mounted) return;
-    if (!resp.ok) {
-      _showMessage(resp.errorMessage);
-      return;
-    }
-    InboxRefreshBus.instance.triggerDebounced();
-    AppGateRouter.goToHeart(
-      context,
-      fromNotification: true,
-      notificationId: item.id,
-    );
-  }
-
-  Future<String?> _pickDislikeReason(NotificationInboxL10n l10n) {
-    return showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: AppTheme.backgroundWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    l10n.dislikeReasonTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text(l10n.dislikeReasonTooFrequent),
-                  onTap: () => Navigator.of(ctx).pop('too_frequent'),
-                ),
-                ListTile(
-                  title: Text(l10n.dislikeReasonIrrelevant),
-                  onTap: () => Navigator.of(ctx).pop('irrelevant'),
-                ),
-                ListTile(
-                  title: Text(l10n.dislikeReasonUnclear),
-                  onTap: () => Navigator.of(ctx).pop('unclear'),
-                ),
-                ListTile(
-                  title: Text(
-                    l10n.dislikeReasonSkip,
-                    style: const TextStyle(color: AppTheme.textSecondary),
-                  ),
-                  onTap: () => Navigator.of(ctx).pop(null),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _openDetails(
       NotificationItem item, NotificationInboxL10n l10n) async {
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppTheme.backgroundWhite,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
       ),
       builder: (context) {
+        final media = MediaQuery.of(context);
+        final maxHeight = media.size.height * 0.85;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _channelPill(item.channel),
-                const SizedBox(height: 12),
-                Text(
-                  item.title.isEmpty ? l10n.fallbackTitle : item.title,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  item.body,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 15,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await _continueToChat(item);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.gate2ButtonOlive,
-                      foregroundColor: AppTheme.backgroundWhite,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusMedium),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 24 + media.viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _categoryPill(item, l10n),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title.isEmpty
+                                ? l10n.fallbackTitle
+                                : item.title,
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            item.body.trim().isEmpty
+                                ? l10n.noDetails
+                                : item.body,
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 15,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            l10n.relativeTime(item.sentAt ?? item.createdAt),
+                            style: TextStyle(
+                              color: AppTheme.textSecondary.withOpacity(0.85),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Text(l10n.continueInChat),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    onPressed: item.isRead
-                        ? null
-                        : () async {
-                            Navigator.of(context).pop();
-                            await _markReadOptimistic(item);
-                          },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.textSecondary,
-                    ),
-                    child: Text(l10n.markAsRead),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.wasThisUseful,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await _sendFeedback(item, liked: true);
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.gate2ButtonOlive,
-                      ),
-                      icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                      label: Text(l10n.like),
-                    ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        final reason = await _pickDislikeReason(l10n);
-                        if (!mounted) return;
-                        await _sendFeedback(
-                          item,
-                          liked: false,
-                          reason: reason,
-                        );
-                      },
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      onPressed: item.isRead
+                          ? null
+                          : () async {
+                              Navigator.of(context).pop();
+                              await _markReadOptimistic(item);
+                            },
                       style: TextButton.styleFrom(
                         foregroundColor: AppTheme.textSecondary,
                       ),
-                      icon: const Icon(Icons.thumb_down_alt_outlined, size: 18),
-                      label: Text(l10n.dislike),
+                      child: Text(l10n.markAsRead),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -416,8 +275,19 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return l10n.noDetails;
   }
 
-  Widget _channelPill(String channel) {
-    // Raw API channel identity — not translated.
+  String _categorySource(NotificationItem item) {
+    final meta = item.metadata;
+    if (meta != null) {
+      final cat = meta['category'] ?? meta['gate4_category'];
+      if (cat != null && cat.toString().trim().isNotEmpty) {
+        return cat.toString();
+      }
+    }
+    return item.channel;
+  }
+
+  Widget _categoryPill(NotificationItem item, NotificationInboxL10n l10n) {
+    final label = l10n.categoryLabel(_categorySource(item));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -425,7 +295,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        channel.toUpperCase(),
+        label,
         style: const TextStyle(
           color: AppTheme.textSecondary,
           fontSize: 11,
@@ -586,7 +456,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   children: [
                     Row(
                       children: [
-                        _channelPill(item.channel),
+                        _categoryPill(item, l10n),
                         const Spacer(),
                         if (displayUnread)
                           Container(

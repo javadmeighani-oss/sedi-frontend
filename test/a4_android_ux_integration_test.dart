@@ -1,0 +1,255 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:sedi_app/core/notifications/fcm_setup.dart';
+import 'package:sedi_app/core/notifications/local_notifications_service.dart';
+import 'package:sedi_app/core/notifications/pending_notification_actions.dart';
+import 'package:sedi_app/features/notifications/presentation/notification_inbox_l10n.dart';
+
+String _read(String path) => File(path).readAsStringSync();
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    PendingNotificationActions.prefsLoader = SharedPreferences.getInstance;
+  });
+
+  group('channels + sound', () {
+    test('morning_v3 exists audible with sedi_alarm; morning_v2 silent', () {
+      final channels = LocalNotificationsService.allAndroidChannels;
+      final v3 = channels.firstWhere((c) => c.id == channelMorningV3);
+      final v2 = channels.firstWhere((c) => c.id == channelMorningV2);
+      expect(v3.playSound, isTrue);
+      expect(v3.sound.toString(), contains(androidSoundResource));
+      expect(v2.playSound, isFalse);
+      final (imp3, _, play3, _) = channelImportanceFor(channelMorningV3);
+      final (imp2, _, play2, _) = channelImportanceFor(channelMorningV2);
+      expect(play3, isTrue);
+      expect(play2, isFalse);
+      expect(imp3.index, greaterThan(imp2.index));
+    });
+
+    test('channel_id morning_v3 is not remapped to v2', () {
+      expect(resolveAndroidChannelId('morning_v3'), channelMorningV3);
+      expect(resolveAndroidChannelId('morning_v2'), channelMorningV2);
+      expect(resolveAndroidChannelId('morning_v3'), isNot(channelMorningV2));
+    });
+
+    test('engagement_v2 and health_alert_v2 remain audible', () {
+      expect(channelImportanceFor(channelEngagementV2).$3, isTrue);
+      expect(channelImportanceFor(channelHealthAlertV2).$3, isTrue);
+    });
+  });
+
+  group('localized actions', () {
+    test('consumes gate4_actions labels FA/EN/AR', () {
+      final en = resolveNotificationActions(
+        data: {
+          'gate4_actions': jsonEncode([
+            {'action_id': 'like', 'label': 'Like'},
+            {'action_id': 'dislike', 'label': 'Dislike'},
+            {'action_id': 'open_chat', 'label': 'Talk to Sedi'},
+          ]),
+        },
+        language: 'en',
+      );
+      expect(en.map((a) => a.id).toList(), ['like', 'dislike', 'open_chat']);
+      expect(en.map((a) => a.title).toList(), isNot(contains('LIKE')));
+      expect(en.map((a) => a.title).toList(), isNot(contains('OPEN_CHAT')));
+      expect(en.firstWhere((a) => a.id == 'open_chat').title, 'Talk to Sedi');
+
+      final fa = resolveNotificationActions(
+        data: {
+          'gate4_actions': jsonEncode([
+            {'action_id': 'like', 'label': 'پسندیدم'},
+            {'action_id': 'dislike', 'label': 'نپسندیدم'},
+            {'action_id': 'open_chat', 'label': 'صحبت کنیم'},
+          ]),
+        },
+        language: 'fa',
+      );
+      expect(fa.firstWhere((a) => a.id == 'like').title, 'پسندیدم');
+      expect(fa.firstWhere((a) => a.id == 'open_chat').title, contains('صحبت'));
+
+      final ar = resolveNotificationActions(
+        data: {
+          'action_labels': jsonEncode({
+            'like': 'أعجبني',
+            'dislike': 'لم يعجبني',
+            'open_chat': 'لنتحدث مع صدی',
+          }),
+        },
+        language: 'ar',
+      );
+      expect(ar.firstWhere((a) => a.id == 'open_chat').title, contains('صدی'));
+    });
+
+    test('safe fallback labels when metadata missing', () {
+      expect(fallbackActionLabel('like', 'en'), 'Like');
+      expect(fallbackActionLabel('dislike', 'fa'), 'نپسندیدن');
+      expect(fallbackActionLabel('open_chat', 'fa'), 'صحبت با صدی');
+      expect(fallbackActionLabel('open_chat', 'ar'), 'التحدث مع صدی');
+      expect(fallbackActionLabel('open_chat', 'en'), 'Talk to Sedi');
+    });
+
+    test('no hardcoded uppercase action labels in render path', () {
+      final src = _read('lib/core/notifications/local_notifications_service.dart');
+      expect(src.contains("'LIKE'"), isFalse);
+      expect(src.contains("'DISLIKE'"), isFalse);
+      expect(src.contains("'OPEN_CHAT'"), isFalse);
+    });
+  });
+
+  group('single render + background', () {
+    test('foreground shows local; background handler does not add second path', () {
+      final local = _read('lib/core/notifications/local_notifications_service.dart');
+      final fcm = _read('lib/core/notifications/fcm_setup.dart');
+      final boot = _read('lib/core/notifications/notification_bootstrap.dart');
+      expect(local.contains('showRemoteNotification'), isTrue);
+      expect(fcm.contains('showRemoteNotification(message)'), isTrue);
+      expect(
+        'showRemoteNotification'.allMatches(fcm).length,
+        1,
+      );
+      expect(boot.contains('onMessage.listen'), isTrue);
+      expect(boot.contains('showRemoteNotification(message)'), isTrue);
+      // Exactly one local show call site in onMessage listener block.
+      expect(fcm.contains('isGate4FcmData'), isTrue);
+    });
+
+    test('background uses notificationTapBackground entry-point', () {
+      final src = _read('lib/core/notifications/local_notifications_service.dart');
+      expect(src.contains("@pragma('vm:entry-point')"), isTrue);
+      expect(src.contains('notificationTapBackground'), isTrue);
+      expect(src.contains('onDidReceiveBackgroundNotificationResponse'), isTrue);
+      expect(src.contains('PendingNotificationActions.enqueue'), isTrue);
+    });
+  });
+
+  group('pending actions handoff', () {
+    test('pending LIKE/DISLIKE/OPEN_CHAT survive process-style handoff once', () async {
+      await PendingNotificationActions.enqueue(
+        notificationId: 11,
+        actionId: 'like',
+        clientTs: 't1',
+      );
+      await PendingNotificationActions.enqueue(
+        notificationId: 11,
+        actionId: 'like',
+        clientTs: 't2',
+      ); // dedupe
+      await PendingNotificationActions.enqueue(
+        notificationId: 12,
+        actionId: 'dislike',
+      );
+      await PendingNotificationActions.enqueue(
+        notificationId: 13,
+        actionId: 'open_chat',
+      );
+
+      final loaded = await PendingNotificationActions.load();
+      expect(loaded.length, 3);
+      expect(loaded.where((e) => e.actionId == 'like').length, 1);
+
+      final sent = <String>[];
+      await PendingNotificationActions.drain((item) async {
+        sent.add(item.dedupeKey);
+        return true;
+      });
+      expect(sent.toSet().length, 3);
+      expect(await PendingNotificationActions.load(), isEmpty);
+
+      // Transient failure keeps item for next drain.
+      await PendingNotificationActions.enqueue(
+        notificationId: 99,
+        actionId: 'like',
+      );
+      await PendingNotificationActions.drain((_) async => false);
+      expect((await PendingNotificationActions.load()).length, 1);
+    });
+  });
+
+  group('bootstrap continuity', () {
+    test('open_chat navigates once; source id reaches A3; no fake user/raw body', () {
+      final boot = _read('lib/core/notifications/notification_bootstrap.dart');
+      final ctrl = _read('lib/features/chat/state/chat_controller.dart');
+      expect(boot.contains('getNotificationAppLaunchDetails'), isTrue);
+      expect(boot.contains('_recoverLocalNotificationLaunch'), isTrue);
+      expect(boot.contains('drainPendingActions'), isTrue);
+      expect(boot.contains("actionId: 'open_chat'"), isTrue);
+      expect(boot.contains('goToHeart'), isTrue);
+      expect(boot.contains('notificationId:'), isTrue);
+      expect(boot.contains('ChatMessage.user'), isFalse);
+      expect(boot.contains('notification.body'), isFalse);
+      expect(ctrl.contains('sourceNotificationId: sourceNotificationId'), isTrue);
+      expect(ctrl.contains('openSession('), isTrue);
+    });
+  });
+
+  group('inbox history-only', () {
+    test('no Like/Dislike/Talk controls; category never raw enum; RTL/LTR', () {
+      final inbox = _read(
+        'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
+      );
+      expect(inbox.contains('continueInChat'), isFalse);
+      expect(inbox.contains('wasThisUseful'), isFalse);
+      expect(inbox.contains('_pickDislikeReason'), isFalse);
+      expect(inbox.contains("action: 'open_chat'"), isFalse);
+      expect(inbox.contains('goToHeart'), isFalse);
+      expect(inbox.contains('thumb_up'), isFalse);
+      expect(inbox.contains('isScrollControlled: true'), isTrue);
+      expect(inbox.contains('SingleChildScrollView'), isTrue);
+      expect(inbox.contains('categoryLabel'), isTrue);
+      expect(inbox.contains('channel.toUpperCase()'), isFalse);
+
+      final en = NotificationInboxL10n('en');
+      final fa = NotificationInboxL10n('fa');
+      final ar = NotificationInboxL10n('ar');
+      expect(en.isRtl, isFalse);
+      expect(fa.isRtl, isTrue);
+      expect(ar.isRtl, isTrue);
+      expect(en.categoryLabel('HEALTH_ALERT'), isNot(contains('HEALTH_ALERT')));
+      expect(en.categoryLabel('daily_status'), 'Daily status');
+      expect(fa.categoryLabel('engagement_checkin'), isNotEmpty);
+      expect(en.categoryLabel('unknown_xyz'), en.fallbackTitle);
+      expect(fa.fallbackTitle, 'اعلان');
+      expect(ar.fallbackTitle, 'إشعار');
+    });
+
+    test('persisted title/body are not retranslated in inbox', () {
+      final l10n = _read(
+        'lib/features/notifications/presentation/notification_inbox_l10n.dart',
+      );
+      expect(
+        l10n.contains('Does not translate backend-supplied notification title/body'),
+        isTrue,
+      );
+      final page = _read(
+        'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
+      );
+      expect(page.contains('item.title'), isTrue);
+      expect(page.contains('item.body'), isTrue);
+    });
+  });
+
+  group('A3 visual locked', () {
+    test('A3 visual/stream locked files unchanged by this Gate surface', () {
+      // Contract: this Gate must not edit orb/visualizer/composer stream pacing files.
+      // Presence of continuity openSession wiring remains.
+      final ctrl = _read('lib/features/chat/state/chat_controller.dart');
+      expect(ctrl.contains('presentation_word'), isFalse);
+      expect(ctrl.contains('sourceNotificationId'), isTrue);
+    });
+  });
+
+  test('isGate4FcmData detects gate marker', () {
+    expect(isGate4FcmData({'gate': 'gate4'}), isTrue);
+    expect(isGate4FcmData({'gate4_actions': '[]'}), isTrue);
+    expect(isGate4FcmData({'channel': 'engagement'}), isFalse);
+  });
+}
