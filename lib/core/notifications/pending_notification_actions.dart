@@ -1,8 +1,6 @@
-"""Bounded persistent pending notification actions (A4).
-
-Survives background/terminated action taps. Stores only notification_id,
-action_id, and client timestamp — no title/body/health/raw context.
-"""
+// Bounded persistent pending notification actions (A4).
+// Survives background/terminated action taps. Stores only notification_id,
+// action_id, and client timestamp — no title/body/health/raw context.
 
 import 'dart:convert';
 
