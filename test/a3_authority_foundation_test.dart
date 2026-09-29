@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/locale/sedi_locale_controller.dart';
 import 'package:sedi_app/core/locale/sedi_locale_registry.dart';
@@ -52,5 +54,36 @@ void main() {
     expect(r.sourceNotificationId, 9);
     expect(r.introCompleted, isTrue);
     expect(r.proactiveOpener, 'Welcome back');
+  });
+
+  test('openSession body empty normally; carries source_notification_id from notif', () {
+    final src = File('lib/services/chat/chat_service.dart').readAsStringSync();
+    expect(src.contains('sourceNotificationId'), isTrue);
+    expect(src.contains("'source_notification_id'"), isTrue);
+    expect(src.contains('body = <String, dynamic>{}'), isTrue);
+    expect(src.contains("body['source_notification_id'] = sourceNotificationId"), isTrue);
+  });
+
+  test('ChatController passes notificationId to openSession and keeps for chat/stream', () {
+    final src = File('lib/features/chat/state/chat_controller.dart').readAsStringSync();
+    expect(src.contains('sourceNotificationId = notificationId'), isTrue);
+    expect(
+      src.contains('sourceNotificationId: sourceNotificationId'),
+      isTrue,
+    );
+    expect(src.contains('openSession('), isTrue);
+    final openIdx = src.indexOf('_chatService.openSession');
+    final openBlock = src.substring(openIdx, openIdx + 180);
+    expect(openBlock.contains('sourceNotificationId: sourceNotificationId'), isTrue);
+    // No synthetic auto-send / fake user transcript from notification body.
+    expect(src.contains('autoSend'), isFalse);
+    expect(src.contains('notification.body'), isFalse);
+    expect(src.contains('ChatMessage.user('), isTrue); // only via sendUserMessage
+    final initBlock = src.substring(
+      src.indexOf('Future<void> initialize'),
+      src.indexOf('Future<void> _restoreCurrentDayTranscript'),
+    );
+    expect(initBlock.contains('ChatMessage.user'), isFalse);
+    expect(initBlock.contains('sendUserMessage'), isFalse);
   });
 }

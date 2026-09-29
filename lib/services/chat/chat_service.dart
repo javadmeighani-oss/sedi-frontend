@@ -71,14 +71,21 @@ class ChatService {
     );
   }
 
-  Future<ApiResponse<ChatSendResponse>> openSession({String? language}) async {
+  Future<ApiResponse<ChatSendResponse>> openSession({
+    String? language,
+    int? sourceNotificationId,
+  }) async {
     final headers = <String, String>{};
     if (language != null && language.trim().isNotEmpty) {
       headers['Accept-Language'] = language.trim();
     }
+    final body = <String, dynamic>{};
+    if (sourceNotificationId != null) {
+      body['source_notification_id'] = sourceNotificationId;
+    }
     return _apiClient.post<ChatSendResponse>(
       '/interact/session/open',
-      body: const <String, dynamic>{},
+      body: body,
       extraHeaders: headers.isEmpty ? null : headers,
       parser: (json) {
         if (json is Map) {

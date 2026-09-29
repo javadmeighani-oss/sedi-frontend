@@ -189,7 +189,10 @@ class ChatController extends ChangeNotifier {
     }
 
     try {
-      final open = await _chatService.openSession(language: currentLanguage);
+      final open = await _chatService.openSession(
+        language: currentLanguage,
+        sourceNotificationId: sourceNotificationId,
+      );
       if (open.ok && open.data != null) {
         final data = open.data!;
         if (data.language.isNotEmpty) {
