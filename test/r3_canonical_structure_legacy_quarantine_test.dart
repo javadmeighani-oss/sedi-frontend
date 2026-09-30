@@ -144,16 +144,20 @@ void main() {
     final inbox = _read(
       'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
     );
-    // A4: Inbox is history/archive only — Talk-to-Sedi lives on push actions, not inbox.
+    // A4 final: Inbox recovery actions go through coordinator; no direct A3 nav.
     expect(inbox.contains('AppGateRouter.goToHeart'), isFalse);
     expect(inbox.contains('fromNotification: true'), isFalse);
     expect(inbox.contains('ChatPage'), isFalse);
+    expect(inbox.contains('NotificationActionCoordinator'), isTrue);
     expect(inbox.contains('categoryLabel'), isTrue);
 
     final bootstrap = _read('lib/core/notifications/notification_bootstrap.dart');
-    expect(bootstrap.contains('AppGateRouter.goToHeart'), isTrue);
-    expect(bootstrap.contains('fromNotification: true'), isTrue);
+    expect(bootstrap.contains('NotificationActionCoordinator'), isTrue);
     expect(bootstrap.contains('ChatPage'), isFalse);
+    final coordinator =
+        _read('lib/core/notifications/notification_action_coordinator.dart');
+    expect(coordinator.contains('AppGateRouter.goToHeart'), isTrue);
+    expect(coordinator.contains('fromNotification: true'), isTrue);
   });
 
   test('logout returns through canonical AppGateRouter login', () {

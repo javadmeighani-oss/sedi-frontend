@@ -93,9 +93,9 @@ void main() {
     final fa = NotificationInboxL10n('fa');
     final ar = NotificationInboxL10n('ar');
 
-    expect(en.title, 'Notifications');
-    expect(fa.title, 'اعلان‌ها');
-    expect(ar.title, 'الإشعارات');
+    expect(en.title, 'Smart Notifications');
+    expect(fa.title, 'اعلان‌های هوشمند');
+    expect(ar.title, 'الإشعارات الذكية');
 
     expect(en.filterAll, 'All');
     expect(fa.filterAll, 'همه');
@@ -104,6 +104,14 @@ void main() {
     expect(en.filterUnread, 'Unread');
     expect(fa.filterUnread, 'خوانده‌نشده');
     expect(ar.filterUnread, 'غير مقروء');
+
+    expect(en.likeAction, 'Like');
+    expect(fa.likeAction, 'پسندیدن');
+    expect(ar.talkToSedi, contains('صدی'));
+    expect(en.hideSelected, 'Hide');
+    expect(en.deleteSelected, 'Delete');
+    expect(en.groupToday, 'Today');
+    expect(fa.groupYesterday, 'دیروز');
 
     expect(en.emptyTitle, contains('sent notifications'));
     expect(fa.emptyTitle, isNot(en.emptyTitle));

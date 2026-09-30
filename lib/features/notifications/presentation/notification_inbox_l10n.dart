@@ -20,13 +20,55 @@ class NotificationInboxL10n {
     }
   }
 
-  String get title =>
-      _t(en: 'Notifications', fa: 'اعلان‌ها', ar: 'الإشعارات');
+  String get title => _t(
+        en: 'Smart Notifications',
+        fa: 'اعلان‌های هوشمند',
+        ar: 'الإشعارات الذكية',
+      );
 
   String get filterAll => _t(en: 'All', fa: 'همه', ar: 'الكل');
 
   String get filterUnread =>
       _t(en: 'Unread', fa: 'خوانده‌نشده', ar: 'غير مقروء');
+
+  String get select => _t(en: 'Select', fa: 'انتخاب', ar: 'تحديد');
+
+  String get cancelSelection =>
+      _t(en: 'Cancel', fa: 'لغو', ar: 'إلغاء');
+
+  String get hideSelected =>
+      _t(en: 'Hide', fa: 'پنهان کردن', ar: 'إخفاء');
+
+  String get deleteSelected =>
+      _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
+
+  String get likeAction => _t(en: 'Like', fa: 'پسندیدن', ar: 'إعجاب');
+
+  String get dislikeAction =>
+      _t(en: 'Dislike', fa: 'نپسندیدن', ar: 'عدم إعجاب');
+
+  String get talkToSedi => _t(
+        en: 'Talk to Sedi',
+        fa: 'صحبت با صدی',
+        ar: 'التحدث مع صدی',
+      );
+
+  String get groupToday => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
+
+  String get groupYesterday =>
+      _t(en: 'Yesterday', fa: 'دیروز', ar: 'أمس');
+
+  String get actionFailed => _t(
+        en: 'Could not complete action. Try again.',
+        fa: 'انجام عملیات ممکن نشد. دوباره تلاش کنید.',
+        ar: 'تعذر إكمال الإجراء. حاول مرة أخرى.',
+      );
+
+  String get hideFailed => _t(
+        en: 'Could not hide notifications. Try again.',
+        fa: 'پنهان‌سازی اعلان‌ها ممکن نشد. دوباره تلاش کنید.',
+        ar: 'تعذر إخفاء الإشعارات. حاول مرة أخرى.',
+      );
 
   String get loading => _t(
         en: 'Loading notifications...',

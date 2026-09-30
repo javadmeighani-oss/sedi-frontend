@@ -191,8 +191,9 @@ void main() {
     expect(A3DestinationSurface.canvas, const Color(0xFFFFFFFF));
 
     final notifications = _read('lib/services/notifications/notifications_service.dart');
-    expect(notifications.contains("const path = '/notifications/'"), isTrue);
-    expect(notifications.contains('/notifications/unread'), isFalse);
+    expect(notifications.contains("'/notifications/'"), isTrue);
+    expect(notifications.contains('/notifications/unread'), isTrue);
+    expect(notifications.contains('/notifications/inbox/hide'), isTrue);
     expect(notifications.contains('listInboxPage(unreadOnly: false'), isTrue);
     expect(notifications.contains('page.data?.unreadCount ?? 0'), isTrue);
   });

@@ -221,15 +221,21 @@ void main() {
   });
 
   group('bootstrap continuity', () {
-    test('open_chat navigates once; source id reaches A3; no fake user/raw body', () {
+    test('open_chat navigates once after ACK; source id reaches A3; no fake user/raw body', () {
       final boot = _read('lib/core/notifications/notification_bootstrap.dart');
+      final coord =
+          _read('lib/core/notifications/notification_action_coordinator.dart');
       final ctrl = _read('lib/features/chat/state/chat_controller.dart');
       expect(boot.contains('getNotificationAppLaunchDetails'), isTrue);
       expect(boot.contains('_recoverLocalNotificationLaunch'), isTrue);
       expect(boot.contains('drainPendingActions'), isTrue);
       expect(boot.contains("actionId: 'open_chat'"), isTrue);
-      expect(boot.contains('goToHeart'), isTrue);
-      expect(boot.contains('notificationId:'), isTrue);
+      expect(boot.contains('NotificationActionCoordinator'), isTrue);
+      // Navigate ONLY after ACK — bootstrap must not call goToHeart directly.
+      expect(boot.contains('goToHeart'), isFalse);
+      expect(coord.contains('goToHeart'), isTrue);
+      expect(coord.contains('navigateToChatAfterAck'), isTrue);
+      expect(coord.contains('cancelByBackendNotificationId'), isTrue);
       expect(boot.contains('ChatMessage.user'), isFalse);
       expect(boot.contains('notification.body'), isFalse);
       expect(ctrl.contains('sourceNotificationId: sourceNotificationId'), isTrue);
@@ -237,21 +243,71 @@ void main() {
     });
   });
 
-  group('inbox history-only', () {
-    test('no Like/Dislike/Talk controls; category never raw enum; RTL/LTR', () {
+  group('ACK-gated tray lifecycle', () {
+    test('actions do not auto-dismiss; cancelNotification is false', () {
+      final local =
+          _read('lib/core/notifications/local_notifications_service.dart');
+      expect(local.contains('cancelNotification: false'), isTrue);
+      expect(local.contains('cancelNotification: true'), isFalse);
+      expect(local.contains('cancelByBackendNotificationId'), isTrue);
+    });
+
+    test('ACK dismisses tray + removes pending; failure retains pending', () async {
+      final coord =
+          _read('lib/core/notifications/notification_action_coordinator.dart');
+      expect(coord.contains('PendingNotificationActions.enqueue'), isTrue);
+      expect(coord.contains('PendingNotificationActions.remove'), isTrue);
+      expect(coord.contains('cancelByBackendNotificationId'), isTrue);
+      expect(coord.contains('InboxRefreshBus.instance.triggerDebounced'), isTrue);
+      // Failure path returns false without remove/cancel.
+      expect(coord.contains('if (!resp.ok) return false'), isTrue);
+
+      await PendingNotificationActions.enqueue(
+        notificationId: 77,
+        actionId: 'like',
+      );
+      await PendingNotificationActions.drain((_) async => false);
+      expect((await PendingNotificationActions.load()).length, 1);
+      await PendingNotificationActions.drain((_) async => true);
+      expect(await PendingNotificationActions.load(), isEmpty);
+    });
+
+    test('body tap uses same open_chat seam as Talk to Sedi', () {
+      final boot = _read('lib/core/notifications/notification_bootstrap.dart');
+      expect(boot.contains("? 'open_chat' : actionId"), isTrue);
+      expect(boot.contains('NotificationActionCoordinator.submit'), isTrue);
+      final local =
+          _read('lib/core/notifications/local_notifications_service.dart');
+      expect(local.contains("? 'open_chat'"), isTrue);
+    });
+  });
+
+  group('inbox final UX', () {
+    test('Smart Notifications title; detail actions; hide multi-select; grouping; RTL', () {
       final inbox = _read(
         'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
       );
       expect(inbox.contains('continueInChat'), isFalse);
       expect(inbox.contains('wasThisUseful'), isFalse);
       expect(inbox.contains('_pickDislikeReason'), isFalse);
-      expect(inbox.contains("action: 'open_chat'"), isFalse);
       expect(inbox.contains('goToHeart'), isFalse);
-      expect(inbox.contains('thumb_up'), isFalse);
+      expect(inbox.contains('NotificationActionCoordinator'), isTrue);
+      expect(inbox.contains('hideInbox'), isTrue);
+      expect(_selectionModeContains(inbox), isTrue);
+      expect(inbox.contains('groupToday'), isTrue);
+      expect(inbox.contains('likeAction'), isTrue);
+      expect(inbox.contains('dislikeAction'), isTrue);
+      expect(inbox.contains('talkToSedi'), isTrue);
       expect(inbox.contains('isScrollControlled: true'), isTrue);
-      expect(inbox.contains('SingleChildScrollView'), isTrue);
       expect(inbox.contains('categoryLabel'), isTrue);
       expect(inbox.contains('channel.toUpperCase()'), isFalse);
+      // Soft-hide only — delete UI maps to hideInbox.
+      expect(inbox.contains('hard delete'), isFalse);
+
+      final svc = _read('lib/services/notifications/notifications_service.dart');
+      expect(svc.contains('/notifications/unread'), isTrue);
+      expect(svc.contains('/notifications/inbox/hide'), isTrue);
+      expect(svc.contains("unreadOnly ? '/notifications/unread'"), isTrue);
 
       final en = NotificationInboxL10n('en');
       final fa = NotificationInboxL10n('fa');
@@ -259,6 +315,9 @@ void main() {
       expect(en.isRtl, isFalse);
       expect(fa.isRtl, isTrue);
       expect(ar.isRtl, isTrue);
+      expect(en.title, 'Smart Notifications');
+      expect(fa.title, 'اعلان‌های هوشمند');
+      expect(ar.title, 'الإشعارات الذكية');
       expect(en.categoryLabel('HEALTH_ALERT'), isNot(contains('HEALTH_ALERT')));
       expect(en.categoryLabel('daily_status'), 'Daily status');
       expect(fa.categoryLabel('engagement_checkin'), isNotEmpty);
@@ -281,6 +340,22 @@ void main() {
       expect(page.contains('item.title'), isTrue);
       expect(page.contains('item.body'), isTrue);
     });
+
+    test('hide unread does not call mark-read', () {
+      final inbox = _read(
+        'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
+      );
+      expect(inbox.contains('_hideSelected'), isTrue);
+      expect(inbox.contains('hideInbox'), isTrue);
+      // Hide path must not invoke markRead.
+      final hideBlockStart = inbox.indexOf('Future<void> _hideSelected');
+      final hideBlockEnd = inbox.indexOf('Future<void> _markReadOptimistic');
+      expect(hideBlockStart, greaterThanOrEqualTo(0));
+      expect(hideBlockEnd, greaterThan(hideBlockStart));
+      final hideBlock = inbox.substring(hideBlockStart, hideBlockEnd);
+      expect(hideBlock.contains('markRead'), isFalse);
+      expect(hideBlock.contains('hideInbox'), isTrue);
+    });
   });
 
   group('A3 visual locked', () {
@@ -299,3 +374,10 @@ void main() {
     expect(isGate4FcmData({'channel': 'engagement'}), isFalse);
   });
 }
+
+bool _selectionModeContains(String inbox) {
+  return inbox.contains('_selectionMode') &&
+      inbox.contains('_enterSelection') &&
+      inbox.contains('_selectedIds');
+}
+

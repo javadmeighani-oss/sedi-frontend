@@ -1,24 +1,16 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
-import '../navigation/app_gate_router.dart';
-import '../navigation/session_gate_resolver.dart';
-import '../navigation/app_navigator.dart';
 import 'fcm_setup.dart';
 import 'local_notifications_service.dart';
+import 'notification_action_coordinator.dart';
 import 'pending_notification_actions.dart';
-import '../../data/repositories/notification_repository.dart';
 import '../../services/notifications/inbox_refresh_bus.dart';
 import '../../services/push/push_service.dart';
 
 /// A4 notification / FCM bootstrap — presentation/interaction only.
 class NotificationBootstrap {
   NotificationBootstrap._();
-
-  /// Session-local open_chat navigation dedupe (feedback durability uses pending queue).
-  static final Set<int> _openChatNavigatedIds = <int>{};
-  static const int _maxNavDedup = 50;
-  static bool _draining = false;
 
   static Future<void> setup() async {
     debugPrint('[FCM] setup start');
@@ -43,14 +35,14 @@ class NotificationBootstrap {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       InboxRefreshBus.instance.triggerDebounced();
-      _navigateToChatFromMessage(message);
+      _openChatFromMessage(message);
     });
 
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         InboxRefreshBus.instance.triggerDebounced();
-        _navigateToChatFromMessage(initialMessage);
+        _openChatFromMessage(initialMessage);
       });
     }
 
@@ -72,6 +64,9 @@ class NotificationBootstrap {
   /// Call on app resume to retry transient feedback failures.
   static Future<void> onAppResumed() => drainPendingActions();
 
+  static Future<void> drainPendingActions() =>
+      NotificationActionCoordinator.drainPendingActions();
+
   static Future<void> _recoverLocalNotificationLaunch() async {
     try {
       final details =
@@ -86,16 +81,14 @@ class NotificationBootstrap {
       final action = (response.actionId == null || response.actionId!.isEmpty)
           ? 'open_chat'
           : response.actionId!;
+      // Persist only — navigate/dismiss after backend ACK via drain.
       await PendingNotificationActions.enqueue(
         notificationId: id,
         actionId: action,
       );
-      // Navigate for open_chat after session check (same as foreground path).
-      if (action == 'open_chat') {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _navigateToChat(notificationId: id);
-        });
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        drainPendingActions();
+      });
     } catch (e) {
       debugPrint('[FCM] local launch recover failed: $e');
     }
@@ -114,87 +107,31 @@ class NotificationBootstrap {
     final notificationId = int.tryParse(notificationIdStr);
     if (notificationId == null) return;
 
-    // Body tap → same open_chat seam.
-    final action = (actionId == null || actionId.isEmpty) ? 'open_chat' : actionId;
+    // Body tap → same open_chat seam as Talk to Sedi.
+    final action =
+        (actionId == null || actionId.isEmpty) ? 'open_chat' : actionId;
 
-    // Persist then drain so process-death / slow network remain correct.
+    // Persist then drain. Navigate/dismiss ONLY after backend ACK.
     // ignore: discarded_futures
-    PendingNotificationActions.enqueue(
+    NotificationActionCoordinator.submit(
       notificationId: notificationId,
       actionId: action,
-    ).then((_) => drainPendingActions());
-
-    InboxRefreshBus.instance.triggerDebounced();
-
-    if (action == 'open_chat') {
-      _navigateToChat(notificationId: notificationId);
-    }
+    );
   }
 
-  static Future<void> drainPendingActions() async {
-    if (_draining) return;
-    _draining = true;
-    try {
-      final hasSession = await SessionGateResolver.hasValidSession();
-      if (!hasSession) return;
-
-      final repo = NotificationRepository();
-      await PendingNotificationActions.drain((item) async {
-        final resp = await repo.sendFeedback(
-          notificationId: item.notificationId,
-          action: item.actionId,
-          clientTs: item.clientTs,
-        );
-        return resp.ok;
-      });
-    } catch (e) {
-      debugPrint('[FCM] drainPendingActions error: $e');
-    } finally {
-      _draining = false;
-    }
-  }
-
-  static void _navigateToChatFromMessage(RemoteMessage message) {
+  static void _openChatFromMessage(RemoteMessage message) {
     final data = message.data;
     final notificationIdStr = data['notification_id']?.toString() ??
         data['source_notification_id']?.toString();
     final notificationId = int.tryParse(notificationIdStr ?? '');
     final id = (notificationId ?? 0) > 0 ? notificationId : null;
     InboxRefreshBus.instance.triggerDebounced();
-    if (id != null) {
-      // ignore: discarded_futures
-      PendingNotificationActions.enqueue(
-        notificationId: id,
-        actionId: 'open_chat',
-      ).then((_) => drainPendingActions());
-    }
-    _navigateToChat(notificationId: id);
-  }
-
-  static Future<void> _navigateToChat({int? notificationId}) async {
-    if (notificationId != null && notificationId > 0) {
-      if (_openChatNavigatedIds.contains(notificationId)) return;
-      _openChatNavigatedIds.add(notificationId);
-      if (_openChatNavigatedIds.length > _maxNavDedup) {
-        _openChatNavigatedIds.remove(_openChatNavigatedIds.first);
-      }
-    }
-
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    final hasSession = await SessionGateResolver.hasValidSession();
-    if (!context.mounted) return;
-
-    if (!hasSession) {
-      AppGateRouter.goToLogin(context);
-      return;
-    }
-
-    AppGateRouter.goToHeart(
-      context,
-      fromNotification: true,
-      notificationId: notificationId,
+    if (id == null) return;
+    // Same ACK-before-nav seam as tray body tap / open_chat action.
+    // ignore: discarded_futures
+    NotificationActionCoordinator.submit(
+      notificationId: id,
+      actionId: 'open_chat',
     );
   }
 

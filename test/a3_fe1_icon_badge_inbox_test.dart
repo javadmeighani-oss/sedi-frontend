@@ -69,11 +69,12 @@ void main() {
     expect(like.containsKey('reason'), isFalse);
   });
 
-  test('Inbox is history-only without action/feedback controls', () {
+  test('Inbox detail recovery reuses action coordinator; no hard delete', () {
     final inbox = _read(
       'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
     );
-    expect(inbox.contains("action: 'open_chat'"), isFalse);
+    expect(inbox.contains('NotificationActionCoordinator'), isTrue);
+    expect(inbox.contains('hideInbox'), isTrue);
     expect(inbox.contains('continueInChat'), isFalse);
     expect(inbox.contains('_pickDislikeReason'), isFalse);
     expect(inbox.contains('AppGateRouter.goToHeart'), isFalse);
@@ -83,10 +84,13 @@ void main() {
     expect(inbox.contains('SELF'), isFalse);
     expect(inbox.contains('OTHER'), isFalse);
     expect(inbox.contains('categoryLabel'), isTrue);
+    expect(inbox.contains('hard delete'), isFalse);
+    expect(inbox.contains('hardDelete'), isFalse);
 
     final en = NotificationInboxL10n('en');
     final fa = NotificationInboxL10n('fa');
     final ar = NotificationInboxL10n('ar');
+    expect(en.title, 'Smart Notifications');
     expect(en.fallbackTitle, 'Notification');
     expect(fa.fallbackTitle, 'اعلان');
     expect(ar.fallbackTitle, 'إشعار');

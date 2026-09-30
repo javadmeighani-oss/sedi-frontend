@@ -149,7 +149,8 @@ List<AndroidNotificationAction> resolveNotificationActions({
         id,
         labels[id]!,
         showsUserInterface: id == 'open_chat',
-        cancelNotification: true,
+        // Keep tray until backend ACK dismisses it explicitly.
+        cancelNotification: false,
       ),
   ];
 }
@@ -364,6 +365,17 @@ class LocalNotificationsService {
   /// Recover terminated launch from a *local* notification/action.
   static Future<NotificationAppLaunchDetails?> getNotificationAppLaunchDetails() {
     return _plugin.getNotificationAppLaunchDetails();
+  }
+
+  /// Dismiss local tray entry after backend ACK (never before).
+  static Future<void> cancelByBackendNotificationId(int notificationId) async {
+    if (notificationId <= 0) return;
+    try {
+      if (!_initialized) await init();
+      await _plugin.cancel(notificationIdToInt(notificationId.toString()));
+    } catch (e) {
+      debugPrint('[LocalNotif] cancel failed: $e');
+    }
   }
 
   /// Show notification from FCM remote message. Use title/body as received.

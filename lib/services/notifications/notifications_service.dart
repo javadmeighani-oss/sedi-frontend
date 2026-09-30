@@ -60,11 +60,11 @@ class NotificationsService {
     final queryParams = <String, String>{
       'user_id': userId.toString(),
       'limit': safeLimit.toString(),
-      if (unreadOnly) 'unread_only': 'true',
       if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
     };
 
-    const path = '/notifications/';
+    // All -> GET /notifications/ ; Unread -> GET /notifications/unread
+    final path = unreadOnly ? '/notifications/unread' : '/notifications/';
     final response = await _apiClient.get<NotificationListResponseDto>(
       path,
       queryParams: queryParams,
@@ -145,6 +145,34 @@ class NotificationsService {
     final response = await _apiClient.post<Object?>(
       '/notifications/$id/mark-read',
       queryParams: {'user_id': userId.toString()},
+      parser: (_) => null,
+    );
+    return ApiResponse<void>(
+      ok: response.ok,
+      error: response.error,
+      statusCode: response.statusCode,
+    );
+  }
+
+  /// Soft-hide from Inbox projection only. Never hard-deletes. Never marks read.
+  Future<ApiResponse<void>> hideInbox(List<int> notificationIds) async {
+    final unique = <int>{
+      for (final id in notificationIds)
+        if (id > 0) id,
+    }.toList(growable: false);
+    if (unique.isEmpty) {
+      return const ApiResponse<void>(
+        ok: false,
+        error: ApiError(
+          code: 'NOTIFICATION_IDS_REQUIRED',
+          message: 'At least one notification id is required to hide.',
+        ),
+      );
+    }
+
+    final response = await _apiClient.post<Object?>(
+      '/notifications/inbox/hide',
+      body: {'notification_ids': unique},
       parser: (_) => null,
     );
     return ApiResponse<void>(

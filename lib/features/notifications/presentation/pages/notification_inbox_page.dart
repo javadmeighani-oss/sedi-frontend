@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../core/notifications/notification_action_coordinator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
@@ -28,6 +29,7 @@ class NotificationInboxPage extends StatefulWidget {
 class _NotificationInboxPageState extends State<NotificationInboxPage> {
   final NotificationsService _service = NotificationsService();
   final Set<int> _pendingReadIds = <int>{};
+  final Set<int> _selectedIds = <int>{};
   final ScrollController _scrollController = ScrollController();
 
   List<NotificationItem> _items = const <NotificationItem>[];
@@ -35,6 +37,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   bool _refreshing = false;
   bool _loadingMore = false;
   bool _hasMore = false;
+  bool _selectionMode = false;
+  bool _hiding = false;
+  bool _actionBusy = false;
   String? _nextCursor;
   String? _error;
   InboxFilter _filter = InboxFilter.all;
@@ -108,6 +113,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         _nextCursor = resp.data!.nextCursor;
         _hasMore = resp.data!.hasMore;
         _error = null;
+        _selectedIds.removeWhere((id) => !_items.any((e) => e.id == id));
       } else {
         _error = resp.errorMessage;
       }
@@ -149,6 +155,46 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return deduped;
   }
 
+  void _enterSelection([int? seedId]) {
+    setState(() {
+      _selectionMode = true;
+      if (seedId != null) _selectedIds.add(seedId);
+    });
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelected(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _hideSelected() async {
+    if (_hiding || _selectedIds.isEmpty) return;
+    setState(() => _hiding = true);
+    final ids = _selectedIds.toList(growable: false);
+    final resp = await _service.hideInbox(ids);
+    if (!mounted) return;
+    setState(() => _hiding = false);
+    if (!resp.ok) {
+      _showMessage(_l10n.hideFailed);
+      return;
+    }
+    _exitSelection();
+    InboxRefreshBus.instance.triggerDebounced();
+    await _reload();
+  }
+
   Future<void> _markReadOptimistic(NotificationItem item) async {
     if (item.isRead || _pendingReadIds.contains(item.id)) return;
 
@@ -176,6 +222,24 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       _pendingReadIds.remove(item.id);
     });
     InboxRefreshBus.instance.triggerDebounced();
+  }
+
+  Future<void> _runDetailAction(NotificationItem item, String actionId) async {
+    if (_actionBusy) return;
+    setState(() => _actionBusy = true);
+    final ok = await NotificationActionCoordinator.submit(
+      notificationId: item.id,
+      actionId: actionId,
+    );
+    if (!mounted) return;
+    setState(() => _actionBusy = false);
+    if (!ok) {
+      _showMessage(_l10n.actionFailed);
+      return;
+    }
+    // Interaction ACK marks read via backend semantics — refresh list/badge.
+    InboxRefreshBus.instance.triggerDebounced();
+    await _reload(soft: true);
   }
 
   Future<void> _openDetails(
@@ -245,7 +309,45 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _actionBusy
+                            ? null
+                            : () async {
+                                Navigator.of(context).pop();
+                                await _runDetailAction(item, 'like');
+                              },
+                        child: Text(l10n.likeAction),
+                      ),
+                      OutlinedButton(
+                        onPressed: _actionBusy
+                            ? null
+                            : () async {
+                                Navigator.of(context).pop();
+                                await _runDetailAction(item, 'dislike');
+                              },
+                        child: Text(l10n.dislikeAction),
+                      ),
+                      FilledButton(
+                        onPressed: _actionBusy
+                            ? null
+                            : () async {
+                                Navigator.of(context).pop();
+                                await _runDetailAction(item, 'open_chat');
+                              },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.gate2ButtonOlive,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(l10n.talkToSedi),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: TextButton(
@@ -314,6 +416,39 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     );
   }
 
+  DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+
+  String _groupLabel(DateTime ts, NotificationInboxL10n l10n) {
+    final now = DateTime.now();
+    final today = _dayOnly(now);
+    final day = _dayOnly(ts.toLocal());
+    if (day == today) return l10n.groupToday;
+    if (day == today.subtract(const Duration(days: 1))) {
+      return l10n.groupYesterday;
+    }
+    final m = day.month.toString().padLeft(2, '0');
+    final d = day.day.toString().padLeft(2, '0');
+    return '${day.year}-$m-$d';
+  }
+
+  List<({String label, List<NotificationItem> items})> _groupedItems(
+    NotificationInboxL10n l10n,
+  ) {
+    final groups = <String, List<NotificationItem>>{};
+    final order = <String>[];
+    for (final item in _items) {
+      final label = _groupLabel(item.sentAt ?? item.createdAt, l10n);
+      if (!groups.containsKey(label)) {
+        groups[label] = <NotificationItem>[];
+        order.add(label);
+      }
+      groups[label]!.add(item);
+    }
+    return [
+      for (final label in order) (label: label, items: groups[label]!),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -323,6 +458,18 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         title: Text(l10n.title),
         backgroundColor: A3DestinationSurface.canvas,
         foregroundColor: AppTheme.textPrimary,
+        actions: [
+          if (_selectionMode)
+            TextButton(
+              onPressed: _hiding ? null : _exitSelection,
+              child: Text(l10n.cancelSelection),
+            )
+          else
+            TextButton(
+              onPressed: () => _enterSelection(),
+              child: Text(l10n.select),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -352,6 +499,32 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
               ],
             ),
           ),
+          if (_selectionMode)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: (_hiding || _selectedIds.isEmpty)
+                          ? null
+                          : _hideSelected,
+                      child: Text(l10n.hideSelected),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      // UI "Delete" maps to soft-hide only (never destroys rows).
+                      onPressed: (_hiding || _selectedIds.isEmpty)
+                          ? null
+                          : _hideSelected,
+                      child: Text(l10n.deleteSelected),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _buildBody(l10n),
           ),
@@ -419,93 +592,148 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       );
     }
 
+    final groups = _groupedItems(l10n);
+    final rows = <Widget>[];
+    for (final group in groups) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 10, 2, 6),
+          child: Text(
+            group.label,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+      for (final item in group.items) {
+        rows.add(_buildItemCard(item, l10n));
+      }
+    }
+    if (_loadingMore) {
+      rows.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _reload,
       color: AppTheme.primaryBlack,
-      child: ListView.builder(
+      child: ListView(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
-        itemCount: _items.length + (_loadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _items.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+        children: rows,
+      ),
+    );
+  }
+
+  Widget _buildItemCard(NotificationItem item, NotificationInboxL10n l10n) {
+    final displayUnread =
+        !item.isRead && !_pendingReadIds.contains(item.id);
+    final selected = _selectedIds.contains(item.id);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: A3DestinationCard(
+        onTap: () async {
+          if (_selectionMode) {
+            _toggleSelected(item.id);
+            return;
+          }
+          await _markReadOptimistic(item);
+          await _openDetails(item, l10n);
+        },
+        onLongPress: () {
+          if (_selectionMode) {
+            _toggleSelected(item.id);
+          } else {
+            _enterSelection(item.id);
+          }
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_selectionMode) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 2, right: 10),
+                child: Icon(
+                  selected
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: selected
+                      ? AppTheme.gate2ButtonOlive
+                      : AppTheme.textSecondary,
+                  size: 22,
                 ),
               ),
-            );
-          }
-          final item = _items[index];
-          final displayUnread =
-              !item.isRead && !_pendingReadIds.contains(item.id);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: A3DestinationCard(
-              onTap: () async {
-                await _markReadOptimistic(item);
-                await _openDetails(item, l10n);
-              },
-              child: Opacity(
-                opacity: displayUnread ? 1 : 0.72,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _categoryPill(item, l10n),
-                        const Spacer(),
-                        if (displayUnread)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppTheme.gate2ButtonOlive,
-                              shape: BoxShape.circle,
-                            ),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _categoryPill(item, l10n),
+                      const Spacer(),
+                      if (displayUnread)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.gate2ButtonOlive,
+                            shape: BoxShape.circle,
                           ),
-                      ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    item.title.isEmpty ? l10n.fallbackTitle : item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight:
+                          displayUnread ? FontWeight.w700 : FontWeight.w500,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      item.title.isEmpty ? l10n.fallbackTitle : item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 16,
-                        fontWeight:
-                            displayUnread ? FontWeight.w700 : FontWeight.w500,
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _displayBody(item, l10n),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: displayUnread
+                          ? AppTheme.textSecondary
+                          : AppTheme.textSecondary.withOpacity(0.92),
+                      fontSize: 14,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _displayBody(item, l10n),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    l10n.relativeTime(item.sentAt ?? item.createdAt),
+                    style: TextStyle(
+                      color: AppTheme.textSecondary.withOpacity(0.85),
+                      fontSize: 12,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      l10n.relativeTime(item.sentAt ?? item.createdAt),
-                      style: TextStyle(
-                        color: AppTheme.textSecondary.withOpacity(0.85),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

@@ -57,6 +57,7 @@ class A3DestinationCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final Color? borderColor;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const A3DestinationCard({
     super.key,
@@ -64,12 +65,13 @@ class A3DestinationCard extends StatelessWidget {
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 16),
     this.borderColor,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     final body = Padding(padding: padding, child: child);
-    if (onTap == null) {
+    if (onTap == null && onLongPress == null) {
       return DecoratedBox(
         decoration: A3DestinationSurface.cardDecoration(borderColor: borderColor),
         child: body,
@@ -81,6 +83,7 @@ class A3DestinationCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Ink(
           decoration: A3DestinationSurface.cardDecoration(borderColor: borderColor),
           child: body,

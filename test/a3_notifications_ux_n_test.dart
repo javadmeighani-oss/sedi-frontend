@@ -17,7 +17,8 @@ void main() {
     expect(src.contains('_loadMore'), isTrue);
     expect(src.contains('_reload'), isTrue);
     expect(src.contains('_markReadOptimistic'), isTrue);
-    expect(src.contains("action: 'open_chat'"), isFalse);
+    expect(src.contains('NotificationActionCoordinator'), isTrue);
+    expect(src.contains('hideInbox'), isTrue);
     expect(src.contains('AppGateRouter.goToHeart'), isFalse);
     expect(src.contains('wasThisUseful'), isFalse);
     expect(src.contains('continueInChat'), isFalse);
@@ -27,6 +28,7 @@ void main() {
     expect(src.contains('categoryLabel'), isTrue);
     expect(src.contains('isScrollControlled: true'), isTrue);
 
+    expect(NotificationInboxL10n('en').title, 'Smart Notifications');
     expect(NotificationInboxL10n('en').fallbackTitle, 'Notification');
     expect(NotificationInboxL10n('fa').isRtl, isTrue);
     expect(NotificationInboxL10n('ar').isRtl, isTrue);
