@@ -11,7 +11,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../utils/brand_name.dart';
-import 'pending_notification_actions.dart';
+import 'background_notification_action_handler.dart';
 
 /// Expected Android raw resource name (file without extension): sedi_alarm.
 const String androidSoundResource = 'sedi_alarm';
@@ -30,27 +30,13 @@ const String channelEngagementV3 = 'engagement_v3';
 const String channelHealthAlertV2 = 'health_alert_v2';
 
 /// Top-level background action handler (terminated/background isolate).
-/// Enqueues bounded pending action only — no navigation.
+/// Like/Dislike: persist → background-safe ACK → dismiss on success.
+/// open_chat/body: enqueue only (no navigation from isolate).
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) async {
-  // Required for SharedPreferences in background isolate.
+  // Required for SharedPreferences / secure storage in background isolate.
   WidgetsFlutterBinding.ensureInitialized();
-  await _enqueueFromNotificationResponse(response);
-}
-
-Future<void> _enqueueFromNotificationResponse(NotificationResponse response) async {
-  final payload = parseLocalNotificationPayload(response.payload);
-  if (payload == null) return;
-  final idStr = payload['notification_id']?.toString() ?? '';
-  final id = int.tryParse(idStr);
-  if (id == null || id <= 0) return;
-  final action = (response.actionId == null || response.actionId!.isEmpty)
-      ? 'open_chat'
-      : response.actionId!;
-  await PendingNotificationActions.enqueue(
-    notificationId: id,
-    actionId: action,
-  );
+  await BackgroundNotificationActionHandler.handle(response);
 }
 
 Map<String, dynamic>? parseLocalNotificationPayload(String? payloadJson) {

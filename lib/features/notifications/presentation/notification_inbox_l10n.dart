@@ -36,10 +36,22 @@ class NotificationInboxL10n {
   String get cancelSelection =>
       _t(en: 'Cancel', fa: 'لغو', ar: 'إلغاء');
 
-  String get hideSelected =>
-      _t(en: 'Hide', fa: 'پنهان کردن', ar: 'إخفاء');
-
   String get deleteSelected =>
+      _t(en: 'Delete selected', fa: 'حذف انتخاب‌شده', ar: 'حذف المحدد');
+
+  String get deleteConfirmTitle => _t(
+        en: 'Delete selected?',
+        fa: 'حذف موارد انتخاب‌شده؟',
+        ar: 'حذف المحدد؟',
+      );
+
+  String get deleteConfirmBody => _t(
+        en: 'They will be removed from your inbox. This cannot be undone here.',
+        fa: 'از صندوق اعلان‌ها حذف می‌شوند. این کار از اینجا قابل بازگشت نیست.',
+        ar: 'ستُزال من صندوق الوارد. لا يمكن التراجع عن ذلك هنا.',
+      );
+
+  String get deleteConfirmAction =>
       _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
 
   String get likeAction => _t(en: 'Like', fa: 'پسندیدن', ar: 'إعجاب');
@@ -65,9 +77,9 @@ class NotificationInboxL10n {
       );
 
   String get hideFailed => _t(
-        en: 'Could not hide notifications. Try again.',
-        fa: 'پنهان‌سازی اعلان‌ها ممکن نشد. دوباره تلاش کنید.',
-        ar: 'تعذر إخفاء الإشعارات. حاول مرة أخرى.',
+        en: 'Could not delete notifications. Try again.',
+        fa: 'حذف اعلان‌ها ممکن نشد. دوباره تلاش کنید.',
+        ar: 'تعذر حذف الإشعارات. حاول مرة أخرى.',
       );
 
   String get loading => _t(

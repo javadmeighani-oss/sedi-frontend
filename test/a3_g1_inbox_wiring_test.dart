@@ -108,8 +108,12 @@ void main() {
     expect(en.likeAction, 'Like');
     expect(fa.likeAction, 'پسندیدن');
     expect(ar.talkToSedi, contains('صدی'));
-    expect(en.hideSelected, 'Hide');
-    expect(en.deleteSelected, 'Delete');
+    expect(en.deleteSelected, 'Delete selected');
+    expect(fa.deleteSelected, 'حذف انتخاب‌شده');
+    expect(ar.deleteSelected, 'حذف المحدد');
+    expect(en.deleteConfirmTitle, 'Delete selected?');
+    expect(fa.deleteConfirmTitle, isNot(en.deleteConfirmTitle));
+    expect(ar.deleteConfirmTitle, isNot(en.deleteConfirmTitle));
     expect(en.groupToday, 'Today');
     expect(fa.groupYesterday, 'دیروز');
 

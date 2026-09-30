@@ -179,15 +179,40 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     });
   }
 
-  Future<void> _hideSelected() async {
+  Future<void> _deleteSelected() async {
     if (_hiding || _selectedIds.isEmpty) return;
+    final l10n = _l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l10n.deleteConfirmTitle),
+          content: Text(l10n.deleteConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancelSelection),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.deleteConfirmAction),
+            ),
+          ],
+        );
+      },
+    );
+    // Cancel leaves selection unchanged.
+    if (confirmed != true) return;
+    if (!mounted) return;
+
     setState(() => _hiding = true);
     final ids = _selectedIds.toList(growable: false);
+    // Soft-hide only via POST /notifications/inbox/hide — never hard-deletes.
     final resp = await _service.hideInbox(ids);
     if (!mounted) return;
     setState(() => _hiding = false);
     if (!resp.ok) {
-      _showMessage(_l10n.hideFailed);
+      _showMessage(l10n.hideFailed);
       return;
     }
     _exitSelection();
@@ -502,27 +527,15 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           if (_selectionMode)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: (_hiding || _selectedIds.isEmpty)
-                          ? null
-                          : _hideSelected,
-                      child: Text(l10n.hideSelected),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      // UI "Delete" maps to soft-hide only (never destroys rows).
-                      onPressed: (_hiding || _selectedIds.isEmpty)
-                          ? null
-                          : _hideSelected,
-                      child: Text(l10n.deleteSelected),
-                    ),
-                  ),
-                ],
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  // Single Delete-selected action; soft-hide only.
+                  onPressed: (_hiding || _selectedIds.isEmpty)
+                      ? null
+                      : _deleteSelected,
+                  child: Text(l10n.deleteSelected),
+                ),
               ),
             ),
           Expanded(

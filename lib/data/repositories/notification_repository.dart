@@ -52,11 +52,15 @@ class NotificationRepository {
 
   /// POST /notifications/{id}/feedback — Stage 16.6 action-based feedback
   /// action: like | dislike | open_chat | dismissed
+  ///
+  /// [recoverSessionOn401] must be false from background isolates so a failed
+  /// refresh never forces UI navigation / logout.
   Future<ApiResponse<Map<String, dynamic>?>> sendFeedback({
     required int notificationId,
     required String action,
     String? clientTs,
     Map<String, dynamic>? meta,
+    bool recoverSessionOn401 = true,
   }) async {
     final body = <String, dynamic>{
       'action': action,
@@ -66,6 +70,7 @@ class NotificationRepository {
     return _client.post<Map<String, dynamic>?>(
       '/notifications/$notificationId/feedback',
       body: body,
+      recoverSessionOn401: recoverSessionOn401,
       parser: (v) =>
           v == null ? null : Map<String, dynamic>.from(v as Map),
     );

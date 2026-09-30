@@ -172,6 +172,8 @@ class ApiClient {
     Map<String, dynamic>? body,
     Map<String, String>? queryParams,
     Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -192,6 +194,8 @@ class ApiClient {
           throw Exception('Request timeout');
         }),
         extraHeaders: extraHeaders,
+        accessToken: accessToken,
+        recoverSessionOn401: recoverSessionOn401,
       );
       debugPrint('[API] response status=${response.statusCode}');
 

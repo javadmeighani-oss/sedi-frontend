@@ -170,10 +170,45 @@ void main() {
 
     test('background uses notificationTapBackground entry-point', () {
       final src = _read('lib/core/notifications/local_notifications_service.dart');
+      final bg = _read(
+        'lib/core/notifications/background_notification_action_handler.dart',
+      );
       expect(src.contains("@pragma('vm:entry-point')"), isTrue);
       expect(src.contains('notificationTapBackground'), isTrue);
       expect(src.contains('onDidReceiveBackgroundNotificationResponse'), isTrue);
-      expect(src.contains('PendingNotificationActions.enqueue'), isTrue);
+      expect(src.contains('BackgroundNotificationActionHandler.handle'), isTrue);
+      expect(bg.contains('PendingNotificationActions.enqueue'), isTrue);
+      expect(bg.contains('recoverSessionOn401: false'), isTrue);
+    });
+  });
+
+  group('background Like/Dislike ACK', () {
+    test('background Like/Dislike ACK removes pending and dismisses tray', () {
+      final bg = _read(
+        'lib/core/notifications/background_notification_action_handler.dart',
+      );
+      expect(bg.contains("action != 'like' && action != 'dislike'"), isTrue);
+      expect(bg.contains('sendFeedback'), isTrue);
+      expect(bg.contains('PendingNotificationActions.remove'), isTrue);
+      expect(bg.contains('_dismissTrayIsolated'), isTrue);
+      expect(bg.contains('recoverSessionOn401: false'), isTrue);
+      // Failure retains pending + tray (early return before remove/dismiss).
+      expect(bg.contains('keep pending+tray'), isTrue);
+      expect(bg.contains('keep pending for resume drain'), isTrue);
+    });
+
+    test('background path never navigates or force-logouts', () {
+      final bg = _read(
+        'lib/core/notifications/background_notification_action_handler.dart',
+      );
+      expect(bg.contains('goToHeart'), isFalse);
+      expect(bg.contains('goToLogin'), isFalse);
+      expect(bg.contains('forceLogoutAndNavigate'), isFalse);
+      expect(bg.contains('AuthSessionManager'), isFalse);
+      expect(bg.contains('Navigator'), isFalse);
+      expect(bg.contains('AppGateRouter'), isFalse);
+      // open_chat stays enqueue-only from isolate.
+      expect(bg.contains('foreground drain owns ACK'), isTrue);
     });
   });
 
@@ -276,9 +311,10 @@ void main() {
       final boot = _read('lib/core/notifications/notification_bootstrap.dart');
       expect(boot.contains("? 'open_chat' : actionId"), isTrue);
       expect(boot.contains('NotificationActionCoordinator.submit'), isTrue);
-      final local =
-          _read('lib/core/notifications/local_notifications_service.dart');
-      expect(local.contains("? 'open_chat'"), isTrue);
+      final bg = _read(
+        'lib/core/notifications/background_notification_action_handler.dart',
+      );
+      expect(bg.contains("? 'open_chat'"), isTrue);
     });
   });
 
@@ -341,14 +377,51 @@ void main() {
       expect(page.contains('item.body'), isTrue);
     });
 
+    test('one Delete-selected action with confirmation; soft-hide only', () {
+      final inbox = _read(
+        'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
+      );
+      expect(inbox.contains('_deleteSelected'), isTrue);
+      expect(inbox.contains('_hideSelected'), isFalse);
+      expect(inbox.contains('hideSelected'), isFalse);
+      expect(inbox.contains('deleteConfirmTitle'), isTrue);
+      expect(inbox.contains('deleteConfirmBody'), isTrue);
+      expect(inbox.contains('hideInbox'), isTrue);
+      // Exactly one user-facing Delete-selected action.
+      expect(RegExp(r'l10n\.deleteSelected').allMatches(inbox).length, 1);
+      expect(inbox.contains('l10n.hideSelected'), isFalse);
+      expect(inbox.contains('markRead'), isTrue); // mark-read exists elsewhere
+      final deleteBlockStart = inbox.indexOf('Future<void> _deleteSelected');
+      final deleteBlockEnd = inbox.indexOf('Future<void> _markReadOptimistic');
+      expect(deleteBlockStart, greaterThanOrEqualTo(0));
+      expect(deleteBlockEnd, greaterThan(deleteBlockStart));
+      final deleteBlock = inbox.substring(deleteBlockStart, deleteBlockEnd);
+      expect(deleteBlock.contains('markRead'), isFalse);
+      expect(deleteBlock.contains('hideInbox'), isTrue);
+      expect(deleteBlock.contains('showDialog'), isTrue);
+      expect(deleteBlock.contains('confirmed != true'), isTrue);
+
+      final en = NotificationInboxL10n('en');
+      final fa = NotificationInboxL10n('fa');
+      final ar = NotificationInboxL10n('ar');
+      expect(en.deleteSelected, 'Delete selected');
+      expect(fa.deleteSelected, isNot(en.deleteSelected));
+      expect(ar.deleteSelected, isNot(en.deleteSelected));
+      expect(en.deleteConfirmTitle, isNotEmpty);
+      expect(fa.deleteConfirmTitle, isNot(en.deleteConfirmTitle));
+      expect(ar.deleteConfirmTitle, isNot(en.deleteConfirmTitle));
+      expect(en.deleteConfirmBody, isNotEmpty);
+      expect(fa.deleteConfirmBody, isNot(en.deleteConfirmBody));
+      expect(ar.deleteConfirmBody, isNot(en.deleteConfirmBody));
+    });
+
     test('hide unread does not call mark-read', () {
       final inbox = _read(
         'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
       );
-      expect(inbox.contains('_hideSelected'), isTrue);
+      expect(inbox.contains('_deleteSelected'), isTrue);
       expect(inbox.contains('hideInbox'), isTrue);
-      // Hide path must not invoke markRead.
-      final hideBlockStart = inbox.indexOf('Future<void> _hideSelected');
+      final hideBlockStart = inbox.indexOf('Future<void> _deleteSelected');
       final hideBlockEnd = inbox.indexOf('Future<void> _markReadOptimistic');
       expect(hideBlockStart, greaterThanOrEqualTo(0));
       expect(hideBlockEnd, greaterThan(hideBlockStart));
