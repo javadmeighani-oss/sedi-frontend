@@ -1,7 +1,7 @@
 /// Local notifications: init (permissions + Android channels), show.
 /// A4: single Flutter-rendered Android tray with localized Gate4 actions.
-/// Channels: legacy + morning_v2 (silent) + morning_v3 (audible sedi_alarm) +
-/// engagement_v2 / health_alert_v2.
+/// Channels: legacy silent morning/morning_v2 kept installed; Gate4 routes to
+/// morning_v4 / engagement_v3 (audible sedi_alarm) / health_alert_v2.
 /// Runtime sound download is PROHIBITED — binary must be bundled.
 import 'dart:convert';
 import 'dart:io';
@@ -24,7 +24,9 @@ const String channelEngagementLegacy = 'engagement';
 const String channelHealthAlertLegacy = 'health_alert';
 const String channelMorningV2 = 'morning_v2';
 const String channelMorningV3 = 'morning_v3';
+const String channelMorningV4 = 'morning_v4';
 const String channelEngagementV2 = 'engagement_v2';
+const String channelEngagementV3 = 'engagement_v3';
 const String channelHealthAlertV2 = 'health_alert_v2';
 
 /// Top-level background action handler (terminated/background isolate).
@@ -61,27 +63,33 @@ Map<String, dynamic>? parseLocalNotificationPayload(String? payloadJson) {
   }
 }
 
-/// Resolve Android channel_id from FCM data without remapping morning_v3 → v2.
+/// Resolve Android channel_id from FCM data for Gate4 tray render.
+/// Gate4 never resolves to silent morning / morning_v2.
 String resolveAndroidChannelId(String channel) {
   switch (channel) {
-    case channelMorningV3:
-    case 'morning_v3':
-      return channelMorningV3;
     case 'morning':
+    case channelMorningLegacy:
     case channelMorningV2:
-      return channelMorningV2;
+    case channelMorningV3:
+    case channelMorningV4:
+    case 'morning_v2':
+    case 'morning_v3':
+    case 'morning_v4':
+      return channelMorningV4;
     case 'health_alert':
+    case channelHealthAlertLegacy:
     case channelHealthAlertV2:
     case 'sedi_health':
     case 'sedi_critical':
       return channelHealthAlertV2;
     case 'engagement':
+    case channelEngagementLegacy:
     case channelEngagementV2:
+    case channelEngagementV3:
     case 'sedi_reminder':
     case 'sedi_default':
     default:
-      if (channel == channelMorningV3) return channelMorningV3;
-      return channelEngagementV2;
+      return channelEngagementV3;
   }
 }
 
@@ -178,6 +186,7 @@ String fallbackActionLabel(String actionId, String language) {
     case channelHealthAlertV2:
     case channelHealthAlertLegacy:
       return (Importance.high, Priority.high, true, true);
+    case channelEngagementV3:
     case channelEngagementV2:
     case channelEngagementLegacy:
       return (
@@ -186,6 +195,7 @@ String fallbackActionLabel(String actionId, String language) {
         true,
         false
       );
+    case channelMorningV4:
     case channelMorningV3:
       return (
         Importance.defaultImportance,
@@ -302,7 +312,16 @@ class LocalNotificationsService {
         AndroidNotificationChannel(
           channelMorningV3,
           'Morning Brief',
-          description: 'Daily morning notifications (v3 audible)',
+          description: 'Daily morning notifications (v3 legacy audible)',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(androidSoundResource),
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          channelMorningV4,
+          'Morning Brief',
+          description: 'Daily morning notifications (v4 audible)',
           importance: Importance.defaultImportance,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound(androidSoundResource),
@@ -312,6 +331,15 @@ class LocalNotificationsService {
           channelEngagementV2,
           'Engagement',
           description: 'Engagement nudges (v2)',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(androidSoundResource),
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          channelEngagementV3,
+          'Engagement',
+          description: 'Engagement nudges (v3 audible)',
           importance: Importance.defaultImportance,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound(androidSoundResource),
@@ -410,6 +438,7 @@ class LocalNotificationsService {
 
   static String channelDisplayName(String channelId) {
     switch (channelId) {
+      case channelMorningV4:
       case channelMorningV3:
       case channelMorningV2:
       case channelMorningLegacy:
@@ -417,6 +446,7 @@ class LocalNotificationsService {
       case channelHealthAlertV2:
       case channelHealthAlertLegacy:
         return 'Health Alerts';
+      case channelEngagementV3:
       case channelEngagementV2:
       case channelEngagementLegacy:
       default:

@@ -21,30 +21,74 @@ void main() {
   });
 
   group('channels + sound', () {
-    test('morning_v3 exists audible with sedi_alarm; morning_v2 silent', () {
+    test('morning_v4 audible with sedi_alarm; legacy morning_v2 remains silent', () {
       final channels = LocalNotificationsService.allAndroidChannels;
-      final v3 = channels.firstWhere((c) => c.id == channelMorningV3);
+      final v4 = channels.firstWhere((c) => c.id == channelMorningV4);
       final v2 = channels.firstWhere((c) => c.id == channelMorningV2);
-      expect(v3.playSound, isTrue);
-      expect(v3.sound, isA<RawResourceAndroidNotificationSound>());
+      expect(v4.playSound, isTrue);
+      expect(v4.sound, isA<RawResourceAndroidNotificationSound>());
+      expect(v4.enableVibration, isFalse);
       expect(androidSoundResource, 'sedi_alarm');
       expect(v2.playSound, isFalse);
-      final (imp3, _, play3, _) = channelImportanceFor(channelMorningV3);
+      final (imp4, _, play4, vib4) = channelImportanceFor(channelMorningV4);
       final (imp2, _, play2, _) = channelImportanceFor(channelMorningV2);
-      expect(play3, isTrue);
+      expect(play4, isTrue);
+      expect(vib4, isFalse);
       expect(play2, isFalse);
-      expect(imp3.index, greaterThan(imp2.index));
+      expect(imp4.index, greaterThan(imp2.index));
     });
 
-    test('channel_id morning_v3 is not remapped to v2', () {
-      expect(resolveAndroidChannelId('morning_v3'), channelMorningV3);
-      expect(resolveAndroidChannelId('morning_v2'), channelMorningV2);
-      expect(resolveAndroidChannelId('morning_v3'), isNot(channelMorningV2));
+    test('Gate4 morning aliases resolve to morning_v4 never silent', () {
+      for (final id in ['morning', 'morning_v2', 'morning_v3', 'morning_v4']) {
+        expect(resolveAndroidChannelId(id), channelMorningV4);
+        expect(resolveAndroidChannelId(id), isNot(channelMorningV2));
+        expect(resolveAndroidChannelId(id), isNot(channelMorningLegacy));
+        expect(channelImportanceFor(resolveAndroidChannelId(id)).$3, isTrue);
+      }
     });
 
-    test('engagement_v2 and health_alert_v2 remain audible', () {
-      expect(channelImportanceFor(channelEngagementV2).$3, isTrue);
-      expect(channelImportanceFor(channelHealthAlertV2).$3, isTrue);
+    test('Gate4 engagement aliases resolve to engagement_v3 audible', () {
+      for (final id in ['engagement', 'engagement_v2', 'engagement_v3', 'sedi_reminder']) {
+        expect(resolveAndroidChannelId(id), channelEngagementV3);
+        expect(channelImportanceFor(channelEngagementV3).$3, isTrue);
+        expect(channelImportanceFor(channelEngagementV3).$4, isFalse);
+      }
+      final eng = LocalNotificationsService.allAndroidChannels
+          .firstWhere((c) => c.id == channelEngagementV3);
+      expect(eng.playSound, isTrue);
+      expect(eng.sound, isA<RawResourceAndroidNotificationSound>());
+      expect(eng.enableVibration, isFalse);
+    });
+
+    test('health aliases resolve to health_alert_v2 high+vibration', () {
+      for (final id in [
+        'health_alert',
+        'health_alert_v2',
+        'sedi_health',
+        'sedi_critical',
+      ]) {
+        expect(resolveAndroidChannelId(id), channelHealthAlertV2);
+      }
+      final (imp, pri, play, vib) = channelImportanceFor(channelHealthAlertV2);
+      expect(imp, Importance.high);
+      expect(pri, Priority.high);
+      expect(play, isTrue);
+      expect(vib, isTrue);
+      final health = LocalNotificationsService.allAndroidChannels
+          .firstWhere((c) => c.id == channelHealthAlertV2);
+      expect(health.playSound, isTrue);
+      expect(health.enableVibration, isTrue);
+      expect(health.sound, isA<RawResourceAndroidNotificationSound>());
+    });
+
+    test('Android/iOS sound parity constants and bundled assets', () {
+      expect(androidSoundResource, 'sedi_alarm');
+      expect(iosSoundFile, 'sedi_alarm.wav');
+      final android = File('android/app/src/main/res/raw/sedi_alarm.wav');
+      final ios = File('ios/Runner/sedi_alarm.wav');
+      expect(android.existsSync(), isTrue);
+      expect(ios.existsSync(), isTrue);
+      expect(android.readAsBytesSync(), ios.readAsBytesSync());
     });
   });
 
