@@ -28,6 +28,14 @@ class NotificationsService {
   NotificationsService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
+  /// Parses POST ACK payloads (`data` object) without treating success as PARSE_ERROR.
+  static Map<String, dynamic>? parseAckData(Object? dataJson) {
+    if (dataJson is Map) {
+      return Map<String, dynamic>.from(dataJson);
+    }
+    return null;
+  }
+
   /// Parse unread count from a legacy Map-shaped response.
   /// Authority is backend unread_count only; page count/list length are not badges.
   static int parseUnreadCount(Map<String, dynamic> resp) {
@@ -142,10 +150,10 @@ class NotificationsService {
       );
     }
 
-    final response = await _apiClient.post<Object?>(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '/notifications/$id/mark-read',
       queryParams: {'user_id': userId.toString()},
-      parser: (_) => null,
+      parser: NotificationsService.parseAckData,
     );
     return ApiResponse<void>(
       ok: response.ok,
@@ -170,10 +178,10 @@ class NotificationsService {
       );
     }
 
-    final response = await _apiClient.post<Object?>(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '/notifications/inbox/hide',
       body: {'notification_ids': unique},
-      parser: (_) => null,
+      parser: NotificationsService.parseAckData,
     );
     return ApiResponse<void>(
       ok: response.ok,
