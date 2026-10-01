@@ -255,6 +255,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     final ok = await NotificationActionCoordinator.submit(
       notificationId: item.id,
       actionId: actionId,
+      // Inbox detail already has UI busy state; skip tray processing rewrite.
+      showTrayProcessing: false,
     );
     if (!mounted) return;
     setState(() => _actionBusy = false);
@@ -262,7 +264,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       _showMessage(_l10n.actionFailed);
       return;
     }
-    // Interaction ACK marks read via backend semantics — refresh list/badge.
+    // Successful Like/Dislike/Talk → immediate read/reacted styling + refresh.
+    setState(() {
+      _items = _items
+          .map((e) => e.id == item.id ? e.copyWith(isRead: true) : e)
+          .toList(growable: false);
+    });
     InboxRefreshBus.instance.triggerDebounced();
     await _reload(soft: true);
   }
@@ -484,15 +491,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         backgroundColor: A3DestinationSurface.canvas,
         foregroundColor: AppTheme.textPrimary,
         actions: [
+          // Selection mode: Cancel only. Standalone Select removed —
+          // Delete chip in the top filter row enters selection mode.
           if (_selectionMode)
             TextButton(
               onPressed: _hiding ? null : _exitSelection,
               child: Text(l10n.cancelSelection),
-            )
-          else
-            TextButton(
-              onPressed: () => _enterSelection(),
-              child: Text(l10n.select),
             ),
         ],
       ),
@@ -504,8 +508,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
               children: [
                 _filterChip(
                   label: l10n.filterAll,
-                  selected: _filter == InboxFilter.all,
+                  selected: _filter == InboxFilter.all && !_selectionMode,
                   onTap: () {
+                    if (_selectionMode) return;
                     if (_filter == InboxFilter.all) return;
                     setState(() => _filter = InboxFilter.all);
                     _reload();
@@ -514,11 +519,21 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 const SizedBox(width: 8),
                 _filterChip(
                   label: l10n.filterUnread,
-                  selected: _filter == InboxFilter.unread,
+                  selected: _filter == InboxFilter.unread && !_selectionMode,
                   onTap: () {
+                    if (_selectionMode) return;
                     if (_filter == InboxFilter.unread) return;
                     setState(() => _filter = InboxFilter.unread);
                     _reload();
+                  },
+                ),
+                const SizedBox(width: 8),
+                _filterChip(
+                  label: l10n.filterDelete,
+                  selected: _selectionMode,
+                  onTap: () {
+                    if (_selectionMode) return;
+                    _enterSelection();
                   },
                 ),
               ],
@@ -652,12 +667,22 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   }
 
   Widget _buildItemCard(NotificationItem item, NotificationInboxL10n l10n) {
+    // Unread/unreacted cards are clearly darker/stronger; read/reacted stay calm.
     final displayUnread =
         !item.isRead && !_pendingReadIds.contains(item.id);
     final selected = _selectedIds.contains(item.id);
+    // Dedicated selection gutter (>=48dp) — LTR physical left / RTL physical right
+    // via Directionality + Row start placement. Does not overlap category/content.
+    const selectionGutterWidth = 48.0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: A3DestinationCard(
+        backgroundColor: displayUnread
+            ? const Color(0xFFEEF0E8)
+            : AppTheme.gate2CardWhite,
+        borderColor: displayUnread
+            ? AppTheme.gate2ButtonOlive.withOpacity(0.35)
+            : AppTheme.gate2BorderSubtle,
         onTap: () async {
           if (_selectionMode) {
             _toggleSelected(item.id);
@@ -676,20 +701,29 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_selectionMode) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 2, right: 10),
-                child: Icon(
-                  selected
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: selected
-                      ? AppTheme.gate2ButtonOlive
-                      : AppTheme.textSecondary,
-                  size: 22,
+            if (_selectionMode)
+              SizedBox(
+                width: selectionGutterWidth,
+                height: selectionGutterWidth,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: selectionGutterWidth,
+                    minHeight: selectionGutterWidth,
+                  ),
+                  iconSize: 28,
+                  onPressed: () => _toggleSelected(item.id),
+                  icon: Icon(
+                    selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: selected
+                        ? AppTheme.gate2ButtonOlive
+                        : AppTheme.textSecondary,
+                    size: 28,
+                  ),
                 ),
               ),
-            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,8 +734,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                       const Spacer(),
                       if (displayUnread)
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: 10,
+                          height: 10,
                           decoration: const BoxDecoration(
                             color: AppTheme.gate2ButtonOlive,
                             shape: BoxShape.circle,
@@ -728,10 +762,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: displayUnread
-                          ? AppTheme.textSecondary
+                          ? AppTheme.textPrimary.withOpacity(0.78)
                           : AppTheme.textSecondary.withOpacity(0.92),
                       fontSize: 14,
                       height: 1.4,
+                      fontWeight:
+                          displayUnread ? FontWeight.w500 : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 10),

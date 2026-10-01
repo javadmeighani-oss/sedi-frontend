@@ -21,46 +21,66 @@ void main() {
   });
 
   group('channels + sound', () {
-    test('morning_v4 audible with sedi_alarm; legacy morning_v2 remains silent', () {
+    test('morning_v5 audible with sedi_alarm; legacy morning_v2 remains silent', () {
       final channels = LocalNotificationsService.allAndroidChannels;
+      final v5 = channels.firstWhere((c) => c.id == channelMorningV5);
       final v4 = channels.firstWhere((c) => c.id == channelMorningV4);
       final v2 = channels.firstWhere((c) => c.id == channelMorningV2);
-      expect(v4.playSound, isTrue);
-      expect(v4.sound, isA<RawResourceAndroidNotificationSound>());
-      expect(v4.enableVibration, isFalse);
+      expect(v5.playSound, isTrue);
+      expect(v5.sound, isA<RawResourceAndroidNotificationSound>());
+      expect(v5.enableVibration, isFalse);
       expect(androidSoundResource, 'sedi_alarm');
+      expect(v4.playSound, isTrue); // legacy kept installed
       expect(v2.playSound, isFalse);
-      final (imp4, _, play4, vib4) = channelImportanceFor(channelMorningV4);
+      final (imp5, _, play5, vib5) = channelImportanceFor(channelMorningV5);
       final (imp2, _, play2, _) = channelImportanceFor(channelMorningV2);
-      expect(play4, isTrue);
-      expect(vib4, isFalse);
+      expect(play5, isTrue);
+      expect(vib5, isFalse);
       expect(play2, isFalse);
-      expect(imp4.index, greaterThan(imp2.index));
+      expect(imp5.index, greaterThan(imp2.index));
     });
 
-    test('Gate4 morning aliases resolve to morning_v4 never silent', () {
-      for (final id in ['morning', 'morning_v2', 'morning_v3', 'morning_v4']) {
-        expect(resolveAndroidChannelId(id), channelMorningV4);
+    test('Gate4 morning aliases resolve to morning_v5 never silent', () {
+      for (final id in [
+        'morning',
+        'morning_v2',
+        'morning_v3',
+        'morning_v4',
+        'morning_v5',
+      ]) {
+        expect(resolveAndroidChannelId(id), channelMorningV5);
         expect(resolveAndroidChannelId(id), isNot(channelMorningV2));
         expect(resolveAndroidChannelId(id), isNot(channelMorningLegacy));
         expect(channelImportanceFor(resolveAndroidChannelId(id)).$3, isTrue);
       }
     });
 
-    test('Gate4 engagement aliases resolve to engagement_v3 audible', () {
-      for (final id in ['engagement', 'engagement_v2', 'engagement_v3', 'sedi_reminder']) {
-        expect(resolveAndroidChannelId(id), channelEngagementV3);
-        expect(channelImportanceFor(channelEngagementV3).$3, isTrue);
-        expect(channelImportanceFor(channelEngagementV3).$4, isFalse);
+    test('Gate4 engagement aliases resolve to engagement_v4 audible', () {
+      for (final id in [
+        'engagement',
+        'engagement_v2',
+        'engagement_v3',
+        'engagement_v4',
+        'sedi_reminder',
+      ]) {
+        expect(resolveAndroidChannelId(id), channelEngagementV4);
+        expect(channelImportanceFor(channelEngagementV4).$3, isTrue);
+        expect(channelImportanceFor(channelEngagementV4).$4, isFalse);
       }
       final eng = LocalNotificationsService.allAndroidChannels
-          .firstWhere((c) => c.id == channelEngagementV3);
+          .firstWhere((c) => c.id == channelEngagementV4);
       expect(eng.playSound, isTrue);
       expect(eng.sound, isA<RawResourceAndroidNotificationSound>());
       expect(eng.enableVibration, isFalse);
+      // Legacy engagement_v3 remains installed for sticky-channel compatibility.
+      expect(
+        LocalNotificationsService.allAndroidChannels
+            .any((c) => c.id == channelEngagementV3),
+        isTrue,
+      );
     });
 
-    test('health aliases resolve to health_alert_v2 high+vibration', () {
+    test('health aliases resolve to health_alert_v2 high+vibration unchanged', () {
       for (final id in [
         'health_alert',
         'health_alert_v2',
@@ -89,6 +109,9 @@ void main() {
       expect(android.existsSync(), isTrue);
       expect(ios.existsSync(), isTrue);
       expect(android.readAsBytesSync(), ios.readAsBytesSync());
+      final license = File('docs/SEDI_ALARM_SOUND_LICENSE_G1.md').readAsStringSync();
+      expect(license.contains('CLIPPING=NO'), isTrue);
+      expect(license.contains('ANDROID_IOS_BYTE_IDENTICAL=YES'), isTrue);
     });
   });
 
@@ -191,6 +214,8 @@ void main() {
       expect(bg.contains('sendFeedback'), isTrue);
       expect(bg.contains('PendingNotificationActions.remove'), isTrue);
       expect(bg.contains('_dismissTrayIsolated'), isTrue);
+      expect(bg.contains('_showProcessingIsolated'), isTrue);
+      expect(bg.contains('_inFlightKeys'), isTrue);
       expect(bg.contains('recoverSessionOn401: false'), isTrue);
       // Failure retains pending + tray (early return before remove/dismiss).
       expect(bg.contains('keep pending+tray'), isTrue);
@@ -285,6 +310,8 @@ void main() {
       expect(local.contains('cancelNotification: false'), isTrue);
       expect(local.contains('cancelNotification: true'), isFalse);
       expect(local.contains('cancelByBackendNotificationId'), isTrue);
+      expect(local.contains('showTrayActionProcessing'), isTrue);
+      expect(local.contains('trayProcessingLabel'), isTrue);
     });
 
     test('ACK dismisses tray + removes pending; failure retains pending', () async {
@@ -294,6 +321,9 @@ void main() {
       expect(coord.contains('PendingNotificationActions.remove'), isTrue);
       expect(coord.contains('cancelByBackendNotificationId'), isTrue);
       expect(coord.contains('InboxRefreshBus.instance.triggerDebounced'), isTrue);
+      expect(coord.contains('showTrayActionProcessing'), isTrue);
+      expect(coord.contains('_inFlightKeys'), isTrue);
+      expect(coord.contains('duplicate action rejected while processing'), isTrue);
       // Failure path returns false without remove/cancel.
       expect(coord.contains('if (!resp.ok) return false'), isTrue);
 
@@ -311,10 +341,14 @@ void main() {
       final boot = _read('lib/core/notifications/notification_bootstrap.dart');
       expect(boot.contains("? 'open_chat' : actionId"), isTrue);
       expect(boot.contains('NotificationActionCoordinator.submit'), isTrue);
+      expect(boot.contains('payloadJson: payloadJson'), isTrue);
       final bg = _read(
         'lib/core/notifications/background_notification_action_handler.dart',
       );
       expect(bg.contains("? 'open_chat'"), isTrue);
+      expect(bg.contains('_showProcessingIsolated'), isTrue);
+      expect(bg.contains('_inFlightKeys'), isTrue);
+      expect(bg.contains('recoverSessionOn401: false'), isTrue);
     });
   });
 
@@ -339,6 +373,13 @@ void main() {
       expect(inbox.contains('channel.toUpperCase()'), isFalse);
       // Soft-hide only — delete UI maps to hideInbox.
       expect(inbox.contains('hard delete'), isFalse);
+      // Standalone Select removed; Delete chip enters selection.
+      expect(inbox.contains('l10n.select'), isFalse);
+      expect(inbox.contains('filterDelete'), isTrue);
+      expect(inbox.contains('selectionGutterWidth'), isTrue);
+      expect(inbox.contains('selectionGutterWidth = 48'), isTrue);
+      expect(inbox.contains('Color(0xFFEEF0E8)'), isTrue);
+      expect(inbox.contains('copyWith(isRead: true)'), isTrue);
 
       final svc = _read('lib/services/notifications/notifications_service.dart');
       expect(svc.contains('/notifications/unread'), isTrue);
@@ -354,6 +395,9 @@ void main() {
       expect(en.title, 'Smart Notifications');
       expect(fa.title, 'اعلان‌های هوشمند');
       expect(ar.title, 'الإشعارات الذكية');
+      expect(en.filterDelete, 'Delete');
+      expect(fa.filterDelete, 'حذف');
+      expect(ar.filterDelete, 'حذف');
       expect(en.categoryLabel('HEALTH_ALERT'), isNot(contains('HEALTH_ALERT')));
       expect(en.categoryLabel('daily_status'), 'Daily status');
       expect(fa.categoryLabel('engagement_checkin'), isNotEmpty);
@@ -377,7 +421,7 @@ void main() {
       expect(page.contains('item.body'), isTrue);
     });
 
-    test('one Delete-selected action with confirmation; soft-hide only', () {
+    test('Delete enters selection; one Delete-selected; soft-hide only', () {
       final inbox = _read(
         'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
       );
@@ -387,9 +431,11 @@ void main() {
       expect(inbox.contains('deleteConfirmTitle'), isTrue);
       expect(inbox.contains('deleteConfirmBody'), isTrue);
       expect(inbox.contains('hideInbox'), isTrue);
-      // Exactly one user-facing Delete-selected action.
+      // Top Delete chip enters selection; Delete-selected remains the confirm action.
+      expect(inbox.contains('filterDelete'), isTrue);
       expect(RegExp(r'l10n\.deleteSelected').allMatches(inbox).length, 1);
       expect(inbox.contains('l10n.hideSelected'), isFalse);
+      expect(inbox.contains('l10n.select'), isFalse);
       expect(inbox.contains('markRead'), isTrue); // mark-read exists elsewhere
       final deleteBlockStart = inbox.indexOf('Future<void> _deleteSelected');
       final deleteBlockEnd = inbox.indexOf('Future<void> _markReadOptimistic');
@@ -413,6 +459,18 @@ void main() {
       expect(en.deleteConfirmBody, isNotEmpty);
       expect(fa.deleteConfirmBody, isNot(en.deleteConfirmBody));
       expect(ar.deleteConfirmBody, isNot(en.deleteConfirmBody));
+    });
+
+    test('selection gutter is Directionality-aware and >=48dp', () {
+      final inbox = _read(
+        'lib/features/notifications/presentation/pages/notification_inbox_page.dart',
+      );
+      expect(inbox.contains('selectionGutterWidth = 48'), isTrue);
+      expect(inbox.contains('EdgeInsets.only(top: 2, right: 10)'), isFalse);
+      expect(inbox.contains('Directionality'), isTrue);
+      expect(inbox.contains('minWidth: selectionGutterWidth'), isTrue);
+      expect(inbox.contains('minHeight: selectionGutterWidth'), isTrue);
+      expect(inbox.contains('iconSize: 28'), isTrue);
     });
 
     test('hide unread does not call mark-read', () {

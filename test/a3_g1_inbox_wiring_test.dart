@@ -105,6 +105,10 @@ void main() {
     expect(fa.filterUnread, 'خوانده‌نشده');
     expect(ar.filterUnread, 'غير مقروء');
 
+    expect(en.filterDelete, 'Delete');
+    expect(fa.filterDelete, 'حذف');
+    expect(ar.filterDelete, 'حذف');
+
     expect(en.likeAction, 'Like');
     expect(fa.likeAction, 'پسندیدن');
     expect(ar.talkToSedi, contains('صدی'));

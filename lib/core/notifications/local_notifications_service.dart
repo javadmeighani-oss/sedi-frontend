@@ -1,12 +1,14 @@
 /// Local notifications: init (permissions + Android channels), show.
 /// A4: single Flutter-rendered Android tray with localized Gate4 actions.
-/// Channels: legacy silent morning/morning_v2 kept installed; Gate4 routes to
-/// morning_v4 / engagement_v3 (audible sedi_alarm) / health_alert_v2.
+/// Channels: legacy silent morning/morning_v2 + morning_v3/v4 + engagement_v2/v3
+/// kept installed for compatibility; Gate4 routes to morning_v5 / engagement_v4
+/// (audible sedi_alarm) / health_alert_v2.
 /// Runtime sound download is PROHIBITED — binary must be bundled.
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -25,8 +27,10 @@ const String channelHealthAlertLegacy = 'health_alert';
 const String channelMorningV2 = 'morning_v2';
 const String channelMorningV3 = 'morning_v3';
 const String channelMorningV4 = 'morning_v4';
+const String channelMorningV5 = 'morning_v5';
 const String channelEngagementV2 = 'engagement_v2';
 const String channelEngagementV3 = 'engagement_v3';
+const String channelEngagementV4 = 'engagement_v4';
 const String channelHealthAlertV2 = 'health_alert_v2';
 
 /// Top-level background action handler (terminated/background isolate).
@@ -58,10 +62,12 @@ String resolveAndroidChannelId(String channel) {
     case channelMorningV2:
     case channelMorningV3:
     case channelMorningV4:
+    case channelMorningV5:
     case 'morning_v2':
     case 'morning_v3':
     case 'morning_v4':
-      return channelMorningV4;
+    case 'morning_v5':
+      return channelMorningV5;
     case 'health_alert':
     case channelHealthAlertLegacy:
     case channelHealthAlertV2:
@@ -72,10 +78,11 @@ String resolveAndroidChannelId(String channel) {
     case channelEngagementLegacy:
     case channelEngagementV2:
     case channelEngagementV3:
+    case channelEngagementV4:
     case 'sedi_reminder':
     case 'sedi_default':
     default:
-      return channelEngagementV3;
+      return channelEngagementV4;
   }
 }
 
@@ -167,12 +174,44 @@ String fallbackActionLabel(String actionId, String language) {
   }
 }
 
+/// Transient tray processing label — never implies backend success.
+String trayProcessingLabel(String actionId, String language) {
+  final lang = language.toLowerCase().split('-').first;
+  switch (actionId) {
+    case 'like':
+      return lang == 'fa'
+          ? 'در حال ارسال پسند…'
+          : lang == 'ar'
+              ? 'جارٍ إرسال الإعجاب…'
+              : 'Sending Like…';
+    case 'dislike':
+      return lang == 'fa'
+          ? 'در حال ارسال نپسند…'
+          : lang == 'ar'
+              ? 'جارٍ إرسال عدم الإعجاب…'
+              : 'Sending Dislike…';
+    case 'open_chat':
+      return lang == 'fa'
+          ? 'در حال آماده‌سازی…'
+          : lang == 'ar'
+              ? 'جارٍ التحضير…'
+              : 'Preparing…';
+    default:
+      return lang == 'fa'
+          ? 'در حال پردازش…'
+          : lang == 'ar'
+              ? 'جارٍ المعالجة…'
+              : 'Processing…';
+  }
+}
+
 (Importance, Priority, bool playSound, bool enableVibration)
     channelImportanceFor(String channelId) {
   switch (channelId) {
     case channelHealthAlertV2:
     case channelHealthAlertLegacy:
       return (Importance.high, Priority.high, true, true);
+    case channelEngagementV4:
     case channelEngagementV3:
     case channelEngagementV2:
     case channelEngagementLegacy:
@@ -182,6 +221,7 @@ String fallbackActionLabel(String actionId, String language) {
         true,
         false
       );
+    case channelMorningV5:
     case channelMorningV4:
     case channelMorningV3:
       return (
@@ -214,6 +254,9 @@ class LocalNotificationsService {
   static String get _channelName => '${sediBrandName('en')} Alerts';
 
   static bool _initialized = false;
+
+  /// Last rendered tray snapshot for same-ID processing updates (no second tray).
+  static final Map<int, _TraySnapshot> _lastTrayById = <int, _TraySnapshot>{};
 
   static Future<bool> init({
     void Function(String? actionId, String? payloadJson)? onResponse,
@@ -260,7 +303,7 @@ class LocalNotificationsService {
     return true;
   }
 
-  /// Public for tests.
+  /// Public for tests. Old channel IDs remain installed; Gate4 routes to v5/v4.
   static List<AndroidNotificationChannel> get allAndroidChannels => [
         AndroidNotificationChannel(
           channelMorningLegacy,
@@ -308,7 +351,16 @@ class LocalNotificationsService {
         AndroidNotificationChannel(
           channelMorningV4,
           'Morning Brief',
-          description: 'Daily morning notifications (v4 audible)',
+          description: 'Daily morning notifications (v4 legacy audible)',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(androidSoundResource),
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          channelMorningV5,
+          'Morning Brief',
+          description: 'Daily morning notifications (v5 audible)',
           importance: Importance.defaultImportance,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound(androidSoundResource),
@@ -326,7 +378,16 @@ class LocalNotificationsService {
         AndroidNotificationChannel(
           channelEngagementV3,
           'Engagement',
-          description: 'Engagement nudges (v3 audible)',
+          description: 'Engagement nudges (v3 legacy audible)',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound(androidSoundResource),
+          enableVibration: false,
+        ),
+        AndroidNotificationChannel(
+          channelEngagementV4,
+          'Engagement',
+          description: 'Engagement nudges (v4 audible)',
           importance: Importance.defaultImportance,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound(androidSoundResource),
@@ -358,9 +419,81 @@ class LocalNotificationsService {
     if (notificationId <= 0) return;
     try {
       if (!_initialized) await init();
-      await _plugin.cancel(notificationIdToInt(notificationId.toString()));
+      final id = notificationIdToInt(notificationId.toString());
+      await _plugin.cancel(id);
+      _lastTrayById.remove(id);
     } catch (e) {
       debugPrint('[LocalNotif] cancel failed: $e');
+    }
+  }
+
+  /// Transient selected/processing reaction on the SAME local notification ID.
+  /// Does not imply backend success; removes action buttons to reject duplicates.
+  /// Android-supported path; no-op elsewhere when unsupported.
+  static Future<void> showTrayActionProcessing({
+    required int notificationId,
+    required String actionId,
+    String? payloadJson,
+  }) async {
+    if (notificationId <= 0) return;
+    // Android supports same-ID tray updates; skip elsewhere without implying success.
+    if (!Platform.isAndroid) return;
+    try {
+      if (!_initialized) await init();
+      final notifId = notificationIdToInt(notificationId.toString());
+      final snap = _lastTrayById[notifId];
+      Map<String, dynamic>? payload = parseLocalNotificationPayload(payloadJson);
+      payload ??= parseLocalNotificationPayload(snap?.payloadJson);
+      final language = payload?['language']?.toString() ?? 'en';
+      final channelRaw = payload?['channel']?.toString() ??
+          snap?.channel ??
+          'engagement';
+      final channelId = resolveAndroidChannelId(channelRaw);
+      final title = (snap?.title.isNotEmpty == true)
+          ? snap!.title
+          : sediBrandName(language);
+      final originalBody = snap?.body ?? '';
+      final processing = trayProcessingLabel(actionId, language);
+      // Keep original body when present; append transient processing marker only.
+      final body = originalBody.trim().isEmpty
+          ? processing
+          : '$originalBody · $processing';
+      final payloadStr = payloadJson ??
+          snap?.payloadJson ??
+          jsonEncode({
+            'notification_id': '$notificationId',
+            'source_notification_id': '$notificationId',
+            'channel': channelRaw,
+            'deeplink_url': '',
+            'language': language,
+          });
+
+      final android = AndroidNotificationDetails(
+        channelId,
+        channelDisplayName(channelId),
+        channelDescription: '${sediBrandName('en')} notifications',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        // Empty actions = processing lock on the same tray row.
+        actions: const <AndroidNotificationAction>[],
+      );
+      const darwin = DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: false,
+      );
+      final details = NotificationDetails(android: android, iOS: darwin);
+      await _plugin.show(notifId, title, body, details, payload: payloadStr);
+      _lastTrayById[notifId] = _TraySnapshot(
+        title: title,
+        body: originalBody,
+        channel: channelRaw,
+        payloadJson: payloadStr,
+      );
+    } catch (e) {
+      debugPrint('[LocalNotif] processing tray update failed: $e');
     }
   }
 
@@ -394,6 +527,13 @@ class LocalNotificationsService {
     final channelId = resolveAndroidChannelId(channel);
     final notifId = notificationIdToInt(notificationId);
     final actions = resolveNotificationActions(data: data, language: language);
+
+    _lastTrayById[notifId] = _TraySnapshot(
+      title: title,
+      body: body,
+      channel: channel,
+      payloadJson: payloadStr,
+    );
 
     if (Platform.isAndroid) {
       final (importance, priority, playSound, enableVibration) =
@@ -436,6 +576,7 @@ class LocalNotificationsService {
 
   static String channelDisplayName(String channelId) {
     switch (channelId) {
+      case channelMorningV5:
       case channelMorningV4:
       case channelMorningV3:
       case channelMorningV2:
@@ -444,6 +585,7 @@ class LocalNotificationsService {
       case channelHealthAlertV2:
       case channelHealthAlertLegacy:
         return 'Health Alerts';
+      case channelEngagementV4:
       case channelEngagementV3:
       case channelEngagementV2:
       case channelEngagementLegacy:
@@ -482,4 +624,21 @@ class LocalNotificationsService {
     final details = NotificationDetails(android: android, iOS: darwin);
     await _plugin.show(id, title, body, details, payload: payload);
   }
+
+  @visibleForTesting
+  static void clearTrayCacheForTest() => _lastTrayById.clear();
+}
+
+class _TraySnapshot {
+  final String title;
+  final String body;
+  final String channel;
+  final String payloadJson;
+
+  const _TraySnapshot({
+    required this.title,
+    required this.body,
+    required this.channel,
+    required this.payloadJson,
+  });
 }

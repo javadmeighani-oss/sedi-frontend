@@ -56,6 +56,7 @@ class A3DestinationCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color? borderColor;
+  final Color? backgroundColor;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -64,28 +65,43 @@ class A3DestinationCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 16),
     this.borderColor,
+    this.backgroundColor,
     this.onTap,
     this.onLongPress,
   });
 
+  BoxDecoration _decoration() {
+    final bg = backgroundColor ?? AppTheme.gate2CardWhite;
+    return BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      border: Border.all(
+        color: borderColor ?? AppTheme.gate2BorderSubtle,
+        width: 0.8,
+      ),
+      boxShadow: A3DestinationSurface.cardShadow,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final body = Padding(padding: padding, child: child);
+    final bg = backgroundColor ?? AppTheme.gate2CardWhite;
     if (onTap == null && onLongPress == null) {
       return DecoratedBox(
-        decoration: A3DestinationSurface.cardDecoration(borderColor: borderColor),
+        decoration: _decoration(),
         child: body,
       );
     }
     return Material(
-      color: AppTheme.gate2CardWhite,
+      color: bg,
       borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Ink(
-          decoration: A3DestinationSurface.cardDecoration(borderColor: borderColor),
+          decoration: _decoration(),
           child: body,
         ),
       ),

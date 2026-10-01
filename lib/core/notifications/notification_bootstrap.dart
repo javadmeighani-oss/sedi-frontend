@@ -116,6 +116,8 @@ class NotificationBootstrap {
     NotificationActionCoordinator.submit(
       notificationId: notificationId,
       actionId: action,
+      payloadJson: payloadJson,
+      showTrayProcessing: true,
     );
   }
 

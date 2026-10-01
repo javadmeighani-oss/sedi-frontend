@@ -13,10 +13,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../data/repositories/notification_repository.dart';
 import '../auth/auth_service.dart';
+import 'local_notifications_service.dart';
 import 'pending_notification_actions.dart';
 
 class BackgroundNotificationActionHandler {
   BackgroundNotificationActionHandler._();
+
+  /// Isolate-local in-flight lock (dedupeKey) — reject duplicate taps.
+  static final Set<String> _inFlightKeys = <String>{};
 
   static Future<void> handle(NotificationResponse response) async {
     final payload = _parsePayload(response.payload);
@@ -30,21 +34,41 @@ class BackgroundNotificationActionHandler {
         : response.actionId!.trim();
     if (action.isEmpty) return;
 
-    final clientTs = DateTime.now().toUtc().toIso8601String();
-    await PendingNotificationActions.enqueue(
-      notificationId: id,
-      actionId: action,
-      clientTs: clientTs,
-    );
+    final key = '$id|$action';
+    if (_inFlightKeys.contains(key)) {
+      debugPrint('[FCM-bg] duplicate action rejected while processing: $key');
+      return;
+    }
+    _inFlightKeys.add(key);
 
-    // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
-    if (action != 'like' && action != 'dislike') return;
+    try {
+      final clientTs = DateTime.now().toUtc().toIso8601String();
+      // Persist pending BEFORE network attempt.
+      await PendingNotificationActions.enqueue(
+        notificationId: id,
+        actionId: action,
+        clientTs: clientTs,
+      );
 
-    await _attemptLikeDislikeAck(
-      notificationId: id,
-      actionId: action,
-      clientTs: clientTs,
-    );
+      // Transient selected/processing on SAME tray id (Android-supported).
+      await _showProcessingIsolated(
+        notificationId: id,
+        actionId: action,
+        payload: payload,
+        payloadJson: response.payload,
+      );
+
+      // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
+      if (action != 'like' && action != 'dislike') return;
+
+      await _attemptLikeDislikeAck(
+        notificationId: id,
+        actionId: action,
+        clientTs: clientTs,
+      );
+    } finally {
+      _inFlightKeys.remove(key);
+    }
   }
 
   static Future<void> _attemptLikeDislikeAck({
@@ -84,6 +108,50 @@ class BackgroundNotificationActionHandler {
     }
   }
 
+  /// Isolate-local processing rewrite — same notification ID, no action buttons.
+  /// Does not imply backend success; keeps tray for failure retention.
+  static Future<void> _showProcessingIsolated({
+    required int notificationId,
+    required String actionId,
+    required Map<String, dynamic> payload,
+    String? payloadJson,
+  }) async {
+    try {
+      final language = payload['language']?.toString() ?? 'en';
+      final channelRaw = payload['channel']?.toString() ?? 'engagement';
+      final channelId = resolveAndroidChannelId(channelRaw);
+      final processing = trayProcessingLabel(actionId, language);
+      final plugin = FlutterLocalNotificationsPlugin();
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const settings = InitializationSettings(android: androidInit);
+      await plugin.initialize(settings);
+      final android = AndroidNotificationDetails(
+        channelId,
+        LocalNotificationsService.channelDisplayName(channelId),
+        channelDescription: 'Sedi notifications',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        actions: const <AndroidNotificationAction>[],
+      );
+      const darwin = DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: false,
+      );
+      await plugin.show(
+        _notificationIdToInt(notificationId),
+        processing,
+        processing,
+        NotificationDetails(android: android, iOS: darwin),
+        payload: payloadJson,
+      );
+    } catch (e) {
+      debugPrint('[FCM-bg] processing tray update failed: $e');
+    }
+  }
+
   /// Dismiss exact local notification without registering UI/response callbacks.
   static Future<void> _dismissTrayIsolated(int notificationId) async {
     try {
@@ -111,4 +179,7 @@ class BackgroundNotificationActionHandler {
       return null;
     }
   }
+
+  @visibleForTesting
+  static void resetInFlightForTest() => _inFlightKeys.clear();
 }

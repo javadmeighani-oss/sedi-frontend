@@ -31,7 +31,8 @@ class NotificationInboxL10n {
   String get filterUnread =>
       _t(en: 'Unread', fa: 'خوانده‌نشده', ar: 'غير مقروء');
 
-  String get select => _t(en: 'Select', fa: 'انتخاب', ar: 'تحديد');
+  /// Top-control Delete enters selection mode (standalone Select removed).
+  String get filterDelete => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
 
   String get cancelSelection =>
       _t(en: 'Cancel', fa: 'لغو', ar: 'إلغاء');

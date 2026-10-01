@@ -23,6 +23,9 @@ class NotificationActionCoordinator {
   static const int _maxNavDedup = 50;
   static bool _draining = false;
 
+  /// In-flight action keys (`notificationId|actionId`) — reject duplicate taps.
+  static final Set<String> _inFlightKeys = <String>{};
+
   /// Canonical action seam used by tray body tap, action buttons, and Inbox.
   /// Returns true only when this action received backend ACK.
   static Future<bool> submit({
@@ -30,27 +33,49 @@ class NotificationActionCoordinator {
     required String actionId,
     String? clientTs,
     bool navigateOnOpenChat = true,
+    String? payloadJson,
+    bool showTrayProcessing = true,
   }) async {
     if (notificationId <= 0) return false;
     final action = actionId.trim();
     if (action.isEmpty) return false;
 
-    final ts = clientTs ?? DateTime.now().toUtc().toIso8601String();
-    await PendingNotificationActions.enqueue(
-      notificationId: notificationId,
-      actionId: action,
-      clientTs: ts,
-    );
+    final key = '$notificationId|$action';
+    if (_inFlightKeys.contains(key)) {
+      debugPrint('[FCM] duplicate action rejected while processing: $key');
+      return false;
+    }
+    _inFlightKeys.add(key);
 
-    final hasSession = await SessionGateResolver.hasValidSession();
-    if (!hasSession) return false;
+    try {
+      final ts = clientTs ?? DateTime.now().toUtc().toIso8601String();
+      // Persist pending BEFORE network attempt.
+      await PendingNotificationActions.enqueue(
+        notificationId: notificationId,
+        actionId: action,
+        clientTs: ts,
+      );
 
-    final item = PendingNotificationAction(
-      notificationId: notificationId,
-      actionId: action,
-      clientTs: ts,
-    );
-    return _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+      if (showTrayProcessing) {
+        await LocalNotificationsService.showTrayActionProcessing(
+          notificationId: notificationId,
+          actionId: action,
+          payloadJson: payloadJson,
+        );
+      }
+
+      final hasSession = await SessionGateResolver.hasValidSession();
+      if (!hasSession) return false;
+
+      final item = PendingNotificationAction(
+        notificationId: notificationId,
+        actionId: action,
+        clientTs: ts,
+      );
+      return _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+    } finally {
+      _inFlightKeys.remove(key);
+    }
   }
 
   /// Drain all pending actions. Safe to call on start/resume/after enqueue.
@@ -64,7 +89,14 @@ class NotificationActionCoordinator {
       if (!hasSession) return;
 
       await PendingNotificationActions.drain((item) async {
-        return _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+        final key = item.dedupeKey;
+        if (_inFlightKeys.contains(key)) return false;
+        _inFlightKeys.add(key);
+        try {
+          return await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+        } finally {
+          _inFlightKeys.remove(key);
+        }
       });
     } catch (e) {
       debugPrint('[FCM] drainPendingActions error: $e');
@@ -90,6 +122,7 @@ class NotificationActionCoordinator {
         notificationId: item.notificationId,
         actionId: item.actionId,
       );
+      // Cancel ONLY the exact notification ID after ACK.
       await LocalNotificationsService.cancelByBackendNotificationId(
         item.notificationId,
       );
@@ -135,4 +168,13 @@ class NotificationActionCoordinator {
   static void resetNavDedupeForTest() {
     _openChatNavigatedIds.clear();
   }
+
+  @visibleForTesting
+  static void resetInFlightForTest() {
+    _inFlightKeys.clear();
+  }
+
+  @visibleForTesting
+  static bool isInFlightForTest(int notificationId, String actionId) =>
+      _inFlightKeys.contains('$notificationId|$actionId');
 }
