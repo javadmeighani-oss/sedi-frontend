@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sedi_app/core/notifications/fcm_setup.dart';
 import 'package:sedi_app/core/notifications/local_notifications_service.dart';
 import 'package:sedi_app/core/notifications/pending_notification_actions.dart';
+import 'package:sedi_app/data/dto/notifications/notification_item_dto.dart';
+import 'package:sedi_app/data/models/notification_item.dart';
 import 'package:sedi_app/features/notifications/presentation/notification_inbox_l10n.dart';
 
 String _read(String path) => File(path).readAsStringSync();
@@ -314,7 +316,7 @@ void main() {
       expect(local.contains('trayProcessingLabel'), isTrue);
     });
 
-    test('ACK dismisses tray + removes pending; failure retains pending', () async {
+    test('ACK dismisses tray + removes pending; failure restores tray + retains pending', () async {
       final coord =
           _read('lib/core/notifications/notification_action_coordinator.dart');
       expect(coord.contains('PendingNotificationActions.enqueue'), isTrue);
@@ -322,10 +324,23 @@ void main() {
       expect(coord.contains('cancelByBackendNotificationId'), isTrue);
       expect(coord.contains('InboxRefreshBus.instance.triggerDebounced'), isTrue);
       expect(coord.contains('showTrayActionProcessing'), isTrue);
+      expect(coord.contains('restoreOriginalTrayNotification'), isTrue);
       expect(coord.contains('_inFlightKeys'), isTrue);
       expect(coord.contains('duplicate action rejected while processing'), isTrue);
       // Failure path returns false without remove/cancel.
       expect(coord.contains('if (!resp.ok) return false'), isTrue);
+
+      final local =
+          _read('lib/core/notifications/local_notifications_service.dart');
+      expect(local.contains('restoreOriginalTrayNotification'), isTrue);
+      expect(local.contains('TrayNotificationSnapshotStore'), isTrue);
+      expect(local.contains('onlyAlertOnce: true'), isTrue);
+
+      final bg = _read(
+        'lib/core/notifications/background_notification_action_handler.dart',
+      );
+      expect(bg.contains('_restoreOriginalIsolated'), isTrue);
+      expect(bg.contains('recoverSessionOn401: false'), isTrue);
 
       await PendingNotificationActions.enqueue(
         notificationId: 77,
@@ -379,7 +394,14 @@ void main() {
       expect(inbox.contains('selectionGutterWidth'), isTrue);
       expect(inbox.contains('selectionGutterWidth = 48'), isTrue);
       expect(inbox.contains('Color(0xFFEEF0E8)'), isTrue);
-      expect(inbox.contains('copyWith(isRead: true)'), isTrue);
+      expect(inbox.contains('hasUserResponse: true'), isTrue);
+      expect(inbox.contains('displayAttention'), isTrue);
+      // Card tap must NOT mark read — detail open only.
+      expect(inbox.contains('await _markReadOptimistic(item);\n          await _openDetails'), isFalse);
+      expect(inbox.contains('// Card tap opens detail ONLY'), isTrue);
+      expect(inbox.contains('await _openDetails(item, l10n);'), isTrue);
+      // Explicit Mark as read remains.
+      expect(inbox.contains('_markReadOptimistic'), isTrue);
 
       final svc = _read('lib/services/notifications/notifications_service.dart');
       expect(svc.contains('/notifications/unread'), isTrue);
@@ -503,6 +525,40 @@ void main() {
     expect(isGate4FcmData({'gate': 'gate4'}), isTrue);
     expect(isGate4FcmData({'gate4_actions': '[]'}), isTrue);
     expect(isGate4FcmData({'channel': 'engagement'}), isFalse);
+  });
+
+  group('read vs user response', () {
+    test('DTO defaults has_user_response false; model needsAttention', () {
+      final dto = NotificationItemDto.fromJson({
+        'id': 1,
+        'channel': 'engagement',
+        'title': 'T',
+        'body': 'B',
+        'created_at': '2026-10-01T00:00:00Z',
+        'is_read': true,
+      });
+      expect(dto.hasUserResponse, isFalse);
+      final item = NotificationItem.fromDto(dto);
+      expect(item.isRead, isTrue);
+      expect(item.hasUserResponse, isFalse);
+      expect(item.needsAttention, isTrue);
+
+      final responded = item.copyWith(hasUserResponse: true);
+      expect(responded.needsAttention, isFalse);
+
+      final unread = NotificationItem.fromDto(
+        NotificationItemDto.fromJson({
+          'id': 2,
+          'channel': 'engagement',
+          'title': 'T',
+          'body': 'B',
+          'created_at': '2026-10-01T00:00:00Z',
+          'is_read': false,
+          'has_user_response': false,
+        }),
+      );
+      expect(unread.needsAttention, isTrue);
+    });
   });
 }
 

@@ -264,10 +264,14 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       _showMessage(_l10n.actionFailed);
       return;
     }
-    // Successful Like/Dislike/Talk → immediate read/reacted styling + refresh.
+    // Successful Like/Dislike/Talk → immediate read+responded styling + refresh.
     setState(() {
       _items = _items
-          .map((e) => e.id == item.id ? e.copyWith(isRead: true) : e)
+          .map(
+            (e) => e.id == item.id
+                ? e.copyWith(isRead: true, hasUserResponse: true)
+                : e,
+          )
           .toList(growable: false);
     });
     InboxRefreshBus.instance.triggerDebounced();
@@ -667,9 +671,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   }
 
   Widget _buildItemCard(NotificationItem item, NotificationInboxL10n l10n) {
-    // Unread/unreacted cards are clearly darker/stronger; read/reacted stay calm.
-    final displayUnread =
-        !item.isRead && !_pendingReadIds.contains(item.id);
+    // Attention = unread OR missing explicit user response (READ alone insufficient).
+    final effectiveRead =
+        item.isRead || _pendingReadIds.contains(item.id);
+    final displayAttention = !effectiveRead || !item.hasUserResponse;
     final selected = _selectedIds.contains(item.id);
     // Dedicated selection gutter (>=48dp) — LTR physical left / RTL physical right
     // via Directionality + Row start placement. Does not overlap category/content.
@@ -677,10 +682,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: A3DestinationCard(
-        backgroundColor: displayUnread
+        backgroundColor: displayAttention
             ? const Color(0xFFEEF0E8)
             : AppTheme.gate2CardWhite,
-        borderColor: displayUnread
+        borderColor: displayAttention
             ? AppTheme.gate2ButtonOlive.withOpacity(0.35)
             : AppTheme.gate2BorderSubtle,
         onTap: () async {
@@ -688,7 +693,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             _toggleSelected(item.id);
             return;
           }
-          await _markReadOptimistic(item);
+          // Card tap opens detail ONLY — does not mark read.
           await _openDetails(item, l10n);
         },
         onLongPress: () {
@@ -732,7 +737,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     children: [
                       _categoryPill(item, l10n),
                       const Spacer(),
-                      if (displayUnread)
+                      if (displayAttention)
                         Container(
                           width: 10,
                           height: 10,
@@ -752,7 +757,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                       color: AppTheme.textPrimary,
                       fontSize: 16,
                       fontWeight:
-                          displayUnread ? FontWeight.w700 : FontWeight.w500,
+                          displayAttention ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -761,13 +766,13 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: displayUnread
+                      color: displayAttention
                           ? AppTheme.textPrimary.withOpacity(0.78)
                           : AppTheme.textSecondary.withOpacity(0.92),
                       fontSize: 14,
                       height: 1.4,
                       fontWeight:
-                          displayUnread ? FontWeight.w500 : FontWeight.w400,
+                          displayAttention ? FontWeight.w500 : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 10),

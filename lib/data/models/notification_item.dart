@@ -8,6 +8,8 @@ class NotificationItem {
   final DateTime createdAt;
   final DateTime? sentAt;
   final bool isRead;
+  /// Explicit A4 user response (LIKE/DISLIKE/TALK). READ alone stays false.
+  final bool hasUserResponse;
   final String? priority;
   final String? status;
   final String? dedupeKey;
@@ -20,12 +22,16 @@ class NotificationItem {
     required this.body,
     required this.createdAt,
     required this.isRead,
+    this.hasUserResponse = false,
     this.sentAt,
     this.priority,
     this.status,
     this.dedupeKey,
     this.metadata,
   });
+
+  /// Attention styling: unread OR missing explicit user response.
+  bool get needsAttention => !isRead || !hasUserResponse;
 
   factory NotificationItem.fromDto(NotificationItemDto dto) {
     return NotificationItem(
@@ -36,6 +42,7 @@ class NotificationItem {
       createdAt: dto.createdAt,
       sentAt: dto.sentAt,
       isRead: dto.isRead,
+      hasUserResponse: dto.hasUserResponse,
       priority: dto.priority,
       status: dto.status,
       dedupeKey: dto.dedupeKey,
@@ -45,6 +52,7 @@ class NotificationItem {
 
   NotificationItem copyWith({
     bool? isRead,
+    bool? hasUserResponse,
   }) {
     return NotificationItem(
       id: id,
@@ -54,6 +62,7 @@ class NotificationItem {
       createdAt: createdAt,
       sentAt: sentAt,
       isRead: isRead ?? this.isRead,
+      hasUserResponse: hasUserResponse ?? this.hasUserResponse,
       priority: priority,
       status: status,
       dedupeKey: dedupeKey,

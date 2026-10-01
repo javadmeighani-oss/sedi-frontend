@@ -14,6 +14,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../utils/brand_name.dart';
 import 'background_notification_action_handler.dart';
+import 'tray_notification_snapshot_store.dart';
 
 /// Expected Android raw resource name (file without extension): sedi_alarm.
 const String androidSoundResource = 'sedi_alarm';
@@ -422,14 +423,84 @@ class LocalNotificationsService {
       final id = notificationIdToInt(notificationId.toString());
       await _plugin.cancel(id);
       _lastTrayById.remove(id);
+      await TrayNotificationSnapshotStore.remove(notificationId);
     } catch (e) {
       debugPrint('[LocalNotif] cancel failed: $e');
+    }
+  }
+
+  /// Restore ORIGINAL same-ID actionable tray after processing failure.
+  /// Silent / onlyAlertOnce — no fake success, no second tray ID.
+  static Future<void> restoreOriginalTrayNotification({
+    required int notificationId,
+  }) async {
+    if (notificationId <= 0) return;
+    if (!Platform.isAndroid) return;
+    try {
+      if (!_initialized) await init();
+      final stored = await TrayNotificationSnapshotStore.get(notificationId);
+      final notifId = notificationIdToInt(notificationId.toString());
+      final mem = _lastTrayById[notifId];
+      final title = (stored?.title.isNotEmpty == true)
+          ? stored!.title
+          : (mem?.title ?? sediBrandName('en'));
+      final body = stored?.body ?? mem?.body ?? '';
+      final channelRaw =
+          stored?.channel ?? mem?.channel ?? 'engagement';
+      final language = stored?.language ?? 'en';
+      final payloadStr = (stored?.payloadJson.isNotEmpty == true)
+          ? stored!.payloadJson
+          : (mem?.payloadJson ??
+              jsonEncode({
+                'notification_id': '$notificationId',
+                'source_notification_id': '$notificationId',
+                'channel': channelRaw,
+                'deeplink_url': '',
+                'language': language,
+              }));
+      final actionData = stored?.actionData() ?? <String, dynamic>{};
+      final channelId = resolveAndroidChannelId(channelRaw);
+      final actions =
+          resolveNotificationActions(data: actionData, language: language);
+
+      final android = AndroidNotificationDetails(
+        channelId,
+        channelDisplayName(channelId),
+        channelDescription: '${sediBrandName('en')} notifications',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        // Silent restore — do not re-alert / re-sound.
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        actions: actions,
+      );
+      const darwin = DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: false,
+      );
+      await _plugin.show(
+        notifId,
+        title,
+        body,
+        NotificationDetails(android: android, iOS: darwin),
+        payload: payloadStr,
+      );
+      _lastTrayById[notifId] = _TraySnapshot(
+        title: title,
+        body: body,
+        channel: channelRaw,
+        payloadJson: payloadStr,
+      );
+    } catch (e) {
+      debugPrint('[LocalNotif] restore tray failed: $e');
     }
   }
 
   /// Transient selected/processing reaction on the SAME local notification ID.
   /// Does not imply backend success; removes action buttons to reject duplicates.
   /// Android-supported path; no-op elsewhere when unsupported.
+  /// Durable original snapshot is preserved for failure restore.
   static Future<void> showTrayActionProcessing({
     required int notificationId,
     required String actionId,
@@ -441,24 +512,32 @@ class LocalNotificationsService {
     try {
       if (!_initialized) await init();
       final notifId = notificationIdToInt(notificationId.toString());
+      final stored = await TrayNotificationSnapshotStore.get(notificationId);
       final snap = _lastTrayById[notifId];
       Map<String, dynamic>? payload = parseLocalNotificationPayload(payloadJson);
+      payload ??= parseLocalNotificationPayload(stored?.payloadJson);
       payload ??= parseLocalNotificationPayload(snap?.payloadJson);
-      final language = payload?['language']?.toString() ?? 'en';
+      final language = payload?['language']?.toString() ??
+          stored?.language ??
+          'en';
       final channelRaw = payload?['channel']?.toString() ??
+          stored?.channel ??
           snap?.channel ??
           'engagement';
       final channelId = resolveAndroidChannelId(channelRaw);
-      final title = (snap?.title.isNotEmpty == true)
-          ? snap!.title
-          : sediBrandName(language);
-      final originalBody = snap?.body ?? '';
+      final title = (stored?.title.isNotEmpty == true)
+          ? stored!.title
+          : ((snap?.title.isNotEmpty == true)
+              ? snap!.title
+              : sediBrandName(language));
+      final originalBody = stored?.body ?? snap?.body ?? '';
       final processing = trayProcessingLabel(actionId, language);
       // Keep original body when present; append transient processing marker only.
       final body = originalBody.trim().isEmpty
           ? processing
           : '$originalBody · $processing';
       final payloadStr = payloadJson ??
+          stored?.payloadJson ??
           snap?.payloadJson ??
           jsonEncode({
             'notification_id': '$notificationId',
@@ -486,6 +565,7 @@ class LocalNotificationsService {
       );
       final details = NotificationDetails(android: android, iOS: darwin);
       await _plugin.show(notifId, title, body, details, payload: payloadStr);
+      // Memory cache for restore fallback — durable store remains original.
       _lastTrayById[notifId] = _TraySnapshot(
         title: title,
         body: originalBody,
@@ -528,6 +608,30 @@ class LocalNotificationsService {
     final notifId = notificationIdToInt(notificationId);
     final actions = resolveNotificationActions(data: data, language: language);
 
+    String? gate4Raw;
+    final g4 = data['gate4_actions'];
+    if (g4 != null) {
+      gate4Raw = g4 is String ? g4 : jsonEncode(g4);
+    }
+    String? labelsRaw;
+    final al = data['action_labels'];
+    if (al != null) {
+      labelsRaw = al is String ? al : jsonEncode(al);
+    }
+
+    final snap = TrayNotificationSnapshot(
+      notificationId: int.tryParse(notificationId) ?? notifId,
+      title: title,
+      body: body,
+      channel: channel,
+      language: language,
+      payloadJson: payloadStr,
+      gate4ActionsRaw: gate4Raw,
+      actionLabelsRaw: labelsRaw,
+    );
+    // Durable original for failure restore (same ID). Bounded prefs store.
+    // ignore: discarded_futures
+    TrayNotificationSnapshotStore.put(snap);
     _lastTrayById[notifId] = _TraySnapshot(
       title: title,
       body: body,

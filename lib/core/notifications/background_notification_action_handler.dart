@@ -2,7 +2,8 @@
 ///
 /// Entry path for [notificationTapBackground] only:
 /// persist pending → authenticated feedback with recoverSessionOn401:false →
-/// on ACK remove pending + dismiss tray; on failure keep both for start/resume drain.
+/// on ACK remove pending + dismiss tray; on failure keep pending + restore
+/// original actionable tray for start/resume drain.
 /// Never navigates, never force-logouts, never opens UI from the isolate.
 /// open_chat / body tap: enqueue only (foreground ACK-before-nav unchanged).
 
@@ -15,6 +16,7 @@ import '../../data/repositories/notification_repository.dart';
 import '../auth/auth_service.dart';
 import 'local_notifications_service.dart';
 import 'pending_notification_actions.dart';
+import 'tray_notification_snapshot_store.dart';
 
 class BackgroundNotificationActionHandler {
   BackgroundNotificationActionHandler._();
@@ -41,6 +43,7 @@ class BackgroundNotificationActionHandler {
     }
     _inFlightKeys.add(key);
 
+    var showedProcessing = false;
     try {
       final clientTs = DateTime.now().toUtc().toIso8601String();
       // Persist pending BEFORE network attempt.
@@ -50,6 +53,10 @@ class BackgroundNotificationActionHandler {
         clientTs: clientTs,
       );
 
+      // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
+      // No processing rewrite for Talk (ACK-before-nav remains foreground).
+      if (action != 'like' && action != 'dislike') return;
+
       // Transient selected/processing on SAME tray id (Android-supported).
       await _showProcessingIsolated(
         notificationId: id,
@@ -57,21 +64,23 @@ class BackgroundNotificationActionHandler {
         payload: payload,
         payloadJson: response.payload,
       );
+      showedProcessing = true;
 
-      // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
-      if (action != 'like' && action != 'dislike') return;
-
-      await _attemptLikeDislikeAck(
+      final ok = await _attemptLikeDislikeAck(
         notificationId: id,
         actionId: action,
         clientTs: clientTs,
       );
+      if (!ok && showedProcessing) {
+        await _restoreOriginalIsolated(id);
+      }
     } finally {
       _inFlightKeys.remove(key);
     }
   }
 
-  static Future<void> _attemptLikeDislikeAck({
+  /// Returns true on ACK; false keeps pending (caller restores tray).
+  static Future<bool> _attemptLikeDislikeAck({
     required int notificationId,
     required String actionId,
     required String clientTs,
@@ -80,7 +89,7 @@ class BackgroundNotificationActionHandler {
       final hasToken = await AuthService.hasToken();
       if (!hasToken) {
         debugPrint('[FCM-bg] no token; keep pending for resume drain');
-        return;
+        return false;
       }
 
       final repo = NotificationRepository();
@@ -93,7 +102,7 @@ class BackgroundNotificationActionHandler {
       );
       if (!resp.ok) {
         debugPrint('[FCM-bg] feedback failed; keep pending+tray');
-        return;
+        return false;
       }
 
       await PendingNotificationActions.remove(
@@ -101,10 +110,13 @@ class BackgroundNotificationActionHandler {
         actionId: actionId,
       );
       await _dismissTrayIsolated(notificationId);
+      await TrayNotificationSnapshotStore.remove(notificationId);
       debugPrint('[FCM-bg] ACK ok; pending removed + tray dismissed');
+      return true;
     } catch (e) {
       debugPrint('[FCM-bg] ACK error (retained): $e');
       // Keep pending + tray for start/resume drain.
+      return false;
     }
   }
 
@@ -121,6 +133,14 @@ class BackgroundNotificationActionHandler {
       final channelRaw = payload['channel']?.toString() ?? 'engagement';
       final channelId = resolveAndroidChannelId(channelRaw);
       final processing = trayProcessingLabel(actionId, language);
+      final stored = await TrayNotificationSnapshotStore.get(notificationId);
+      final title = (stored?.title.isNotEmpty == true)
+          ? stored!.title
+          : processing;
+      final originalBody = stored?.body ?? '';
+      final body = originalBody.trim().isEmpty
+          ? processing
+          : '$originalBody · $processing';
       final plugin = FlutterLocalNotificationsPlugin();
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const settings = InitializationSettings(android: androidInit);
@@ -142,13 +162,58 @@ class BackgroundNotificationActionHandler {
       );
       await plugin.show(
         _notificationIdToInt(notificationId),
-        processing,
-        processing,
+        title,
+        body,
         NotificationDetails(android: android, iOS: darwin),
         payload: payloadJson,
       );
     } catch (e) {
       debugPrint('[FCM-bg] processing tray update failed: $e');
+    }
+  }
+
+  /// Restore original same-ID actionable tray from durable snapshot.
+  static Future<void> _restoreOriginalIsolated(int notificationId) async {
+    try {
+      final stored = await TrayNotificationSnapshotStore.get(notificationId);
+      if (stored == null) {
+        debugPrint('[FCM-bg] no snapshot to restore for $notificationId');
+        return;
+      }
+      final channelId = resolveAndroidChannelId(stored.channel);
+      final actions = resolveNotificationActions(
+        data: stored.actionData(),
+        language: stored.language,
+      );
+      final plugin = FlutterLocalNotificationsPlugin();
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const settings = InitializationSettings(android: androidInit);
+      await plugin.initialize(settings);
+      final android = AndroidNotificationDetails(
+        channelId,
+        LocalNotificationsService.channelDisplayName(channelId),
+        channelDescription: 'Sedi notifications',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        actions: actions,
+      );
+      const darwin = DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: false,
+      );
+      await plugin.show(
+        _notificationIdToInt(notificationId),
+        stored.title,
+        stored.body,
+        NotificationDetails(android: android, iOS: darwin),
+        payload: stored.payloadJson,
+      );
+      debugPrint('[FCM-bg] restored original actionable tray');
+    } catch (e) {
+      debugPrint('[FCM-bg] restore tray failed: $e');
     }
   }
 

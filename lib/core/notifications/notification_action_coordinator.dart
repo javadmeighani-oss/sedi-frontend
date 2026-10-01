@@ -3,7 +3,8 @@
 /// Shared by Android tray actions, body taps, and Inbox detail recovery.
 /// Contract: persist pending → authenticated backend feedback → on ACK only:
 /// remove pending, dismiss local tray, refresh Inbox/badge, and (for open_chat)
-/// navigate to A3 once. On failure keep pending + tray; retry on resume/start.
+/// navigate to A3 once. On failure keep pending + restore original tray;
+/// retry on resume/start.
 
 import 'package:flutter/foundation.dart';
 
@@ -47,6 +48,7 @@ class NotificationActionCoordinator {
     }
     _inFlightKeys.add(key);
 
+    var showedProcessing = false;
     try {
       final ts = clientTs ?? DateTime.now().toUtc().toIso8601String();
       // Persist pending BEFORE network attempt.
@@ -62,17 +64,39 @@ class NotificationActionCoordinator {
           actionId: action,
           payloadJson: payloadJson,
         );
+        showedProcessing = true;
       }
 
       final hasSession = await SessionGateResolver.hasValidSession();
-      if (!hasSession) return false;
+      if (!hasSession) {
+        if (showedProcessing) {
+          await LocalNotificationsService.restoreOriginalTrayNotification(
+            notificationId: notificationId,
+          );
+        }
+        return false;
+      }
 
       final item = PendingNotificationAction(
         notificationId: notificationId,
         actionId: action,
         clientTs: ts,
       );
-      return _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+      final ok = await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+      if (!ok && showedProcessing) {
+        await LocalNotificationsService.restoreOriginalTrayNotification(
+          notificationId: notificationId,
+        );
+      }
+      return ok;
+    } catch (e) {
+      debugPrint('[FCM] submit error: $e');
+      if (showedProcessing) {
+        await LocalNotificationsService.restoreOriginalTrayNotification(
+          notificationId: notificationId,
+        );
+      }
+      return false;
     } finally {
       _inFlightKeys.remove(key);
     }

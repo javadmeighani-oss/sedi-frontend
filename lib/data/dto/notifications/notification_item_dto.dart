@@ -6,6 +6,7 @@ class NotificationItemDto {
   final DateTime createdAt;
   final DateTime? sentAt;
   final bool isRead;
+  final bool hasUserResponse;
   final String? priority;
   final String? status;
   final String? provider;
@@ -19,6 +20,7 @@ class NotificationItemDto {
     required this.body,
     required this.createdAt,
     required this.isRead,
+    this.hasUserResponse = false,
     this.sentAt,
     this.priority,
     this.status,
@@ -49,6 +51,8 @@ class NotificationItemDto {
       createdAt: createdAt,
       sentAt: sentAt,
       isRead: json['is_read'] as bool? ?? false,
+      // Safe default false when backend field absent.
+      hasUserResponse: json['has_user_response'] as bool? ?? false,
       priority: json['priority']?.toString(),
       status: json['status']?.toString(),
       provider: json['provider']?.toString(),
