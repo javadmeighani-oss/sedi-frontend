@@ -81,11 +81,12 @@ class NotificationBootstrap {
       final action = (response.actionId == null || response.actionId!.isEmpty)
           ? 'open_chat'
           : response.actionId!;
-      // Persist only — navigate/dismiss after backend ACK via drain.
+      // Persist + dismiss tray immediately; navigate only after ACK via drain.
       await PendingNotificationActions.enqueue(
         notificationId: id,
         actionId: action,
       );
+      await LocalNotificationsService.cancelByBackendNotificationId(id);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         drainPendingActions();
       });
@@ -111,13 +112,13 @@ class NotificationBootstrap {
     final action =
         (actionId == null || actionId.isEmpty) ? 'open_chat' : actionId;
 
-    // Persist then drain. Navigate/dismiss ONLY after backend ACK.
+    // Persist + dismiss immediately; navigate ONLY after backend ACK.
     // ignore: discarded_futures
     NotificationActionCoordinator.submit(
       notificationId: notificationId,
       actionId: action,
       payloadJson: payloadJson,
-      showTrayProcessing: true,
+      showTrayProcessing: false,
     );
   }
 

@@ -208,7 +208,7 @@ void main() {
   });
 
   group('background Like/Dislike ACK', () {
-    test('background Like/Dislike ACK removes pending and dismisses tray', () {
+    test('background Like/Dislike dismisses tray immediately; pending survives failure', () {
       final bg = _read(
         'lib/core/notifications/background_notification_action_handler.dart',
       );
@@ -216,12 +216,13 @@ void main() {
       expect(bg.contains('sendFeedback'), isTrue);
       expect(bg.contains('PendingNotificationActions.remove'), isTrue);
       expect(bg.contains('_dismissTrayIsolated'), isTrue);
-      expect(bg.contains('_showProcessingIsolated'), isTrue);
       expect(bg.contains('_inFlightKeys'), isTrue);
       expect(bg.contains('recoverSessionOn401: false'), isTrue);
-      // Failure retains pending + tray (early return before remove/dismiss).
-      expect(bg.contains('keep pending+tray'), isTrue);
+      // Immediate dismiss before ACK; failure retains pending only.
+      expect(bg.contains('dismiss tray immediately'), isTrue);
       expect(bg.contains('keep pending for resume drain'), isTrue);
+      expect(bg.contains('_restoreOriginalIsolated'), isFalse);
+      expect(bg.contains('_showProcessingIsolated'), isFalse);
     });
 
     test('background path never navigates or force-logouts', () {
@@ -234,7 +235,7 @@ void main() {
       expect(bg.contains('AuthSessionManager'), isFalse);
       expect(bg.contains('Navigator'), isFalse);
       expect(bg.contains('AppGateRouter'), isFalse);
-      // open_chat stays enqueue-only from isolate.
+      // open_chat stays enqueue-only from isolate (foreground owns ACK+nav).
       expect(bg.contains('foreground drain owns ACK'), isTrue);
     });
   });
@@ -305,41 +306,35 @@ void main() {
     });
   });
 
-  group('ACK-gated tray lifecycle', () {
-    test('actions do not auto-dismiss; cancelNotification is false', () {
+  group('immediate tray dismiss lifecycle', () {
+    test('like/dislike/open_chat dismiss tray immediately via cancelNotification', () {
       final local =
           _read('lib/core/notifications/local_notifications_service.dart');
-      expect(local.contains('cancelNotification: false'), isTrue);
-      expect(local.contains('cancelNotification: true'), isFalse);
+      expect(local.contains('cancelNotification: true'), isTrue);
+      expect(local.contains('cancelNotification: false'), isFalse);
       expect(local.contains('cancelByBackendNotificationId'), isTrue);
-      expect(local.contains('showTrayActionProcessing'), isTrue);
-      expect(local.contains('trayProcessingLabel'), isTrue);
+      expect(local.contains('dismiss tray immediately on action tap'), isTrue);
     });
 
-    test('ACK dismisses tray + removes pending; failure restores tray + retains pending', () async {
+    test('pending survives failed ACK; failure does not restore tray; retry clears pending', () async {
       final coord =
           _read('lib/core/notifications/notification_action_coordinator.dart');
       expect(coord.contains('PendingNotificationActions.enqueue'), isTrue);
       expect(coord.contains('PendingNotificationActions.remove'), isTrue);
       expect(coord.contains('cancelByBackendNotificationId'), isTrue);
       expect(coord.contains('InboxRefreshBus.instance.triggerDebounced'), isTrue);
-      expect(coord.contains('showTrayActionProcessing'), isTrue);
-      expect(coord.contains('restoreOriginalTrayNotification'), isTrue);
+      expect(coord.contains('never restore'), isTrue);
+      expect(coord.contains('dismiss tray immediately'), isTrue);
       expect(coord.contains('_inFlightKeys'), isTrue);
       expect(coord.contains('duplicate action rejected while processing'), isTrue);
-      // Failure path returns false without remove/cancel.
+      // Failure path returns false without remove; no restore call.
       expect(coord.contains('if (!resp.ok) return false'), isTrue);
-
-      final local =
-          _read('lib/core/notifications/local_notifications_service.dart');
-      expect(local.contains('restoreOriginalTrayNotification'), isTrue);
-      expect(local.contains('TrayNotificationSnapshotStore'), isTrue);
-      expect(local.contains('onlyAlertOnce: true'), isTrue);
+      expect(coord.contains('restoreOriginalTrayNotification'), isFalse);
 
       final bg = _read(
         'lib/core/notifications/background_notification_action_handler.dart',
       );
-      expect(bg.contains('_restoreOriginalIsolated'), isTrue);
+      expect(bg.contains('_restoreOriginalIsolated'), isFalse);
       expect(bg.contains('recoverSessionOn401: false'), isTrue);
 
       await PendingNotificationActions.enqueue(
@@ -361,7 +356,7 @@ void main() {
         'lib/core/notifications/background_notification_action_handler.dart',
       );
       expect(bg.contains("? 'open_chat'"), isTrue);
-      expect(bg.contains('_showProcessingIsolated'), isTrue);
+      expect(bg.contains('_dismissTrayIsolated'), isTrue);
       expect(bg.contains('_inFlightKeys'), isTrue);
       expect(bg.contains('recoverSessionOn401: false'), isTrue);
     });

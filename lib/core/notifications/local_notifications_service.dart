@@ -143,8 +143,8 @@ List<AndroidNotificationAction> resolveNotificationActions({
         id,
         labels[id]!,
         showsUserInterface: id == 'open_chat',
-        // Keep tray until backend ACK dismisses it explicitly.
-        cancelNotification: false,
+        // A4: dismiss tray immediately on action tap; pending ACK retries silently.
+        cancelNotification: true,
       ),
   ];
 }
@@ -415,7 +415,7 @@ class LocalNotificationsService {
     return _plugin.getNotificationAppLaunchDetails();
   }
 
-  /// Dismiss local tray entry after backend ACK (never before).
+  /// Dismiss local tray entry (immediate on action; idempotent after ACK).
   static Future<void> cancelByBackendNotificationId(int notificationId) async {
     if (notificationId <= 0) return;
     try {

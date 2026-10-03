@@ -1,10 +1,11 @@
 /// A4 Smart Notification action lifecycle coordinator.
 ///
 /// Shared by Android tray actions, body taps, and Inbox detail recovery.
-/// Contract: persist pending → authenticated backend feedback → on ACK only:
-/// remove pending, dismiss local tray, refresh Inbox/badge, and (for open_chat)
-/// navigate to A3 once. On failure keep pending + restore original tray;
-/// retry on resume/start.
+/// Contract: persist pending → dismiss tray immediately → authenticated
+/// backend feedback (silent retry). On ACK: remove pending, refresh
+/// Inbox/badge, and (for open_chat) navigate to A3 once. On failure keep
+/// pending and never restore the tray. open_chat navigation remains
+/// ACK-before-nav.
 
 import 'package:flutter/foundation.dart';
 
@@ -48,7 +49,6 @@ class NotificationActionCoordinator {
     }
     _inFlightKeys.add(key);
 
-    var showedProcessing = false;
     try {
       final ts = clientTs ?? DateTime.now().toUtc().toIso8601String();
       // Persist pending BEFORE network attempt.
@@ -58,22 +58,15 @@ class NotificationActionCoordinator {
         clientTs: ts,
       );
 
-      if (showTrayProcessing) {
-        await LocalNotificationsService.showTrayActionProcessing(
-          notificationId: notificationId,
-          actionId: action,
-          payloadJson: payloadJson,
-        );
-        showedProcessing = true;
-      }
+      // A4: dismiss tray immediately; never restore on ACK/network failure.
+      // showTrayProcessing is ignored — tray must not linger for processing UX.
+      await LocalNotificationsService.cancelByBackendNotificationId(
+        notificationId,
+      );
 
       final hasSession = await SessionGateResolver.hasValidSession();
       if (!hasSession) {
-        if (showedProcessing) {
-          await LocalNotificationsService.restoreOriginalTrayNotification(
-            notificationId: notificationId,
-          );
-        }
+        // Pending retained; tray already dismissed; no restore.
         return false;
       }
 
@@ -82,20 +75,10 @@ class NotificationActionCoordinator {
         actionId: action,
         clientTs: ts,
       );
-      final ok = await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
-      if (!ok && showedProcessing) {
-        await LocalNotificationsService.restoreOriginalTrayNotification(
-          notificationId: notificationId,
-        );
-      }
-      return ok;
+      return await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
     } catch (e) {
       debugPrint('[FCM] submit error: $e');
-      if (showedProcessing) {
-        await LocalNotificationsService.restoreOriginalTrayNotification(
-          notificationId: notificationId,
-        );
-      }
+      // Pending retained; tray already dismissed; no restore.
       return false;
     } finally {
       _inFlightKeys.remove(key);
@@ -146,7 +129,7 @@ class NotificationActionCoordinator {
         notificationId: item.notificationId,
         actionId: item.actionId,
       );
-      // Cancel ONLY the exact notification ID after ACK.
+      // Tray already dismissed on submit; ensure cancel remains idempotent.
       await LocalNotificationsService.cancelByBackendNotificationId(
         item.notificationId,
       );

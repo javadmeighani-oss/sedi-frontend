@@ -1,11 +1,11 @@
-/// Background-isolate Like/Dislike ACK helper (A4 FE-01.1).
+/// Background-isolate Like/Dislike ACK helper (A4).
 ///
 /// Entry path for [notificationTapBackground] only:
-/// persist pending → authenticated feedback with recoverSessionOn401:false →
-/// on ACK remove pending + dismiss tray; on failure keep pending + restore
-/// original actionable tray for start/resume drain.
+/// persist pending → dismiss tray immediately → authenticated feedback with
+/// recoverSessionOn401:false → on ACK remove pending; on failure keep pending
+/// and never restore the tray (resume drain retries silently).
 /// Never navigates, never force-logouts, never opens UI from the isolate.
-/// open_chat / body tap: enqueue only (foreground ACK-before-nav unchanged).
+/// open_chat / body tap: enqueue + immediate dismiss (foreground owns ACK+nav).
 
 import 'dart:convert';
 
@@ -14,7 +14,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../data/repositories/notification_repository.dart';
 import '../auth/auth_service.dart';
-import 'local_notifications_service.dart';
 import 'pending_notification_actions.dart';
 import 'tray_notification_snapshot_store.dart';
 
@@ -43,7 +42,6 @@ class BackgroundNotificationActionHandler {
     }
     _inFlightKeys.add(key);
 
-    var showedProcessing = false;
     try {
       final clientTs = DateTime.now().toUtc().toIso8601String();
       // Persist pending BEFORE network attempt.
@@ -53,33 +51,32 @@ class BackgroundNotificationActionHandler {
         clientTs: clientTs,
       );
 
-      // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
-      // No processing rewrite for Talk (ACK-before-nav remains foreground).
-      if (action != 'like' && action != 'dislike') return;
+      // A4: dismiss tray immediately for like / dislike / open_chat.
+      // Never restore on ACK/network failure.
+      await _dismissTrayIsolated(id);
+      await TrayNotificationSnapshotStore.remove(id);
 
-      // Transient selected/processing on SAME tray id (Android-supported).
-      await _showProcessingIsolated(
-        notificationId: id,
-        actionId: action,
-        payload: payload,
-        payloadJson: response.payload,
-      );
-      showedProcessing = true;
+      // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
+      if (action != 'like' && action != 'dislike') {
+        debugPrint('[FCM-bg] open_chat enqueue+dismiss; foreground drain owns ACK');
+        return;
+      }
 
       final ok = await _attemptLikeDislikeAck(
         notificationId: id,
         actionId: action,
         clientTs: clientTs,
       );
-      if (!ok && showedProcessing) {
-        await _restoreOriginalIsolated(id);
+      if (!ok) {
+        // keep pending for resume drain — tray already dismissed; no restore.
+        debugPrint('[FCM-bg] keep pending for resume drain');
       }
     } finally {
       _inFlightKeys.remove(key);
     }
   }
 
-  /// Returns true on ACK; false keeps pending (caller restores tray).
+  /// Returns true on ACK; false keeps pending (tray already dismissed).
   static Future<bool> _attemptLikeDislikeAck({
     required int notificationId,
     required String actionId,
@@ -101,7 +98,7 @@ class BackgroundNotificationActionHandler {
         recoverSessionOn401: false,
       );
       if (!resp.ok) {
-        debugPrint('[FCM-bg] feedback failed; keep pending+tray');
+        debugPrint('[FCM-bg] feedback failed; keep pending (tray already dismissed)');
         return false;
       }
 
@@ -115,105 +112,8 @@ class BackgroundNotificationActionHandler {
       return true;
     } catch (e) {
       debugPrint('[FCM-bg] ACK error (retained): $e');
-      // Keep pending + tray for start/resume drain.
+      // Keep pending for start/resume drain — never restore tray.
       return false;
-    }
-  }
-
-  /// Isolate-local processing rewrite — same notification ID, no action buttons.
-  /// Does not imply backend success; keeps tray for failure retention.
-  static Future<void> _showProcessingIsolated({
-    required int notificationId,
-    required String actionId,
-    required Map<String, dynamic> payload,
-    String? payloadJson,
-  }) async {
-    try {
-      final language = payload['language']?.toString() ?? 'en';
-      final channelRaw = payload['channel']?.toString() ?? 'engagement';
-      final channelId = resolveAndroidChannelId(channelRaw);
-      final processing = trayProcessingLabel(actionId, language);
-      final stored = await TrayNotificationSnapshotStore.get(notificationId);
-      final title = (stored?.title.isNotEmpty == true)
-          ? stored!.title
-          : processing;
-      final originalBody = stored?.body ?? '';
-      final body = originalBody.trim().isEmpty
-          ? processing
-          : '$originalBody · $processing';
-      final plugin = FlutterLocalNotificationsPlugin();
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const settings = InitializationSettings(android: androidInit);
-      await plugin.initialize(settings);
-      final android = AndroidNotificationDetails(
-        channelId,
-        LocalNotificationsService.channelDisplayName(channelId),
-        channelDescription: 'Sedi notifications',
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
-        playSound: false,
-        enableVibration: false,
-        onlyAlertOnce: true,
-        actions: const <AndroidNotificationAction>[],
-      );
-      const darwin = DarwinNotificationDetails(
-        presentAlert: true,
-        presentSound: false,
-      );
-      await plugin.show(
-        _notificationIdToInt(notificationId),
-        title,
-        body,
-        NotificationDetails(android: android, iOS: darwin),
-        payload: payloadJson,
-      );
-    } catch (e) {
-      debugPrint('[FCM-bg] processing tray update failed: $e');
-    }
-  }
-
-  /// Restore original same-ID actionable tray from durable snapshot.
-  static Future<void> _restoreOriginalIsolated(int notificationId) async {
-    try {
-      final stored = await TrayNotificationSnapshotStore.get(notificationId);
-      if (stored == null) {
-        debugPrint('[FCM-bg] no snapshot to restore for $notificationId');
-        return;
-      }
-      final channelId = resolveAndroidChannelId(stored.channel);
-      final actions = resolveNotificationActions(
-        data: stored.actionData(),
-        language: stored.language,
-      );
-      final plugin = FlutterLocalNotificationsPlugin();
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const settings = InitializationSettings(android: androidInit);
-      await plugin.initialize(settings);
-      final android = AndroidNotificationDetails(
-        channelId,
-        LocalNotificationsService.channelDisplayName(channelId),
-        channelDescription: 'Sedi notifications',
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
-        playSound: false,
-        enableVibration: false,
-        onlyAlertOnce: true,
-        actions: actions,
-      );
-      const darwin = DarwinNotificationDetails(
-        presentAlert: true,
-        presentSound: false,
-      );
-      await plugin.show(
-        _notificationIdToInt(notificationId),
-        stored.title,
-        stored.body,
-        NotificationDetails(android: android, iOS: darwin),
-        payload: stored.payloadJson,
-      );
-      debugPrint('[FCM-bg] restored original actionable tray');
-    } catch (e) {
-      debugPrint('[FCM-bg] restore tray failed: $e');
     }
   }
 
