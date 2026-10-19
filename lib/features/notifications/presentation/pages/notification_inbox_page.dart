@@ -330,7 +330,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       ),
     );
     if (picked == null || !mounted) return;
-    await _service.sendFeedback(item.id, liked: false, reason: picked);
+    await _service.sendDislikeReason(item.id, picked);
   }
 
   Future<void> _openDetails(
