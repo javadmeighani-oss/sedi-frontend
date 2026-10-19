@@ -5,6 +5,8 @@ class LifestyleWeeklyPlanDto {
   final String? timezone;
   final String state;
   final bool reviewDue;
+  final String? todayLocal;
+  final LifestyleWeeklyAdherenceDto? adherence;
   final List<LifestyleWeeklyDayDto> days;
 
   const LifestyleWeeklyPlanDto({
@@ -13,6 +15,8 @@ class LifestyleWeeklyPlanDto {
     this.timezone,
     required this.state,
     this.reviewDue = false,
+    this.todayLocal,
+    this.adherence,
     this.days = const [],
   });
 
@@ -34,7 +38,41 @@ class LifestyleWeeklyPlanDto {
       timezone: json['timezone']?.toString(),
       state: (json['state']?.toString() ?? 'unavailable').toLowerCase(),
       reviewDue: json['review_due'] == true,
+      todayLocal: json['today_local']?.toString(),
+      adherence: json['adherence'] is Map
+          ? LifestyleWeeklyAdherenceDto.fromJson(
+              Map<String, dynamic>.from(json['adherence'] as Map),
+            )
+          : null,
       days: days,
+    );
+  }
+}
+
+/// Cycle adherence from the backend (`adherence`): done / skipped / pending / total / percent.
+class LifestyleWeeklyAdherenceDto {
+  final int done;
+  final int skipped;
+  final int pending;
+  final int total;
+  final int percent;
+
+  const LifestyleWeeklyAdherenceDto({
+    this.done = 0,
+    this.skipped = 0,
+    this.pending = 0,
+    this.total = 0,
+    this.percent = 0,
+  });
+
+  factory LifestyleWeeklyAdherenceDto.fromJson(Map<String, dynamic> json) {
+    int asInt(dynamic v) => int.tryParse('$v') ?? 0;
+    return LifestyleWeeklyAdherenceDto(
+      done: asInt(json['done']),
+      skipped: asInt(json['skipped']),
+      pending: asInt(json['pending']),
+      total: asInt(json['total']),
+      percent: asInt(json['percent']),
     );
   }
 }
@@ -76,6 +114,10 @@ class LifestyleWeeklyDayDto {
 }
 
 class LifestyleWeeklyActionDto {
+  final int? id;
+  final String? detail;
+  final String? reviewOutcome;
+  final String? reviewReason;
   final String? title;
   final String? status;
   final String? actionType;
@@ -86,6 +128,10 @@ class LifestyleWeeklyActionDto {
   final int? durationMinutes;
 
   const LifestyleWeeklyActionDto({
+    this.id,
+    this.detail,
+    this.reviewOutcome,
+    this.reviewReason,
     this.title,
     this.status,
     this.actionType,
@@ -109,7 +155,12 @@ class LifestyleWeeklyActionDto {
       return s.isEmpty ? null : s;
     }
 
+    final review = json['review'];
     return LifestyleWeeklyActionDto(
+      id: asInt(json['id']),
+      detail: asStr(json['detail']),
+      reviewOutcome: review is Map ? asStr(review['outcome']) : null,
+      reviewReason: review is Map ? asStr(review['reason']) : null,
       title: asStr(json['title']),
       status: asStr(json['status']),
       actionType: asStr(json['action_type']),

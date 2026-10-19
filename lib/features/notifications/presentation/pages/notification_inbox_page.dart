@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
+import '../../../../data/models/notification_feedback.dart' show kFeedbackReasonValues;
 import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
@@ -276,6 +277,60 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     });
     InboxRefreshBus.instance.triggerDebounced();
     await _reload(soft: true);
+    if (actionId == 'dislike' && mounted) {
+      await _askDislikeReason(item);
+    }
+  }
+
+  /// After a dislike, ask why (bounded reasons) so the smart notifications can adapt.
+  Future<void> _askDislikeReason(NotificationItem item) async {
+    final l10n = _l10n;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppTheme.backgroundWhite,
+      builder: (ctx) => Directionality(
+        textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.dislikeReasonTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.dislikeReasonHint,
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: kFeedbackReasonValues
+                      .map(
+                        (r) => ActionChip(
+                          label: Text(l10n.dislikeReasonLabel(r)),
+                          onPressed: () => Navigator.of(ctx).pop(r),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    await _service.sendFeedback(item.id, liked: false, reason: picked);
   }
 
   Future<void> _openDetails(

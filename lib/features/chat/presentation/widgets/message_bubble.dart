@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class MessageBubble extends StatefulWidget {
@@ -59,7 +60,11 @@ class _MessageBubbleState extends State<MessageBubble> {
     final alignment =
         widget.isSedi ? Alignment.centerLeft : Alignment.centerRight;
     final shouldCollapse = _canCollapseUserMessage && !_expanded;
-    final textDirection = MessageBubble.resolveTextDirection(widget.message);
+    // Sedi replies follow the app language (fa/ar are right-to-left even when a line starts with Latin text);
+    // the user's own text keeps first-strong-character direction.
+    final textDirection = widget.isSedi && SediLocaleController.instance.isRtl
+        ? TextDirection.rtl
+        : MessageBubble.resolveTextDirection(widget.message);
     final textAlign =
         textDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left;
 
