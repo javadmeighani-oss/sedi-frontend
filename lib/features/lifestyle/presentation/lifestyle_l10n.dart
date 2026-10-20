@@ -315,6 +315,63 @@ class LifestyleL10n {
     }
   }
 
+  String get markDone => _t(en: 'Done', fa: 'انجام شد', ar: 'تم');
+
+  String get markSkipped => _t(en: 'Could not', fa: 'نشد', ar: 'لم أستطع');
+
+  String get whySkippedTitle =>
+      _t(en: 'Why could not you do it?', fa: 'چرا انجام نشد؟', ar: 'لماذا لم تتمكن؟');
+
+  String get whySkippedHint => _t(
+        en: 'This helps Sedi make tomorrow fit you better.',
+        fa: 'با این، صدی برنامه‌ی فردا رو مناسب‌تر می‌کنه.',
+        ar: 'هذا يساعد صدی على جعل الغد أنسب لك.',
+      );
+
+  String skipReasonLabel(String code) {
+    switch (code) {
+      case 'no_time':
+        return _t(en: 'No time', fa: 'وقت نداشتم', ar: 'لا وقت');
+      case 'too_hard':
+        return _t(en: 'Too hard', fa: 'سخت بود', ar: 'كان صعباً');
+      case 'not_feeling_well':
+        return _t(en: 'Not feeling well', fa: 'حالم خوب نبود', ar: 'لم أشعر بخير');
+      case 'dont_like':
+        return _t(en: 'Did not like it', fa: 'دوست نداشتم', ar: 'لم يعجبني');
+      case 'forgot':
+        return _t(en: 'Forgot', fa: 'یادم رفت', ar: 'نسيت');
+      default:
+        return _t(en: 'Other', fa: 'دلیل دیگر', ar: 'سبب آخر');
+    }
+  }
+
+  String adherenceTitle(int done, int total) => _t(
+        en: 'This week: $done of $total items done',
+        fa: 'این هفته: $done از $total مورد انجام شد',
+        ar: 'هذا الأسبوع: تم $done من $total',
+      );
+
+  String activityTypeLabel(String type) {
+    switch (type) {
+      case 'walking':
+        return _t(en: 'Walking', fa: 'پیاده‌روی', ar: 'مشي');
+      case 'stretching':
+        return _t(en: 'Stretching', fa: 'کشش', ar: 'تمدد');
+      case 'chair':
+        return _t(en: 'Chair exercise', fa: 'تمرین روی صندلی', ar: 'تمرين الكرسي');
+      case 'breathing':
+        return _t(en: 'Breathing', fa: 'تنفس', ar: 'تنفس');
+      case 'balance':
+        return _t(en: 'Balance', fa: 'تعادل', ar: 'توازن');
+      case 'strength':
+        return _t(en: 'Light strength', fa: 'قدرتی سبک', ar: 'قوة خفيفة');
+      case 'rest':
+        return _t(en: 'Rest day', fa: 'روز استراحت', ar: 'يوم راحة');
+      default:
+        return type;
+    }
+  }
+
   String scheduleStatusLabel(String code) {
     switch (code.toLowerCase()) {
       case 'done':

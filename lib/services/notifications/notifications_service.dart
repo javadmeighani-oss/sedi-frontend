@@ -210,6 +210,11 @@ class NotificationsService {
     );
   }
 
+  /// Reason (bounded) for a dislike already recorded for notification [id].
+  Future<ApiResponse<void>> sendDislikeReason(int id, String reason) {
+    return sendFeedback(id, liked: false, reason: reason);
+  }
+
   Future<ApiResponse<void>> sendFeedback(
     int id, {
     required bool liked,

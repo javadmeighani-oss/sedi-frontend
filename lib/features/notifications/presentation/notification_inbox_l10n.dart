@@ -60,6 +60,30 @@ class NotificationInboxL10n {
   String get dislikeAction =>
       _t(en: 'Dislike', fa: 'نپسندیدن', ar: 'عدم إعجاب');
 
+  String get dislikeReasonTitle =>
+      _t(en: 'Why did you dislike it?', fa: 'چرا نپسندیدی؟', ar: 'لماذا لم يعجبك؟');
+
+  String get dislikeReasonHint => _t(
+        en: 'This helps Sedi send you better notifications.',
+        fa: 'با این، صدی نوتیف‌های مناسب‌تری برات می‌فرسته.',
+        ar: 'هذا يساعد صدی على إرسال إشعارات أنسب لك.',
+      );
+
+  String dislikeReasonLabel(String code) {
+    switch (code) {
+      case 'too_frequent':
+        return _t(en: 'Too many', fa: 'زیاد می‌فرسته', ar: 'كثيرة جداً');
+      case 'irrelevant':
+        return _t(en: 'Not relevant to me', fa: 'به من ربطی نداره', ar: 'لا تخصني');
+      case 'unclear':
+        return _t(en: 'Unclear', fa: 'نامفهومه', ar: 'غير واضحة');
+      case 'not_helpful':
+        return _t(en: 'Not helpful', fa: 'کمکی نکرد', ar: 'لم تفدني');
+      default:
+        return _t(en: 'Wrong time', fa: 'زمانش بد بود', ar: 'توقيت غير مناسب');
+    }
+  }
+
   String get talkToSedi => _t(
         en: 'Talk to Sedi',
         fa: 'صحبت با صدی',

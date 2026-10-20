@@ -316,6 +316,17 @@ void main() {
       expect(local.contains('dismiss tray immediately on action tap'), isTrue);
     });
 
+    test('AndroidManifest registers ActionBroadcastReceiver exported=false', () {
+      final manifest = _read('android/app/src/main/AndroidManifest.xml');
+      expect(
+        manifest.contains(
+          'com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver',
+        ),
+        isTrue,
+      );
+      expect(manifest.contains('android:exported="false"'), isTrue);
+    });
+
     test('pending survives failed ACK; failure does not restore tray; retry clears pending', () async {
       final coord =
           _read('lib/core/notifications/notification_action_coordinator.dart');

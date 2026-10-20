@@ -49,7 +49,13 @@ enum FeedbackReaction {
 }
 
 /// Feedback reason (V1 optional): too_frequent | irrelevant | unclear
-const List<String> kFeedbackReasonValues = ['too_frequent', 'irrelevant', 'unclear'];
+const List<String> kFeedbackReasonValues = [
+  'too_frequent',
+  'irrelevant',
+  'unclear',
+  'not_helpful',
+  'wrong_timing',
+];
 
 /// Feedback Payload (Contract Section 5)
 class NotificationFeedback {

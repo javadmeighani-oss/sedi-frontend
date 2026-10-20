@@ -35,6 +35,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
   LifestyleWeeklyPlanDto? _plan;
   bool _loading = true;
   bool _fetchFailed = false;
+  final Set<int> _reviewing = <int>{};
 
   LifestyleL10n get _l10n =>
       LifestyleL10n(SediLocaleController.instance.languageCode);
@@ -122,6 +123,10 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                 )
               else ...[
                 _buildStateHeader(l10n),
+                if (_plan?.adherence != null && _plan!.adherence!.total > 0) ...[
+                  const SizedBox(height: 12),
+                  _adherenceCard(l10n),
+                ],
                 const SizedBox(height: 16),
                 _talkToSediCard(l10n, starter),
                 if (_effectiveState == 'active' ||
@@ -240,6 +245,11 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
           ? ''
           : CalendarDateMath.formatIsoForLanguage(day.localDate, l10n.lang);
       final actions = _actionsFor(day);
+      final today = _plan?.todayLocal;
+      final reviewable = today != null &&
+          today.isNotEmpty &&
+          day.localDate.isNotEmpty &&
+          day.localDate.compareTo(today) <= 0;
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: A3DestinationCard(
@@ -274,7 +284,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                   ),
                 )
               else
-                ...actions.map((a) => _actionBlock(a, l10n)),
+                ...actions.map((a) => _actionBlock(a, l10n, reviewable)),
             ],
           ),
         ),
@@ -282,7 +292,11 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     }).toList();
   }
 
-  Widget _actionBlock(LifestyleWeeklyActionDto a, LifestyleL10n l10n) {
+  Widget _actionBlock(
+    LifestyleWeeklyActionDto a,
+    LifestyleL10n l10n,
+    bool reviewable,
+  ) {
     final title = a.title ?? a.activityTitle;
     final rows = <Widget>[];
     if (widget.domain == LifestyleWeeklyDomain.nutrition) {
@@ -303,7 +317,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         rows.add(_titleLine(title));
       }
       if (a.activityType != null && a.activityType!.isNotEmpty) {
-        rows.add(_metaLine(a.activityType!));
+        rows.add(_metaLine(l10n.activityTypeLabel(a.activityType!)));
       }
       if (a.durationMinutes != null) {
         rows.add(_metaLine(l10n.durationMinutes(a.durationMinutes!)));
@@ -317,6 +331,23 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     }
 
     if (rows.isEmpty) return const SizedBox.shrink();
+    if (a.detail != null && a.detail!.isNotEmpty) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            a.detail!,
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+        ),
+      );
+    }
+    final reviewRow = _reviewRow(a, l10n, reviewable);
+    if (reviewRow != null) rows.add(reviewRow);
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Column(
@@ -324,6 +355,142 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         children: rows,
       ),
     );
+  }
+
+  Widget _adherenceCard(LifestyleL10n l10n) {
+    final ad = _plan!.adherence!;
+    return A3DestinationCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.adherenceTitle(ad.done, ad.total),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            '${ad.percent}%',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.gate2ButtonOlive,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _reviewRow(
+    LifestyleWeeklyActionDto a,
+    LifestyleL10n l10n,
+    bool reviewable,
+  ) {
+    if (a.id == null) return null;
+    final status = (a.status ?? '').toUpperCase();
+    if (a.reviewOutcome == 'skipped') {
+      return _metaLine(
+        '${l10n.markSkipped}: ${l10n.skipReasonLabel(a.reviewReason ?? 'other')}',
+      );
+    }
+    if (status != 'ACTIVE' || !reviewable) return null;
+    final busy = _reviewing.contains(a.id);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          FilledButton(
+            onPressed: busy ? null : () => _review(a, 'done'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.gate2ButtonOlive,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(l10n.markDone),
+          ),
+          OutlinedButton(
+            onPressed: busy ? null : () => _askReasonAndSkip(a, l10n),
+            child: Text(l10n.markSkipped),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _review(
+    LifestyleWeeklyActionDto a,
+    String outcome, {
+    String? reason,
+  }) async {
+    final id = a.id;
+    if (id == null || _reviewing.contains(id)) return;
+    setState(() => _reviewing.add(id));
+    final res = await _svc.reviewAction(id, outcome, reason: reason);
+    if (!mounted) return;
+    setState(() => _reviewing.remove(id));
+    if (res.ok) await _load();
+  }
+
+  Future<void> _askReasonAndSkip(
+    LifestyleWeeklyActionDto a,
+    LifestyleL10n l10n,
+  ) async {
+    const reasons = <String>[
+      'no_time',
+      'too_hard',
+      'not_feeling_well',
+      'dont_like',
+      'forgot',
+      'other',
+    ];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppTheme.backgroundWhite,
+      builder: (ctx) => Directionality(
+        textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.whySkippedTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.whySkippedHint,
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: reasons
+                      .map(
+                        (r) => ActionChip(
+                          label: Text(l10n.skipReasonLabel(r)),
+                          onPressed: () => Navigator.of(ctx).pop(r),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    await _review(a, 'skipped', reason: picked);
   }
 
   Widget _titleLine(String text) => Text(
