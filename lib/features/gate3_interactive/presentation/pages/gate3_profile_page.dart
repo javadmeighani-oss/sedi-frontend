@@ -479,8 +479,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
 
   Widget _buildSummaryCard(Gate3Localization l10n) {
     final text = _canonicalSummary.trim();
-    final formatted = text.isEmpty ? '' : formatMemoryFacts(text, l10n);
-    final body = formatted.isEmpty ? l10n.userSummaryEmpty : formatted;
+    final body = text.isEmpty ? l10n.userSummaryEmpty : text;
     return A3DestinationCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,42 +509,13 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
 
 /// Canonical user-facing summary from `/auth/me/profile-summary` data.
 ///
-/// Contract: `{rows:[{key,status}], facts:[{key,value}]}`. `rows` are capability
-/// and plan-status codes (never shown as prose). `facts` is what Sedi remembers
-/// about the user (its second memory); each becomes one `key<TAB>value` line that
-/// [formatMemoryFacts] localizes. An empty result shows only the localized empty state.
-final String _factSep = String.fromCharCode(9);
-final String _factNl = String.fromCharCode(10);
-
+/// Contract: `{rows:[{key,status}], facts:[{key,value}], summary:String}`. `rows` are capability and plan-status codes
+/// (never shown as prose) and `facts` is structured data for editing UIs. The card shows ONLY `summary`: one short,
+/// human paragraph written by the backend about the user's overall status (R-020). An empty result shows the localized
+/// empty state.
 String canonicalProfileSummaryText(Object? data) {
   if (data is! Map) return '';
-  final facts = data['facts'];
-  if (facts is! List) return '';
-  final lines = <String>[];
-  for (final f in facts) {
-    if (f is! Map) continue;
-    final key = f['key'];
-    final value = f['value'];
-    if (key is String &&
-        key.isNotEmpty &&
-        value is String &&
-        value.trim().isNotEmpty) {
-      lines.add('$key$_factSep${value.trim().replaceAll(_factNl, ' ')}');
-    }
-  }
-  return lines.join(_factNl);
-}
-
-/// Renders [canonicalProfileSummaryText] output as localized "label: value" lines.
-String formatMemoryFacts(String encoded, Gate3Localization l10n) {
-  final out = <String>[];
-  for (final line in encoded.split(_factNl)) {
-    final sep = line.indexOf(_factSep);
-    if (sep <= 0) continue;
-    final label = l10n.memoryFactLabel(line.substring(0, sep));
-    final value = line.substring(sep + 1).trim();
-    if (label.isEmpty || value.isEmpty) continue;
-    out.add('• $label: $value');
-  }
-  return out.join(_factNl);
+  final summary = data['summary'];
+  if (summary is! String) return '';
+  return summary.trim();
 }

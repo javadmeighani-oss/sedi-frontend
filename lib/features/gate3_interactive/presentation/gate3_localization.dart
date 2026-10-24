@@ -138,40 +138,6 @@ class Gate3Localization {
             'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة صدی. مع مواصلة المحادثة واستخدام صدی، سيكتمل هذا القسم تدريجيًا.',
       );
 
-  /// Label of one remembered fact in the profile "User summary" (Sedi's second memory).
-  String memoryFactLabel(String key) {
-    switch (key) {
-      case 'health_concerns':
-        return _t(en: 'Health', fa: 'وضعیت سلامت', ar: 'الحالة الصحية');
-      case 'family_history':
-        return _t(en: 'Family health history', fa: 'سابقه‌ی خانوادگی', ar: 'التاريخ الصحي للعائلة');
-      case 'allergies':
-        return _t(en: 'Allergies', fa: 'حساسیت‌ها', ar: 'الحساسية');
-      case 'goal':
-        return _t(en: 'Goal', fa: 'هدف', ar: 'الهدف');
-      case 'occupation':
-        return _t(en: 'Work', fa: 'شغل', ar: 'العمل');
-      case 'household_context':
-        return _t(en: 'Living situation', fa: 'وضعیت زندگی', ar: 'وضع المعيشة');
-      case 'interests':
-        return _t(en: 'Interests', fa: 'علاقه‌مندی‌ها', ar: 'الاهتمامات');
-      case 'food_preferences':
-        return _t(en: 'Food preferences', fa: 'ترجیح‌های غذایی', ar: 'التفضيلات الغذائية');
-      case 'exercise_preferences':
-        return _t(en: 'Exercise preferences', fa: 'ترجیح‌های ورزشی', ar: 'تفضيلات الرياضة');
-      case 'sleep_duration_hours':
-        return _t(en: 'Sleep (hours a night)', fa: 'خواب (ساعت در شب)', ar: 'النوم (ساعات في الليلة)');
-      case 'sleep_quality':
-        return _t(en: 'Sleep quality', fa: 'کیفیت خواب', ar: 'جودة النوم');
-      case 'stress_level':
-        return _t(en: 'Stress', fa: 'استرس', ar: 'الضغط النفسي');
-      case 'mood':
-        return _t(en: 'Mood', fa: 'حال و روحیه', ar: 'المزاج');
-      default:
-        return '';
-    }
-  }
-
   String get profileLanguageLabel =>
       _t(en: 'Preferred language', fa: 'زبان ترجیحی', ar: 'اللغة المفضلة');
 

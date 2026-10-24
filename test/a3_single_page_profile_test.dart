@@ -109,10 +109,19 @@ void main() {
         'rows': [],
         'facts': [
           {'key': 'health_concerns', 'value': 'دیابت'},
-          {'key': 'occupation', 'value': ''},
+        ],
+        'summary': '  جواد، تا اینجا این‌طور می‌شناسمت: وضعیت سلامتت: دیابت.  ',
+      }),
+      'جواد، تا اینجا این‌طور می‌شناسمت: وضعیت سلامتت: دیابت.',
+    );
+    // structured facts alone are never shown as the card text
+    expect(
+      canonicalProfileSummaryText({
+        'facts': [
+          {'key': 'interests', 'value': 'x'},
         ],
       }),
-      'health_concerns${String.fromCharCode(9)}دیابت',
+      isEmpty,
     );
 
     final src = File(
