@@ -11,6 +11,8 @@ import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../gate3_localization.dart';
+import '../gate3_memory_l10n.dart';
+import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
@@ -499,6 +501,21 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               color: AppTheme.textSecondary,
               fontSize: 13,
               height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const Gate3MemoryPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.psychology_alt_outlined),
+              label: Text(l10n.memoryOpen),
             ),
           ),
         ],

@@ -20,6 +20,7 @@ import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../gate3_assistant_starter_bus.dart';
 import '../gate3_composer_draft_bus.dart';
+import '../widgets/gate3_attachment_flow.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
@@ -57,6 +58,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   bool _composerListening = false;
   String? _composerDraftSeed;
+  final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
   int _composerDraftToken = 0;
 
   DateTime? _lastBackPressTime;
@@ -393,13 +395,22 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                 });
                               },
                               onStopRecordingAndSend: () {
-                                _controller.stopVoiceRecording().then((path) {
+                                _controller.stopVoiceRecording().then((path) async {
                                   if (!mounted) return;
                                   if (path != null && kDebugMode) {
                                     debugPrint(
                                         '[Audio] recorded file: $path');
                                   }
                                   setState(() => _composerListening = false);
+                                  if (path == null) return;
+                                  // R-021 / M4: the recording becomes TEXT in the composer (never auto-sent).
+                                  final text = await _attachmentFlow
+                                      .transcribeVoice(context, presentationLang, path);
+                                  if (!mounted || text == null) return;
+                                  setState(() {
+                                    _composerDraftSeed = text;
+                                    _composerDraftToken++;
+                                  });
                                 });
                               },
                               isRecording: _controller.isRecording,

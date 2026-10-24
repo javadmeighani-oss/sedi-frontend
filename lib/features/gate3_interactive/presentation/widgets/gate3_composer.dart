@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import 'gate3_attachment_flow.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
 
@@ -38,6 +39,7 @@ class Gate3Composer extends StatefulWidget {
 class _Gate3ComposerState extends State<Gate3Composer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
   static const double _maxTextHeight = 168;
 
@@ -111,7 +113,12 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   void _openAttachmentMenu() {
     _focusNode.unfocus();
-    Gate3AttachmentMenu.show(context, widget.lang);
+    Gate3AttachmentMenu.show(
+      context,
+      widget.lang,
+      flow: _attachmentFlow,
+      onTalk: widget.onSendText,
+    );
   }
 
   Widget _buildTextField({

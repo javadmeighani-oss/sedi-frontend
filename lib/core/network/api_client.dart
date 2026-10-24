@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 
 import '../auth/auth_refresh_service.dart';
 import '../auth/auth_service.dart';
@@ -174,6 +175,7 @@ class ApiClient {
     Map<String, String>? extraHeaders,
     String? accessToken,
     bool recoverSessionOn401 = true,
+    Duration? timeoutOverride,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -190,7 +192,7 @@ class ApiClient {
           headers: headers,
           body: body != null ? jsonEncode(body) : null,
         )
-            .timeout(timeout, onTimeout: () {
+            .timeout(timeoutOverride ?? timeout, onTimeout: () {
           throw Exception('Request timeout');
         }),
         extraHeaders: extraHeaders,
@@ -349,6 +351,66 @@ class ApiClient {
             );
       return ApiResponse<Map<String, dynamic>>(
           ok: false, error: error, statusCode: response.statusCode);
+    } catch (e) {
+      return _failureFromException(e);
+    }
+  }
+
+  /// DELETE [path]. Returns ApiResponse<T> using [parser] for body["data"].
+  Future<ApiResponse<T>> delete<T>(
+    String path, {
+    Map<String, String>? extraHeaders,
+    required T? Function(Object? dataJson) parser,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      debugPrint('[API] DELETE $uri');
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http.delete(uri, headers: headers).timeout(timeout,
+            onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
+      debugPrint('[API] response status=${response.statusCode}');
+      return _handleResponse<T>(response, parser);
+    } catch (e) {
+      return _failureFromException(e);
+    }
+  }
+
+  /// POST multipart/form-data with ONE file part (documents, images, voice — R-021 / M4).
+  Future<ApiResponse<T>> postMultipart<T>(
+    String path, {
+    required String fieldName,
+    required List<int> bytes,
+    required String filename,
+    required String contentType,
+    Duration uploadTimeout = const Duration(seconds: 60),
+    required T? Function(Object? dataJson) parser,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      debugPrint('[API] POST (multipart) $uri');
+      final response = await _withAuthRetry(path, (headers) async {
+        final request = http.MultipartRequest('POST', uri);
+        final h = Map<String, String>.from(headers)..remove('Content-Type');
+        request.headers.addAll(h);
+        request.files.add(http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: filename,
+          contentType: MediaType.parse(contentType),
+        ));
+        final streamed = await request.send().timeout(uploadTimeout,
+            onTimeout: () {
+          throw Exception('Request timeout');
+        });
+        return http.Response.fromStream(streamed);
+      });
+      debugPrint('[API] response status=${response.statusCode}');
+      return _handleResponse<T>(response, parser);
     } catch (e) {
       return _failureFromException(e);
     }

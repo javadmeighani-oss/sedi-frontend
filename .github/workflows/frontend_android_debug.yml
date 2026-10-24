@@ -138,6 +138,9 @@ jobs:
       - name: Targeted A3 phone-change tests
         run: flutter test test/a3_phone_change_otp_test.dart
 
+      - name: Targeted memory / attachments tests (R-021 M4)
+        run: flutter test test/m4_memory_attachments_test.dart test/a3_single_page_profile_test.dart
+
       - name: Targeted A3 SELF/OTHER subject authority tests
         run: flutter test test/a3_self_other_subject_authority_test.dart
 
