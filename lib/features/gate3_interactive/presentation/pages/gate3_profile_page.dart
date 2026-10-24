@@ -479,7 +479,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
 
   Widget _buildSummaryCard(Gate3Localization l10n) {
     final text = _canonicalSummary.trim();
-    final body = text.isEmpty ? l10n.userSummaryEmpty : text;
+    final formatted = text.isEmpty ? '' : formatMemoryFacts(text, l10n);
+    final body = formatted.isEmpty ? l10n.userSummaryEmpty : formatted;
     return A3DestinationCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,16 +508,44 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   }
 }
 
-/// Canonical user-facing summary prose from `/auth/me/profile-summary` data.
+/// Canonical user-facing summary from `/auth/me/profile-summary` data.
 ///
-/// The live contract is `{rows:[{key,status}]}` only. Those rows are
-/// capability and plan-status codes, not a human-readable user summary.
-/// This does not turn them into prose. An empty result means the profile
-/// card shows only the localized empty state.
+/// Contract: `{rows:[{key,status}], facts:[{key,value}]}`. `rows` are capability
+/// and plan-status codes (never shown as prose). `facts` is what Sedi remembers
+/// about the user (its second memory); each becomes one `key<TAB>value` line that
+/// [formatMemoryFacts] localizes. An empty result shows only the localized empty state.
+final String _factSep = String.fromCharCode(9);
+final String _factNl = String.fromCharCode(10);
+
 String canonicalProfileSummaryText(Object? data) {
   if (data is! Map) return '';
-  // Status rows are capability/plan codes. They are not summary prose.
-  final rows = data['rows'];
-  if (rows is List || rows == null) return '';
-  return '';
+  final facts = data['facts'];
+  if (facts is! List) return '';
+  final lines = <String>[];
+  for (final f in facts) {
+    if (f is! Map) continue;
+    final key = f['key'];
+    final value = f['value'];
+    if (key is String &&
+        key.isNotEmpty &&
+        value is String &&
+        value.trim().isNotEmpty) {
+      lines.add('$key$_factSep${value.trim().replaceAll(_factNl, ' ')}');
+    }
+  }
+  return lines.join(_factNl);
+}
+
+/// Renders [canonicalProfileSummaryText] output as localized "label: value" lines.
+String formatMemoryFacts(String encoded, Gate3Localization l10n) {
+  final out = <String>[];
+  for (final line in encoded.split(_factNl)) {
+    final sep = line.indexOf(_factSep);
+    if (sep <= 0) continue;
+    final label = l10n.memoryFactLabel(line.substring(0, sep));
+    final value = line.substring(sep + 1).trim();
+    if (label.isEmpty || value.isEmpty) continue;
+    out.add('• $label: $value');
+  }
+  return out.join(_factNl);
 }

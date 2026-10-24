@@ -104,6 +104,16 @@ void main() {
     expect(canonicalProfileSummaryText(payload), isEmpty);
     expect(canonicalProfileSummaryText(null), isEmpty);
     expect(canonicalProfileSummaryText(<String, Object>{}), isEmpty);
+    expect(
+      canonicalProfileSummaryText({
+        'rows': [],
+        'facts': [
+          {'key': 'health_concerns', 'value': 'دیابت'},
+          {'key': 'occupation', 'value': ''},
+        ],
+      }),
+      'health_concerns${String.fromCharCode(9)}دیابت',
+    );
 
     final src = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',

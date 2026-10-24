@@ -97,14 +97,14 @@ class LifestyleL10n {
         ar: 'المحادثات الأخيرة',
       );
   String get sediSummaries =>
-      _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات سدي');
+      _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدی');
   String get historyExplain => _t(
         en:
             'This is a read-only archive of conversations from the last 30 days and Sedi summaries.',
         fa:
             'این بایگانی فقط‌خواندنی گفتگوهای ۳۰ روز گذشته و خلاصه‌های صدی است.',
         ar:
-            'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات سدي.',
+            'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات صدی.',
       );
   String get conversationsLast30Days => _t(
         en: 'Conversations from the last 30 days',
@@ -133,7 +133,7 @@ class LifestyleL10n {
   String get noSummary =>
       _t(en: 'No summary yet.', fa: 'هنوز خلاصه‌ای نیست.', ar: 'لا ملخص بعد.');
   String get openChat =>
-      _t(en: 'Talk to Sedi', fa: 'صحبت با صدی', ar: 'تحدث إلى سدي');
+      _t(en: 'Talk to Sedi', fa: 'صحبت با صدی', ar: 'تحدث إلى صدی');
 
   String get today => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
   String get tomorrow => _t(en: 'Tomorrow', fa: 'فردا', ar: 'غداً');
@@ -172,7 +172,7 @@ class LifestyleL10n {
   String get talkToCreate => _t(
         en: 'Talk to Sedi to create your plan.',
         fa: 'برای ساخت برنامه با صدی صحبت کنید.',
-        ar: 'تحدث إلى سدي لإنشاء خطتك.',
+        ar: 'تحدث إلى صدی لإنشاء خطتك.',
       );
   String get breakfast => _t(en: 'Breakfast', fa: 'صبحانه', ar: 'فطور');
   String get lunch => _t(en: 'Lunch', fa: 'ناهار', ar: 'غداء');
@@ -197,7 +197,7 @@ class LifestyleL10n {
   String get reviewDueBody => _t(
         en: 'Your current cycle has ended. Review with Sedi when ready.',
         fa: 'چرخه فعلی به پایان رسیده است. وقتی آماده بودید با صدی بازبینی کنید.',
-        ar: 'انتهت دورتك الحالية. راجع مع سدي عندما تكون جاهزاً.',
+        ar: 'انتهت دورتك الحالية. راجع مع صدی عندما تكون جاهزاً.',
       );
   String get planUnavailable => _t(
         en: 'Plan unavailable',
