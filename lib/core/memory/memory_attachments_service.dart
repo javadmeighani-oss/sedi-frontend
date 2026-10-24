@@ -30,9 +30,8 @@ class MemoryAttachmentsService {
   }
 
   Future<ApiResponse<MemoryAttachment>> process(int id) {
-    return _api.post<MemoryAttachment>(
+    return _api.postLongRunning<MemoryAttachment>(
       '/memory/attachments/$id/process',
-      timeoutOverride: const Duration(seconds: 90),
       parser: MemoryAttachment.tryParse,
     );
   }

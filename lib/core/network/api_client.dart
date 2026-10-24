@@ -175,7 +175,6 @@ class ApiClient {
     Map<String, String>? extraHeaders,
     String? accessToken,
     bool recoverSessionOn401 = true,
-    Duration? timeoutOverride,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -192,7 +191,7 @@ class ApiClient {
           headers: headers,
           body: body != null ? jsonEncode(body) : null,
         )
-            .timeout(timeoutOverride ?? timeout, onTimeout: () {
+            .timeout(timeout, onTimeout: () {
           throw Exception('Request timeout');
         }),
         extraHeaders: extraHeaders,
@@ -351,6 +350,30 @@ class ApiClient {
             );
       return ApiResponse<Map<String, dynamic>>(
           ok: false, error: error, statusCode: response.statusCode);
+    } catch (e) {
+      return _failureFromException(e);
+    }
+  }
+
+  /// POST with no body and a custom [requestTimeout] (document reading / transcription can take longer than 15 s).
+  /// A separate method on purpose: `post` keeps its signature so test stubs that override it stay valid.
+  Future<ApiResponse<T>> postLongRunning<T>(
+    String path, {
+    Duration requestTimeout = const Duration(seconds: 90),
+    required T? Function(Object? dataJson) parser,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      debugPrint('[API] POST (long) $uri');
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http.post(uri, headers: headers).timeout(requestTimeout,
+            onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+      );
+      debugPrint('[API] response status=${response.statusCode}');
+      return _handleResponse<T>(response, parser);
     } catch (e) {
       return _failureFromException(e);
     }
