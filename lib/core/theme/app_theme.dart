@@ -68,7 +68,11 @@ class AppTheme {
   static const Color gate2CardWhite = SediPalette.shell100;
   static const Color gate2InputFill = SediPalette.shell300;
   static const Color gate2ButtonActive = SediPalette.charcoal950;
-  /// Gate 2 primary CTA / accent — Pistachio 700 (Palette v1).
+  /// Primary CTA: Pistachio 500 fill with Charcoal text (Palette v1, D-078).
+  static const Color ctaFill = SediPalette.pistachio500;
+  static const Color ctaText = SediPalette.charcoal950;
+
+  /// Gate 2 accent on light surfaces (icons, selected text) — Pistachio 700 (Palette v1).
   static const Color gate2ButtonOlive = SediPalette.pistachio700;
   static const Color gate2ButtonDisabled = SediPalette.shell300;
   static const Color gate2TextDisabled = SediPalette.charcoal500;

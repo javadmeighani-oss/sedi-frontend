@@ -269,7 +269,7 @@ class _AuraRingsPainter extends CustomPainter {
     final pistachio = Paint()
       ..shader = RadialGradient(
         colors: [
-          SediPalette.pistachio500.withOpacity(listening ? 0.20 : 0.34),
+          SediPalette.pistachio500.withOpacity(listening ? 0.42 : 0.34),
           SediPalette.pistachio500.withOpacity(0.10),
           SediPalette.pistachio500.withOpacity(0.0),
         ],
@@ -277,17 +277,6 @@ class _AuraRingsPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: c, radius: auraR));
     canvas.drawCircle(c, auraR, pistachio);
 
-    final roseAlpha = listening ? 0.40 : 0.24;
-    final rose = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          SediPalette.skin500.withOpacity(0.0),
-          SediPalette.skin500.withOpacity(roseAlpha),
-          SediPalette.skin500.withOpacity(0.0),
-        ],
-        stops: const [0.40, 0.56, 0.74],
-      ).createShader(Rect.fromCircle(center: c, radius: auraR));
-    canvas.drawCircle(c, auraR, rose);
 
     if (!rings) return;
     _ring(
@@ -307,9 +296,9 @@ class _AuraRingsPainter extends CustomPainter {
       rw: r * 1.68,
       rh: r * 0.21,
       turns: -clock.ringTurns * 0.7 + 0.25,
-      line: SediPalette.skin300.withOpacity(0.56),
-      dot: SediPalette.skin300,
-      glow: SediPalette.skin500,
+      line: SediPalette.shell300.withOpacity(0.30),
+      dot: SediPalette.shell100,
+      glow: SediPalette.pistachio300,
       tilt: -0.10,
     );
   }
@@ -412,11 +401,11 @@ class _DomePainter extends CustomPainter {
     final sweep = SweepGradient(
       colors: [
         SediPalette.pistachio100.withOpacity(0.0),
-        SediPalette.skin300.withOpacity(0.44),
+        SediPalette.shell100.withOpacity(0.30),
         SediPalette.pistachio300.withOpacity(0.42),
         SediPalette.pistachio100.withOpacity(0.0),
-        SediPalette.skin500.withOpacity(0.38),
-        SediPalette.skin100.withOpacity(0.26),
+        SediPalette.pistachio500.withOpacity(0.38),
+        SediPalette.shell300.withOpacity(0.24),
         SediPalette.pistachio100.withOpacity(0.0),
       ],
       stops: const [0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0],
@@ -501,7 +490,7 @@ class _DomePainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5
-            ..color = SediPalette.skin300.withOpacity((1 - p) * 0.9),
+            ..color = SediPalette.pistachio100.withOpacity((1 - p) * 0.8),
         );
       }
     }

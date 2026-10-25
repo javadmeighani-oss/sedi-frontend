@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../gate3_localization.dart';
 import '../gate3_memory_l10n.dart';
 import '../widgets/a3_destination_surface.dart';
+import '../widgets/a3_hologram_header.dart';
 import '../widgets/a3_page_app_bar.dart';
 
 /// "My memory" (R-021 / M1+M6): what Sedi remembers about the user — summary, facts and life timeline —
@@ -254,6 +255,7 @@ class _Gate3MemoryPageState extends State<Gate3MemoryPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                   children: [
+                    const A3HologramHeader(),
                     A3DestinationCard(
                       child: Text(
                         l10n.memoryPageIntro,

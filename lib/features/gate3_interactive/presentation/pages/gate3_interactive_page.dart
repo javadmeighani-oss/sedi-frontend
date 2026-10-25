@@ -29,6 +29,7 @@ import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
+import '../widgets/sedi_brain_orb.dart';
 import '../widgets/sedi_orb_presence.dart';
 import '../widgets/sedi_scene_backdrop.dart';
 
@@ -291,9 +292,14 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     builder: (context, box) {
                       final usableW =
                           box.maxWidth - 2 * SediOrbPresence.horizontalInset;
-                      final gap = SediOrbPresence.gapFor(box.maxHeight);
+                      // The hologram sits just above the resonance line (D-078);
+                      // the line itself stays at about the middle of the screen.
+                      const gap = 28.0;
+                      final orbD = SediBrainOrb.diameterFor(usableW);
+                      final barsTop =
+                          (box.maxHeight * 0.455).clamp(260.0, 460.0).toDouble();
                       final presenceTop =
-                          (box.maxHeight * 0.07).clamp(56.0, 84.0).toDouble();
+                          math.max(56.0, barsTop - gap - orbD);
                       final presenceBottom = presenceTop +
                           SediOrbPresence.heightFor(usableW, gap);
                       final chatTopPad =
@@ -593,14 +599,13 @@ class _DayChip extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: SediPalette.skin500.withOpacity(0.11),
+          color: SediPalette.shell100.withOpacity(0.07),
           borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: SediPalette.skin300.withOpacity(0.32)),
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: SediPalette.skin300,
+          style: TextStyle(
+            color: SediPalette.shell300.withOpacity(0.72),
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
           ),

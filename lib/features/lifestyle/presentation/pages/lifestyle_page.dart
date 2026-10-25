@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_hologram_header.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
@@ -63,10 +64,11 @@ class LifestylePage extends StatelessWidget {
         ),
         body: ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          itemCount: cards.length,
+          itemCount: cards.length + 1,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
-            final c = cards[i];
+            if (i == 0) return const A3HologramHeader();
+            final c = cards[i - 1];
             return _LifestyleHubDestinationCard(card: c);
           },
         ),
@@ -95,14 +97,10 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.gate2CardWhite,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-            border: Border.all(color: AppTheme.gate2BorderSubtle, width: 0.8),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
+            border: Border.all(
+              color: AppTheme.gate2BorderSubtle.withOpacity(0.55),
+              width: 0.8,
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),

@@ -36,25 +36,14 @@ class A2HologramHeader extends StatelessWidget {
         SediHologramOrb(state: state, diameter: orbD, animate: animate),
         SizedBox(height: hero ? 44 : 30),
         if (hero) ...[
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (rect) => const LinearGradient(
-              colors: [
-                SediPalette.shell100,
-                SediPalette.skin300,
-                SediPalette.skin500,
-              ],
-              stops: [0.25, 0.75, 1.0],
-            ).createShader(rect),
-            child: Text(
-              l10n.welcomeHeadline,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                height: 1.2,
-              ),
+          Text(
+            l10n.welcomeHeadline,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: SediPalette.shell100,
+              height: 1.2,
             ),
           ),
           const SizedBox(height: 10),
@@ -77,7 +66,7 @@ class A2HologramHeader extends StatelessWidget {
             runSpacing: 8,
             children: [
               _pill(l10n.welcomePromiseListen, rose: false),
-              _pill(l10n.welcomePromiseRemember, rose: true),
+              _pill(l10n.welcomePromiseRemember, rose: false),
               _pill(l10n.welcomePromiseCare, rose: false),
             ],
           ),

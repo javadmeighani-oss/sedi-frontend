@@ -218,7 +218,6 @@ class _HorizontalResonancePainter extends CustomPainter {
   final int globalBarTotal;
 
   static const _presence = SediPresenceTokens.presenceGreen;
-  static const _presenceEdge = SediPresenceTokens.presenceRose;
 
   const _HorizontalResonancePainter({
     required this.phase,
@@ -236,18 +235,13 @@ class _HorizontalResonancePainter extends CustomPainter {
 
     final count = segmentBarCount;
     final pitch = size.width / count;
-    final barWidth = (pitch * 0.38).clamp(1.0, 1.8).toDouble();
+    // Crisp 2dp hairlines (design D-079), pistachio only.
+    final barWidth = (pitch * 0.5).clamp(1.4, 2.2).toDouble();
     final midY = size.height / 2;
-    final maxHalf = size.height * 0.50;
     final cycle =
         (phase * SediHorizontalResonanceVisualizer.phaseSpeed) % 1.0;
     final total = math.max(globalBarTotal, 1);
-
-    final paint = Paint()
-      ..isAntiAlias = true
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = barWidth;
+    final path = Path();
 
     for (var i = 0; i < count; i++) {
       final globalIndex = globalBarOffset + i;
@@ -258,35 +252,54 @@ class _HorizontalResonancePainter extends CustomPainter {
         cycle,
         density,
       );
-
       // Idle stays near-flat; speaking is strongest but hard-capped.
       final heightFactor = SediHorizontalResonanceVisualizer.heightFactorFor(
         energy: energy,
         envelope: shape,
         density: density,
       );
-      final half = maxHalf *
-          heightFactor *
-          SediHorizontalResonanceVisualizer.amplitudeScale;
+      // Bell envelope: tallest at the centreline (under the hologram).
+      final centerDistance =
+          ((relativeX - 0.5).abs() * 2.0).clamp(0.0, 1.0).toDouble();
+      final bell = math.exp(-math.pow(centerDistance / 0.62, 2)).toDouble();
+      final live = ((heightFactor - 0.06) /
+              (SediHorizontalResonanceVisualizer.peakCeiling - 0.06))
+          .clamp(0.0, 1.0)
+          .toDouble();
+      // Rest: 5dp at the edges up to ~14dp at the centre; live adds up to ~34dp.
+      final totalHeight = (5.0 + bell * (9.0 + 34.0 * live)) *
+          (SediHorizontalResonanceVisualizer.amplitudeScale / 0.8);
+      final half = math.min(totalHeight, size.height) / 2;
 
       final x = pitch * (i + 0.5);
-      final baseOpacity =
-          (0.18 + energy * 0.55 + shape * 0.2).clamp(0.12, 0.92).toDouble();
-      final finalOpacity =
-          (baseOpacity * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0);
-      // Pistachio at the centreline, rose toward the outer edges.
-      final edgeMix =
-          math.pow(((relativeX - 0.5).abs() * 2.0).clamp(0.0, 1.0), 1.4);
-      final barColor =
-          Color.lerp(_presence, _presenceEdge, edgeMix.toDouble()) ?? _presence;
-      paint.color = barColor.withOpacity(finalOpacity);
-
-      canvas.drawLine(
-        Offset(x, midY - half),
-        Offset(x, midY + half),
-        paint,
-      );
+      path.moveTo(x, midY - half);
+      path.lineTo(x, midY + half);
     }
+
+    // Soft glow, then the crisp bars (two draw calls for all bars).
+    canvas.drawPath(
+      path,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = barWidth * 2.4
+        ..color = _presence.withOpacity(0.30)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    final opacity =
+        (0.70 * SediPresenceTokens.barOpacityScale + energy * 0.2)
+            .clamp(0.0, 1.0)
+            .toDouble();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = barWidth
+        ..color = _presence.withOpacity(opacity),
+    );
   }
 
   @override

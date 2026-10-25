@@ -148,7 +148,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         textAlign: textAlign,
         textAlignVertical: TextAlignVertical.center,
         scrollPhysics: const BouncingScrollPhysics(),
-        cursorColor: SediPalette.skin300,
+        cursorColor: SediPalette.pistachio300,
         decoration: InputDecoration(
           isCollapsed: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
@@ -264,7 +264,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 ],
               ),
               border: Border.all(
-                color: SediPalette.skin300.withOpacity(0.22),
+                color: SediPalette.shell100.withOpacity(0.14),
               ),
             ),
             child: Padding(

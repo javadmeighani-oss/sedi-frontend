@@ -129,7 +129,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             child: Text(
               widget.retryLabel ?? 'Tap to retry',
               style: const TextStyle(
-                color: SediPalette.skin300,
+                color: SediPalette.pistachio300,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -212,14 +212,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        SediPalette.pistachio500.withOpacity(0.26),
-                        SediPalette.skin500.withOpacity(0.17),
-                      ],
-                    ),
+                    color: SediPalette.pistachio500.withOpacity(0.15),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppTheme.radiusLarge),
                       topRight: Radius.circular(AppTheme.radiusLarge),
@@ -227,16 +220,10 @@ class _MessageBubbleState extends State<MessageBubble> {
                       bottomRight: Radius.circular(AppTheme.radiusSmall),
                     ),
                     border: Border.all(
-                      color: SediPalette.skin300.withOpacity(0.4),
+                      color: SediPalette.pistachio500.withOpacity(0.32),
                       width: 1,
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x47000000),
-                        blurRadius: 24,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
+
                   ),
                   child: body,
                 ),

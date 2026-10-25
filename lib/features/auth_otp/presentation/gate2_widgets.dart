@@ -345,12 +345,11 @@ class Gate2Widgets {
       onPressed: enabled ? onPressed : null,
       style: ElevatedButton.styleFrom(
         backgroundColor:
-            enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
+            enabled ? AppTheme.ctaFill : AppTheme.gate2ButtonDisabled,
         disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-        foregroundColor: AppTheme.gate2CardWhite,
+        foregroundColor: AppTheme.ctaText,
         disabledForegroundColor: AppTheme.gate2TextDisabled,
-        elevation: enabled ? 1 : 0,
-        shadowColor: Colors.black26,
+        elevation: 0,
         minimumSize: Size(
           fullWidth ? double.infinity : 0,
           A2Layout.primaryCtaHeight,

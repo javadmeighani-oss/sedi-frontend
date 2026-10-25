@@ -434,8 +434,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                                 await _runDetailAction(item, 'open_chat');
                               },
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.gate2ButtonOlive,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppTheme.ctaFill,
+                          foregroundColor: AppTheme.ctaText,
                         ),
                         child: Text(l10n.talkToSedi),
                       ),
@@ -639,19 +639,19 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppTheme.gate2ButtonOlive.withOpacity(0.14)
+              ? SediPalette.pistachio500.withOpacity(0.24)
               : AppTheme.gate2CardWhite,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? AppTheme.gate2ButtonOlive
-                : AppTheme.gate2BorderSubtle,
+                ? SediPalette.pistachio700.withOpacity(0.55)
+                : A3DestinationSurface.hairline,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppTheme.gate2ButtonOlive : AppTheme.textPrimary,
+            color: selected ? SediPalette.pistachio900 : AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),

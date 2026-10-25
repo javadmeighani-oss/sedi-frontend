@@ -151,8 +151,8 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
           onPressed: () =>
               openLifestyleChat(context, starterMessage: starter),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.gate2ButtonOlive,
-            foregroundColor: AppTheme.backgroundWhite,
+            backgroundColor: AppTheme.ctaFill,
+            foregroundColor: AppTheme.ctaText,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -405,8 +405,8 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
           FilledButton(
             onPressed: busy ? null : () => _review(a, 'done'),
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.gate2ButtonOlive,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.ctaFill,
+              foregroundColor: AppTheme.ctaText,
             ),
             child: Text(l10n.markDone),
           ),

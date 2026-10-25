@@ -152,7 +152,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: SediPalette.skin300,
+        color: SediPalette.pistachio300,
         strokeWidth: strokeWidth,
       ),
     );

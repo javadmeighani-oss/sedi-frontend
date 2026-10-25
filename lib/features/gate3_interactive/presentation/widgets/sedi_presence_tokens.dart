@@ -12,9 +12,6 @@ class SediPresenceTokens {
   /// Pistachio — resonance bars and hologram halo.
   static const Color presenceGreen = SediPalette.pistachio500;
 
-  /// Rose end of the resonance bars (outer edge).
-  static const Color presenceRose = SediPalette.skin300;
-
   static const double orbWidthFactor = 0.54;
   static const double orbMinDiameter = 150;
   static const double orbMaxDiameter = 250;

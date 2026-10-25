@@ -14,6 +14,7 @@ import '../gate3_localization.dart';
 import '../gate3_memory_l10n.dart';
 import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
+import '../widgets/a3_hologram_header.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
 
@@ -217,6 +218,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                   children: [
+                    const A3HologramHeader(),
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),

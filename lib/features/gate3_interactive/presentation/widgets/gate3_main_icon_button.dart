@@ -43,15 +43,8 @@ class Gate3MainIconButton extends StatelessWidget {
                     color: SediPalette.shell100.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: SediPalette.skin300.withOpacity(0.26),
+                      color: SediPalette.shell100.withOpacity(0.14),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: SediPalette.skin500.withOpacity(0.14),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Icon(
                     icon,

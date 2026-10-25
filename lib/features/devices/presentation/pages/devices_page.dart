@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../../../data/repositories/devices_repository.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
+import '../../../gate3_interactive/presentation/widgets/a3_hologram_header.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../ble/sedi_ble_models.dart';
 import '../../ble/sedi_ble_permissions.dart';
@@ -109,6 +110,7 @@ class _DevicesPageState extends State<DevicesPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
+          const A3HologramHeader(),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -176,9 +178,9 @@ class _DevicesPageState extends State<DevicesPage> {
                 child: FilledButton(
                   onPressed: _connecting ? null : () => _onConnectPressed(l10n),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.gate2ButtonOlive,
+                    backgroundColor: AppTheme.ctaFill,
                     disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-                    foregroundColor: AppTheme.backgroundWhite,
+                    foregroundColor: AppTheme.ctaText,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     ),
@@ -424,8 +426,8 @@ class _DevicesPageState extends State<DevicesPage> {
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.gate2ButtonOlive,
-                  foregroundColor: AppTheme.backgroundWhite,
+                  backgroundColor: AppTheme.ctaFill,
+                  foregroundColor: AppTheme.ctaText,
                 ),
                 child: Text(l10n.save),
               ),
@@ -538,8 +540,8 @@ class _DevicesPageState extends State<DevicesPage> {
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.gate2ButtonOlive,
-                    foregroundColor: AppTheme.backgroundWhite,
+                    backgroundColor: AppTheme.ctaFill,
+                    foregroundColor: AppTheme.ctaText,
                   ),
                   child: Text(l10n.save),
                 ),

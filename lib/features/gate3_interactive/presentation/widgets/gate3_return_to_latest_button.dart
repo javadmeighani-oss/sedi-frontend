@@ -82,15 +82,8 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
                 ? SediPalette.charcoal700.withOpacity(0.85)
                 : SediPalette.charcoal900.withOpacity(0.72),
             border: Border.all(
-              color: SediPalette.skin300.withOpacity(0.45),
+              color: SediPalette.shell100.withOpacity(0.18),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: SediPalette.skin500.withOpacity(0.25),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: const Icon(
             Icons.keyboard_arrow_down_rounded,
