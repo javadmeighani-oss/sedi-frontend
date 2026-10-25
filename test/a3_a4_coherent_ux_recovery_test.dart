@@ -443,8 +443,9 @@ void main() {
               );
             },
             home: Scaffold(
-              // Align loosens the body height: in the real A3 page the presence sits
-              // in an unconstrained Positioned, so the keyboard never resizes it.
+              // The real A3 page keeps the presence in an unconstrained Positioned,
+              // so the keyboard never resizes it; the test body must not shrink either.
+              resizeToAvoidBottomInset: false,
               body: Align(
                 alignment: Alignment.topCenter,
                 child: SizedBox(
