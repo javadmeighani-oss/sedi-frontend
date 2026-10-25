@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../gate3_localization.dart';
 import 'gate3_attachment_flow.dart';
 
@@ -77,7 +78,7 @@ class _AttachmentMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.72),
+      color: SediPalette.shell100,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -91,7 +92,7 @@ class _AttachmentMenuItem extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFF0F2EA),
+                  color: SediPalette.pistachio100,
                 ),
                 child: Icon(icon, size: 22, color: AppTheme.primaryBlack),
               ),

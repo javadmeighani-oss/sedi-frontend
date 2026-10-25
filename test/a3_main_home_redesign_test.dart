@@ -128,6 +128,15 @@ void main() {
     expect(Gate3Localization('en').lifestyle, isNotEmpty);
     expect(Gate3Localization('en').gadgets, isNotEmpty);
     expect(Gate3Localization('en').notifications, isNotEmpty);
+    for (final lang in ['en', 'fa', 'ar']) {
+      final l10n = Gate3Localization(lang);
+      expect(l10n.dayToday, isNotEmpty);
+      expect(l10n.dayYesterday, isNotEmpty);
+      expect(l10n.readMore, isNotEmpty);
+      expect(l10n.readLess, isNotEmpty);
+      expect(l10n.tapToRetry, isNotEmpty);
+    }
+    expect(Gate3Localization('fa').dayToday, 'امروز');
   });
 
   test('idle < listening < thinking < speaking; amplitude reduced ~20%', () {

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_palette.dart';
@@ -513,21 +514,38 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       );
     }
 
+    // Entries: DateTime = day separator, int >= 0 = message index, -1 = typing.
+    final entries = <Object>[];
+    DateTime? lastDay;
+    for (var i = 0; i < _controller.messages.length; i++) {
+      final t = _controller.messages[i].createdAt.toLocal();
+      final day = DateTime(t.year, t.month, t.day);
+      if (lastDay == null || day != lastDay) {
+        entries.add(day);
+        lastDay = day;
+      }
+      entries.add(i);
+    }
+    if (_controller.isThinking) entries.add(-1);
+
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(10, topPad, 10, 8),
-      itemCount: _controller.messages.length + (_controller.isThinking ? 1 : 0),
+      itemCount: entries.length,
       itemBuilder: (context, index) {
-        if (_controller.isThinking &&
-            index == _controller.messages.length) {
+        final entry = entries[index];
+        if (entry is DateTime) {
+          return _DayChip(label: _dayLabel(entry, l10n));
+        }
+        if (entry == -1) {
           return const MessageBubble(
             message: '...',
             isSedi: true,
             showTyping: true,
           );
         }
-        final msg = _controller.messages[index];
+        final msg = _controller.messages[entry as int];
         return MessageBubble(
           key: ValueKey(msg.localId),
           message: msg.text,
@@ -545,6 +563,49 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           retryLabel: l10n.tapToRetry,
         );
       },
+    );
+  }
+
+  /// Today / Yesterday, otherwise the calendar date in the app language.
+  String _dayLabel(DateTime day, Gate3Localization l10n) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return l10n.dayToday;
+    if (diff == 1) return l10n.dayYesterday;
+    final iso = '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+    return CalendarDateMath.formatIsoForLanguage(iso, l10n.lang);
+  }
+}
+
+/// Small rose-tinted day separator in the transparent chat.
+class _DayChip extends StatelessWidget {
+  final String label;
+
+  const _DayChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: SediPalette.skin500.withOpacity(0.11),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: SediPalette.skin300.withOpacity(0.32)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: SediPalette.skin300,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -363,6 +363,10 @@ class Gate3Localization {
 
   String get editMessage => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
 
+  String get dayToday => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
+
+  String get dayYesterday => _t(en: 'Yesterday', fa: 'دیروز', ar: 'أمس');
+
   String get readMore => _t(en: 'Read more', fa: 'بیشتر', ar: 'المزيد');
 
   String get readLess => _t(en: 'Read less', fa: 'کمتر', ar: 'أقل');
