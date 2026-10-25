@@ -42,7 +42,7 @@ class A2HologramHeader extends StatelessWidget {
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: SediPalette.shell100,
+              color: SediPalette.charcoal950,
               height: 1.2,
             ),
           ),
@@ -55,7 +55,7 @@ class A2HologramHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 height: 1.9,
-                color: SediPalette.shell300.withOpacity(0.85),
+                color: SediPalette.charcoal500,
               ),
             ),
           ),
@@ -77,8 +77,8 @@ class A2HologramHeader extends StatelessWidget {
   }
 
   Widget _pill(String text, {required bool rose}) {
-    final base = rose ? SediPalette.skin500 : SediPalette.pistachio500;
-    final fg = rose ? SediPalette.skin300 : SediPalette.pistachio300;
+    final base = rose ? SediPalette.skin700 : SediPalette.pistachio500;
+    final fg = rose ? SediPalette.skin700 : SediPalette.pistachio900;
     return Container(
       height: 34,
       padding: const EdgeInsets.symmetric(horizontal: 14),

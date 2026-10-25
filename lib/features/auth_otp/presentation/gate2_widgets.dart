@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/sedi_palette.dart';
 import 'a2_layout.dart';
 import 'a2_phone_e164.dart';
 import 'birth_calendar_helper.dart';
@@ -36,7 +35,7 @@ class Gate2Widgets {
                   Text(
                     loadingLabel,
                     style: AppTheme.bodySecondary.copyWith(
-                      color: SediPalette.shell100,
+                      color: AppTheme.gate2TextPrimary,
                     ),
                   ),
                 ],
@@ -54,7 +53,7 @@ class Gate2Widgets {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppTheme.gate2CardWhite,
+            color: Colors.white.withOpacity(0.94),
             borderRadius: BorderRadius.circular(AppTheme.gate2RadiusCard),
             boxShadow: AppTheme.gate2CardShadow,
             border: Border.all(

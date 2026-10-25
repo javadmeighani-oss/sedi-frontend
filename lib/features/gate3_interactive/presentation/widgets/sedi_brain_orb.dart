@@ -13,6 +13,9 @@ class SediBrainOrb extends StatelessWidget {
   final String lang;
   final double? diameter;
 
+  /// Dome/halo brightness 0..1 (the wordmark always stays crisp and opaque).
+  final double dim;
+
   static const double widthFactor = SediPresenceTokens.orbWidthFactor;
   static const double minDiameter = SediPresenceTokens.orbMinDiameter;
   static const double maxDiameter = SediPresenceTokens.orbMaxDiameter;
@@ -25,11 +28,12 @@ class SediBrainOrb extends StatelessWidget {
     required this.state,
     required this.lang,
     this.diameter,
+    this.dim = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
     final d = diameter ?? SediPresenceTokens.orbMinDiameter;
-    return SediHologramOrb(state: state, diameter: d);
+    return SediHologramOrb(state: state, diameter: d, dim: dim);
   }
 }

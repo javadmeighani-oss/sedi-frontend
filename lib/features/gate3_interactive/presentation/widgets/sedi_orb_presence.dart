@@ -85,14 +85,11 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
               SizedBox(
                 height: orbD,
                 child: Center(
-                  child: AnimatedOpacity(
-                    opacity: widget.ambient.clamp(0.0, 1.0).toDouble(),
-                    duration: const Duration(milliseconds: 400),
-                    child: SediBrainOrb(
-                      state: widget.state,
-                      lang: widget.lang,
-                      diameter: orbD,
-                    ),
+                  child: SediBrainOrb(
+                    state: widget.state,
+                    lang: widget.lang,
+                    diameter: orbD,
+                    dim: widget.ambient,
                   ),
                 ),
               ),

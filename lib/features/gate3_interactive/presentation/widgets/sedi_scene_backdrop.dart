@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/sedi_palette.dart';
 
-/// A3 scene background: Charcoal 950 with one soft pistachio glow behind the
-/// hologram (minimal — rose is reserved for tiny functional accents, D-078).
+/// A3 / A2 scene background (LIGHT theme, D-080): Shell 100 with one soft
+/// pistachio glow behind the hologram and a faint pistachio floor — like the
+/// pistachio photograph: pistachio first, wine only as a tiny accent.
 /// Presentation only.
 class SediSceneBackdrop extends StatelessWidget {
   const SediSceneBackdrop({super.key});
@@ -29,11 +30,16 @@ class SediSceneBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: SediPalette.charcoal950),
+        const ColoredBox(color: SediPalette.shell100),
         _glow(
-          const Alignment(0, -0.45),
-          0.95,
-          SediPalette.pistachio500.withOpacity(0.20),
+          const Alignment(0, -0.35),
+          1.0,
+          SediPalette.pistachio300.withOpacity(0.34),
+        ),
+        _glow(
+          const Alignment(0, 1.15),
+          0.9,
+          SediPalette.pistachio100.withOpacity(0.9),
         ),
       ],
     );

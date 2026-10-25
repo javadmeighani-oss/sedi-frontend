@@ -32,7 +32,7 @@ class Gate3MainIconRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: const BoxDecoration(
-        color: SediPalette.skin500,
+        color: SediPalette.skin700,
         shape: BoxShape.circle,
       ),
       constraints: const BoxConstraints(minWidth: 18, minHeight: 18),

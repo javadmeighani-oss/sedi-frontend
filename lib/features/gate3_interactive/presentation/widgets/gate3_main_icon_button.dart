@@ -40,16 +40,16 @@ class Gate3MainIconButton extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: SediPalette.shell100.withOpacity(0.07),
+                    color: Colors.white.withOpacity(0.78),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: SediPalette.shell100.withOpacity(0.14),
+                      color: SediPalette.pistachio700.withOpacity(0.22),
                     ),
                   ),
                   child: Icon(
                     icon,
                     size: 22,
-                    color: SediPalette.shell100,
+                    color: SediPalette.charcoal950,
                   ),
                 ),
                 if (badge != null)
@@ -75,7 +75,7 @@ class Gate3MainIconButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: SediPalette.shell300.withOpacity(0.88),
+                    color: SediPalette.charcoal700,
                     height: 1.15,
                   ),
                 ),

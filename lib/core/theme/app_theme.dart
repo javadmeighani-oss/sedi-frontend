@@ -63,8 +63,8 @@ class AppTheme {
   // Gate 2 Luxury Palette
   // ===============================
   static const Color gate2WarmBackground = SediPalette.shell100;
-  /// A2 page canvas — Charcoal 950 hologram scene (the form card stays Shell).
-  static const Color a2PageBackground = SediPalette.charcoal950;
+  /// A2 page canvas — Shell 100 pistachio-glow scene (LIGHT theme, D-080).
+  static const Color a2PageBackground = SediPalette.shell100;
   static const Color gate2CardWhite = SediPalette.shell100;
   static const Color gate2InputFill = SediPalette.shell300;
   static const Color gate2ButtonActive = SediPalette.charcoal950;

@@ -7,14 +7,15 @@ import 'package:flutter/scheduler.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../models/gate3_interaction_state.dart';
 
-/// Sedi hologram (approved concept D-070 / D-072): a translucent pistachio
-/// dome that holds ONLY the official Sedi wordmark, wrapped by a soft
-/// pistachio + rose halo and two orbit rings.
+/// Sedi hologram, LIGHT theme (D-080): a bright pistachio glass dome holding
+/// ONLY the official Sedi wordmark (deep olive, always crisp and opaque),
+/// wrapped by a soft pistachio halo and two orbit rings.
 ///
 /// Presentation only. State authority is [Gate3InteractionState]
 /// (idle / listening / thinking / speaking). No microphone, I9 or health data.
 /// The wordmark is language-invariant (Latin "Sedi") on purpose.
 ///
+/// [dim] fades the dome and halo only — never the wordmark.
 /// Reduced motion (`MediaQuery.disableAnimations`) freezes every animation.
 class SediHologramOrb extends StatefulWidget {
   final Gate3InteractionState state;
@@ -26,6 +27,9 @@ class SediHologramOrb extends StatefulWidget {
 
   /// false = one static frame (list avatars, icons): no Ticker is started.
   final bool animate;
+
+  /// 0..1 brightness of the dome and halo (the wordmark always stays 100 %).
+  final double dim;
 
   static const String logoAsset = 'assets/images/sedi_wordmark.png';
   static const double logoWidthFactor = 0.68;
@@ -40,6 +44,7 @@ class SediHologramOrb extends StatefulWidget {
     this.showLogo = true,
     this.showRings = true,
     this.animate = true,
+    this.dim = 1.0,
   });
 
   @override
@@ -147,6 +152,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
     super.dispose();
   }
 
+  /// Deep-olive wordmark: crisp, opaque, with a faint light halo to lift the edges.
   Widget _logo(double d) {
     final w = d * SediHologramOrb.logoWidthFactor;
     final h = w / SediHologramOrb.logoAspect;
@@ -169,30 +175,23 @@ class _SediHologramOrbState extends State<SediHologramOrb>
           children: [
             ImageFiltered(
               imageFilter: ui.ImageFilter.blur(
-                sigmaX: d * 0.03,
-                sigmaY: d * 0.03,
+                sigmaX: d * 0.018,
+                sigmaY: d * 0.018,
               ),
               child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
-                  SediPalette.pistachio500,
+                colorFilter: ColorFilter.mode(
+                  SediPalette.shell100.withOpacity(0.75),
                   BlendMode.srcIn,
                 ),
                 child: image(),
               ),
             ),
-            ShaderMask(
+            ColorFiltered(
               key: SediHologramOrb.logoKey,
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (rect) => const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  SediPalette.pistachio100,
-                  SediPalette.pistachio300,
-                ],
-                stops: [0.0, 0.45, 1.0],
-              ).createShader(rect),
+              colorFilter: const ColorFilter.mode(
+                SediPalette.pistachio900,
+                BlendMode.srcIn,
+              ),
               child: image(),
             ),
           ],
@@ -206,6 +205,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
     final d = widget.diameter;
     final outer = d * 1.9;
     final rings = widget.showRings && d >= SediHologramOrb.ringMinDiameter;
+    final dim = widget.dim.clamp(0.0, 1.0).toDouble();
     return Semantics(
       label: 'Sedi',
       image: true,
@@ -222,21 +222,29 @@ class _SediHologramOrbState extends State<SediHologramOrb>
               width: outer,
               height: outer,
               child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _AuraRingsPainter(
-                      clock: _clock,
-                      diameter: d,
-                      rings: rings,
+                child: AnimatedOpacity(
+                  opacity: dim,
+                  duration: const Duration(milliseconds: 400),
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _AuraRingsPainter(
+                        clock: _clock,
+                        diameter: d,
+                        rings: rings,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-            RepaintBoundary(
-              child: CustomPaint(
-                size: Size.square(d),
-                painter: _DomePainter(clock: _clock),
+            AnimatedOpacity(
+              opacity: dim,
+              duration: const Duration(milliseconds: 400),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  size: Size.square(d),
+                  painter: _DomePainter(clock: _clock),
+                ),
               ),
             ),
             if (widget.showLogo) _logo(d),
@@ -263,20 +271,22 @@ class _AuraRingsPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final r = diameter / 2;
     final breath = 0.975 + 0.025 * math.sin(clock.breath);
-    final auraR = r * 1.68 * breath;
+    final auraR = r * 1.62 * breath;
     final listening = clock.state == Gate3InteractionState.listening;
 
-    final pistachio = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          SediPalette.pistachio500.withOpacity(listening ? 0.42 : 0.34),
-          SediPalette.pistachio500.withOpacity(0.10),
-          SediPalette.pistachio500.withOpacity(0.0),
-        ],
-        stops: const [0.0, 0.40, 0.66],
-      ).createShader(Rect.fromCircle(center: c, radius: auraR));
-    canvas.drawCircle(c, auraR, pistachio);
-
+    canvas.drawCircle(
+      c,
+      auraR,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            SediPalette.pistachio300.withOpacity(listening ? 0.55 : 0.40),
+            SediPalette.pistachio300.withOpacity(0.14),
+            SediPalette.pistachio300.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.42, 0.68],
+        ).createShader(Rect.fromCircle(center: c, radius: auraR)),
+    );
 
     if (!rings) return;
     _ring(
@@ -285,9 +295,9 @@ class _AuraRingsPainter extends CustomPainter {
       rw: r * 1.48,
       rh: r * 0.15,
       turns: clock.ringTurns,
-      line: SediPalette.pistachio300.withOpacity(0.50),
-      dot: SediPalette.pistachio100,
-      glow: SediPalette.pistachio300,
+      line: SediPalette.pistachio700.withOpacity(0.38),
+      dot: SediPalette.pistachio900,
+      glow: SediPalette.pistachio500,
       tilt: 0,
     );
     _ring(
@@ -296,8 +306,8 @@ class _AuraRingsPainter extends CustomPainter {
       rw: r * 1.68,
       rh: r * 0.21,
       turns: -clock.ringTurns * 0.7 + 0.25,
-      line: SediPalette.shell300.withOpacity(0.30),
-      dot: SediPalette.shell100,
+      line: SediPalette.shell500.withOpacity(0.75),
+      dot: SediPalette.pistachio700,
       glow: SediPalette.pistachio300,
       tilt: -0.10,
     );
@@ -335,7 +345,7 @@ class _AuraRingsPainter extends CustomPainter {
       p,
       5,
       Paint()
-        ..color = glow.withOpacity(0.6)
+        ..color = glow.withOpacity(0.55)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
     canvas.drawCircle(p, 2.4, Paint()..color = dot);
@@ -366,47 +376,47 @@ class _DomePainter extends CustomPainter {
       canvas.translate(-c.dx, -c.dy);
     }
 
-    // Outer glow (soft, symmetric — no drop shadow under the dome).
+    // Soft symmetric glow (no drop shadow under the dome).
     canvas.drawCircle(
       c,
       r,
       Paint()
-        ..color = SediPalette.pistachio500.withOpacity(0.34)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.30),
+        ..color = SediPalette.pistachio500.withOpacity(0.30)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.26),
     );
 
     canvas.save();
     canvas.clipPath(Path()..addOval(rect));
 
-    canvas.drawRect(rect, Paint()..color = SediPalette.domeUnderlay);
+    canvas.drawRect(rect, Paint()..color = SediPalette.pistachio700);
     canvas.drawRect(
       rect,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.32, -0.48),
-          radius: 1.25,
-          colors: [
-            SediPalette.pistachio100.withOpacity(0.55),
-            SediPalette.pistachio300.withOpacity(0.30),
-            SediPalette.pistachio500.withOpacity(0.22),
-            SediPalette.pistachio900.withOpacity(0.55),
-            SediPalette.charcoal950.withOpacity(0.75),
+          center: const Alignment(-0.30, -0.42),
+          radius: 1.15,
+          colors: const [
+            SediPalette.shell100,
+            SediPalette.pistachio100,
+            SediPalette.pistachio300,
+            SediPalette.pistachio500,
+            SediPalette.pistachio700,
           ],
-          stops: const [0.0, 0.22, 0.46, 0.82, 1.0],
+          stops: const [0.0, 0.16, 0.40, 0.70, 1.0],
         ).createShader(rect),
     );
 
-    // Holographic sweep (pistachio + rose), rotating.
+    // Holographic sweep (light), rotating.
     final speedUp = clock.state == Gate3InteractionState.thinking;
     final sweep = SweepGradient(
       colors: [
-        SediPalette.pistachio100.withOpacity(0.0),
-        SediPalette.shell100.withOpacity(0.30),
-        SediPalette.pistachio300.withOpacity(0.42),
-        SediPalette.pistachio100.withOpacity(0.0),
-        SediPalette.pistachio500.withOpacity(0.38),
-        SediPalette.shell300.withOpacity(0.24),
-        SediPalette.pistachio100.withOpacity(0.0),
+        Colors.white.withOpacity(0.0),
+        Colors.white.withOpacity(0.34),
+        SediPalette.pistachio100.withOpacity(0.30),
+        Colors.white.withOpacity(0.0),
+        SediPalette.pistachio300.withOpacity(0.30),
+        Colors.white.withOpacity(0.22),
+        Colors.white.withOpacity(0.0),
       ],
       stops: const [0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0],
       transform: GradientRotation(clock.holoTurns * 2 * math.pi),
@@ -417,13 +427,13 @@ class _DomePainter extends CustomPainter {
         ..shader = sweep.createShader(rect)
         ..blendMode = BlendMode.screen
         ..colorFilter = ColorFilter.mode(
-          Colors.white.withOpacity(speedUp ? 0.9 : 0.68),
+          Colors.white.withOpacity(speedUp ? 0.95 : 0.70),
           BlendMode.modulate,
         )
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.08),
     );
 
-    // Inner shade (bottom-right) and inset glow (edge).
+    // Glass depth: darker olive toward the lower-right rim.
     canvas.drawRect(
       rect,
       Paint()
@@ -431,21 +441,10 @@ class _DomePainter extends CustomPainter {
           center: const Alignment(0.35, 0.50),
           radius: 0.95,
           colors: [
-            SediPalette.charcoal950.withOpacity(0.0),
-            SediPalette.charcoal950.withOpacity(0.45),
+            SediPalette.pistachio900.withOpacity(0.0),
+            SediPalette.pistachio900.withOpacity(0.34),
           ],
           stops: const [0.55, 1.0],
-        ).createShader(rect),
-    );
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            SediPalette.pistachio100.withOpacity(0.0),
-            SediPalette.pistachio100.withOpacity(0.30),
-          ],
-          stops: const [0.78, 1.0],
         ).createShader(rect),
     );
     canvas.restore();
@@ -456,7 +455,7 @@ class _DomePainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
-        ..color = SediPalette.pistachio100.withOpacity(0.35),
+        ..color = SediPalette.pistachio900.withOpacity(0.22),
     );
 
     // Specular highlight.
@@ -473,14 +472,14 @@ class _DomePainter extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withOpacity(0.70),
+            Colors.white.withOpacity(0.85),
             Colors.white.withOpacity(0.0),
           ],
         ).createShader(spec),
     );
     canvas.restore();
 
-    // Listening ripples (rose).
+    // Listening ripples (pistachio).
     if (clock.state == Gate3InteractionState.listening) {
       for (var k = 0; k < 2; k++) {
         final p = (clock.ripple + k * 0.5) % 1.0;
@@ -490,7 +489,7 @@ class _DomePainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5
-            ..color = SediPalette.pistachio100.withOpacity((1 - p) * 0.8),
+            ..color = SediPalette.pistachio700.withOpacity((1 - p) * 0.55),
         );
       }
     }

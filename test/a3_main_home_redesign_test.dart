@@ -50,7 +50,7 @@ void main() {
     expect(page.contains('Positioned(') && page.contains('SediOrbPresence'), isTrue);
     expect(page.contains('SediSceneBackdrop'), isTrue);
     expect(page.contains('ShaderMask'), isTrue);
-    expect(page.contains('backgroundColor: SediPalette.charcoal950'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.shell100'), isTrue);
     expect(page.contains('l10n.readMore'), isTrue);
     expect(page.contains('l10n.tapToRetry'), isTrue);
 
@@ -100,7 +100,7 @@ void main() {
     expect(vis.contains('barOpacityScale'), isTrue);
 
     expect(sediOrbBrandLatin, 'Sedi.');
-    expect(SediPresenceTokens.presenceGreen, SediPalette.pistachio500);
+    expect(SediPresenceTokens.presenceGreen, SediPalette.pistachio700);
     expect(SediPresenceTokens.amplitudeScale, 0.80);
     expect(SediHorizontalResonanceVisualizer.height, 52);
     expect(SediHorizontalResonanceVisualizer.barCount, 98);

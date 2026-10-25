@@ -77,13 +77,13 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                SediPalette.charcoal900.withOpacity(0.78),
-                SediPalette.charcoal900.withOpacity(0.50),
+                SediPalette.shell100.withOpacity(0.90),
+                SediPalette.shell100.withOpacity(0.72),
               ],
             ),
             border: Border(
               bottom: BorderSide(
-                color: SediPalette.shell100.withOpacity(0.12),
+                color: SediPalette.pistachio700.withOpacity(0.20),
                 width: 0.8,
               ),
             ),
@@ -152,7 +152,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: SediPalette.pistachio300,
+        color: SediPalette.pistachio700,
         strokeWidth: strokeWidth,
       ),
     );

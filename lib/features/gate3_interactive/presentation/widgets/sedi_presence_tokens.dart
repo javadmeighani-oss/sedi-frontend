@@ -9,8 +9,8 @@ import '../../../../core/theme/sedi_palette.dart';
 class SediPresenceTokens {
   SediPresenceTokens._();
 
-  /// Pistachio — resonance bars and hologram halo.
-  static const Color presenceGreen = SediPalette.pistachio500;
+  /// Pistachio 700 — resonance hairlines (readable on the light theme).
+  static const Color presenceGreen = SediPalette.pistachio700;
 
   static const double orbWidthFactor = 0.54;
   static const double orbMinDiameter = 150;

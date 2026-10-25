@@ -50,7 +50,7 @@ void main() {
     );
   });
 
-  test('A3 source keeps the charcoal hologram shell, four domains, and hidden subject selector', () {
+  test('A3 source keeps the light pistachio shell, four domains, and hidden subject selector', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -58,7 +58,7 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart',
     );
 
-    expect(page.contains('backgroundColor: SediPalette.charcoal950'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.shell100'), isTrue);
     expect(page.contains('Offstage('), isTrue);
     expect(page.contains('Gate3SubjectSelector'), isTrue);
     expect(row.contains('profileTitle'), isTrue);

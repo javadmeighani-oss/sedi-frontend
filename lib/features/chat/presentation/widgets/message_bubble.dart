@@ -19,8 +19,8 @@ class MessageBubble extends StatefulWidget {
 
   /// Soft halo so assistant text stays readable over the background hologram.
   static const List<Shadow> _sediTextShadows = [
-    Shadow(color: Color(0xF2161814), blurRadius: 14),
-    Shadow(color: Color(0xCC161814), blurRadius: 3),
+    Shadow(color: Color(0xF2FBF8EE), blurRadius: 12),
+    Shadow(color: Color(0xCCFBF8EE), blurRadius: 3),
   ];
 
   /// First-strong-character direction for bidi-safe user text.
@@ -92,7 +92,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             textDirection: textDirection,
             textAlign: textAlign,
             style: TextStyle(
-              color: SediPalette.shell100,
+              color: SediPalette.charcoal950,
               fontSize: 15,
               height: 1.45,
               shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
@@ -115,7 +115,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                   ? (widget.readLessLabel ?? 'Read less')
                   : (widget.readMoreLabel ?? 'Read more'),
               style: const TextStyle(
-                color: SediPalette.pistachio300,
+                color: SediPalette.pistachio700,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -129,7 +129,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             child: Text(
               widget.retryLabel ?? 'Tap to retry',
               style: const TextStyle(
-                color: SediPalette.pistachio300,
+                color: SediPalette.skin700,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -165,7 +165,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               child: Icon(
                 Icons.edit_outlined,
                 size: 16,
-                color: SediPalette.shell300.withOpacity(0.7),
+                color: SediPalette.charcoal500,
               ),
             ),
           ),
@@ -212,7 +212,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: SediPalette.pistachio500.withOpacity(0.15),
+                    color: SediPalette.pistachio300.withOpacity(0.55),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppTheme.radiusLarge),
                       topRight: Radius.circular(AppTheme.radiusLarge),
@@ -220,7 +220,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                       bottomRight: Radius.circular(AppTheme.radiusSmall),
                     ),
                     border: Border.all(
-                      color: SediPalette.pistachio500.withOpacity(0.32),
+                      color: SediPalette.pistachio700.withOpacity(0.24),
                       width: 1,
                     ),
 
@@ -306,7 +306,7 @@ class _TypingDotsState extends State<_TypingDots>
         width: 6,
         height: 6,
         decoration: const BoxDecoration(
-          color: SediPalette.pistachio300,
+          color: SediPalette.pistachio700,
           shape: BoxShape.circle,
         ),
       ),

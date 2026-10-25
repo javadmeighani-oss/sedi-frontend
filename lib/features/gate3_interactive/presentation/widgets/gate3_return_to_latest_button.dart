@@ -79,15 +79,15 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: _pressed
-                ? SediPalette.charcoal700.withOpacity(0.85)
-                : SediPalette.charcoal900.withOpacity(0.72),
+                ? SediPalette.pistachio100
+                : Colors.white.withOpacity(0.92),
             border: Border.all(
-              color: SediPalette.shell100.withOpacity(0.18),
+              color: SediPalette.pistachio700.withOpacity(0.30),
             ),
           ),
           child: const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: SediPalette.pistachio300,
+            color: SediPalette.pistachio700,
             size: 24,
           ),
         ),

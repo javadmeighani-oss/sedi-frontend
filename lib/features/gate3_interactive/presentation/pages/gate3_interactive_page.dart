@@ -277,9 +277,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         _handleBackPress();
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
+        value: SystemUiOverlayStyle.dark,
         child: Scaffold(
-          backgroundColor: SediPalette.charcoal950,
+          backgroundColor: SediPalette.shell100,
           resizeToAvoidBottomInset: true,
           body: Stack(
             fit: StackFit.expand,
@@ -512,7 +512,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             style: TextStyle(
               fontSize: 14,
               height: 1.35,
-              color: SediPalette.shell300.withOpacity(0.78),
+              color: SediPalette.charcoal500,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -599,13 +599,13 @@ class _DayChip extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: SediPalette.shell100.withOpacity(0.07),
+          color: SediPalette.shell300.withOpacity(0.9),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: SediPalette.shell300.withOpacity(0.72),
+            color: SediPalette.skin700,
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
           ),

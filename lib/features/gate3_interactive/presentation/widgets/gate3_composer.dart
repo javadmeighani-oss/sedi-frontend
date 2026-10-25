@@ -148,21 +148,21 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         textAlign: textAlign,
         textAlignVertical: TextAlignVertical.center,
         scrollPhysics: const BouncingScrollPhysics(),
-        cursorColor: SediPalette.pistachio300,
+        cursorColor: SediPalette.pistachio700,
         decoration: InputDecoration(
           isCollapsed: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
           border: InputBorder.none,
           hintText: widget.placeholder,
           hintStyle: TextStyle(
-            color: SediPalette.shell300.withOpacity(0.62),
+            color: SediPalette.charcoal500,
             fontSize: 12.8,
             height: 1.35,
           ),
           alignLabelWithHint: true,
         ),
         style: const TextStyle(
-          color: SediPalette.shell100,
+          color: SediPalette.charcoal950,
           fontSize: 16.2,
           height: 1.35,
         ),
@@ -181,10 +181,10 @@ class _Gate3ComposerState extends State<Gate3Composer> {
             height: 10,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: SediPalette.skin500,
+              color: SediPalette.skin700,
               boxShadow: [
                 BoxShadow(
-                  color: SediPalette.skin500.withOpacity(0.6),
+                  color: SediPalette.skin700.withOpacity(0.45),
                   blurRadius: 8,
                 ),
               ],
@@ -194,7 +194,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           Text(
             widget.recordingTime,
             style: const TextStyle(
-              color: SediPalette.skin300,
+              color: SediPalette.skin700,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -210,9 +210,9 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         icon: Icons.stop_rounded,
         size: 44,
         iconSize: 24,
-        backgroundColor: SediPalette.skin500,
+        backgroundColor: SediPalette.skin700,
         iconColor: Colors.white,
-        glowColor: SediPalette.skin500,
+        glowColor: SediPalette.skin700,
         onTap: _handleMic,
       );
     }
@@ -223,7 +223,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         iconSize: 24,
         backgroundColor: SediPalette.pistachio500,
         iconColor: SediPalette.charcoal950,
-        glowColor: SediPalette.pistachio500,
+        glowColor: SediPalette.pistachio300,
         onTap: _send,
       );
     }
@@ -233,7 +233,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
       iconSize: 24,
       backgroundColor: SediPalette.pistachio500,
       iconColor: SediPalette.charcoal950,
-      glowColor: SediPalette.pistachio500,
+      glowColor: SediPalette.pistachio300,
       onTap: _handleMic,
     );
   }
@@ -259,12 +259,12 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  SediPalette.shell100.withOpacity(0.13),
-                  SediPalette.shell100.withOpacity(0.05),
+                  Colors.white.withOpacity(0.88),
+                  SediPalette.shell100.withOpacity(0.78),
                 ],
               ),
               border: Border.all(
-                color: SediPalette.shell100.withOpacity(0.14),
+                color: SediPalette.pistachio700.withOpacity(0.22),
               ),
             ),
             child: Padding(
