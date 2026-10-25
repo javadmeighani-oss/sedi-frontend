@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 /// Shared presentation surface for A3 destinations reused by Lifestyle,
 /// Gadgets, Notifications, and Profile. Pure UI — no API or authority.
 class A3DestinationSurface {
   A3DestinationSurface._();
 
-  static const Color canvas = Color(0xFFFFFFFF);
+  static const Color canvas = SediPalette.shell100;
 
   static const List<BoxShadow> cardShadow = [
     BoxShadow(

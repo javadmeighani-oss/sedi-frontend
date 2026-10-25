@@ -15,7 +15,7 @@ import 'lifestyle_schedule_page.dart';
 class LifestylePage extends StatelessWidget {
   const LifestylePage({super.key});
 
-  static const Color _canvas = Color(0xFFFFFFFF);
+  static const Color _canvas = Color(0xFFFBF8EE); // Sedi Shell 100 (= A3DestinationSurface.canvas)
 
   @override
   Widget build(BuildContext context) {

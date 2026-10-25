@@ -11,11 +11,14 @@ import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../../data/dto/auth/otp_request.dart';
 import '../../../../data/dto/auth/otp_verify_response.dart';
 import '../../../../services/push/push_service.dart';
+import '../a2_hologram_header.dart';
 import '../a2_language_sync.dart';
 import '../a2_otp_error_mapper.dart';
 import '../a2_phone_e164.dart';
@@ -850,7 +853,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           body: Gate2Widgets.pageShell(
             isLoading: _isLoading,
             loadingLabel: _l10n.pleaseWait,
-            child: SafeArea(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const SediSceneBackdrop(),
+                SafeArea(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),
                 switchInCurve: Curves.easeOut,
@@ -870,6 +877,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                   child: _buildStep(),
                 ),
               ),
+            ),
+              ],
             ),
           ),
         ),
@@ -894,7 +903,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
   }
 
-  Widget _buildScrollShell(Widget child) {
+  Widget _buildScrollShell(
+    Widget child, {
+    bool hero = false,
+    Gate3InteractionState orbState = Gate3InteractionState.idle,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -902,7 +915,18 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           padding: EdgeInsets.fromLTRB(24, 28, 24, 28 + bottomInset),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight - 56),
-            child: child,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                A2HologramHeader(
+                  l10n: _l10n,
+                  hero: hero,
+                  state: orbState,
+                ),
+                child,
+              ],
+            ),
           ),
         );
       },
@@ -939,6 +963,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           ],
         ),
       ),
+      hero: true,
     );
   }
 
@@ -1221,6 +1246,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           ],
         ),
       ),
+      orbState: Gate3InteractionState.listening,
     );
   }
 

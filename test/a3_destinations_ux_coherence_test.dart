@@ -34,7 +34,7 @@ void main() {
     final helper = _read(
       'lib/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart',
     );
-    expect(helper.contains('Color(0xFFFFFFFF)'), isTrue);
+    expect(helper.contains('SediPalette.shell100'), isTrue);
     expect(helper.contains('gate2BorderSubtle'), isTrue);
     expect(helper.contains('radiusLarge'), isTrue);
 

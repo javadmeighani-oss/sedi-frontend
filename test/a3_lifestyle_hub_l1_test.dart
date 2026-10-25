@@ -104,13 +104,13 @@ void main() {
     expect(hub.contains('popUntil((route) => route.isFirst)'), isTrue);
   });
 
-  testWidgets('hub renders five tappable cards on a white canvas',
+  testWidgets('hub renders five tappable cards on the Shell canvas',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LifestylePage()));
     await tester.pump();
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-    expect(scaffold.backgroundColor, const Color(0xFFFFFFFF));
+    expect(scaffold.backgroundColor, const Color(0xFFFBF8EE));
     expect(scaffold.backgroundColor, isNot(AppTheme.gate3PaleOliveBackground));
 
     final l10n = LifestyleL10n('en');

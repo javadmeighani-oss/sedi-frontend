@@ -6,6 +6,7 @@ import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/notifications/notification_action_coordinator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
@@ -14,8 +15,10 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import '../notification_inbox_l10n.dart';
 
 enum InboxFilter { all, unread }
@@ -738,10 +741,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: A3DestinationCard(
         backgroundColor: displayAttention
-            ? const Color(0xFFEEF0E8)
+            ? SediPalette.pistachio100
             : AppTheme.gate2CardWhite,
         borderColor: displayAttention
-            ? AppTheme.gate2ButtonOlive.withOpacity(0.35)
+            ? SediPalette.pistachio500.withOpacity(0.7)
             : AppTheme.gate2BorderSubtle,
         onTap: () async {
           if (_selectionMode) {
@@ -784,6 +787,16 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                 ),
               ),
+            // Hologram avatar (static frame — no Ticker per list row).
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12),
+              child: SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 40,
+                showRings: false,
+                animate: false,
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,7 +810,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           width: 10,
                           height: 10,
                           decoration: const BoxDecoration(
-                            color: AppTheme.gate2ButtonOlive,
+                            color: SediPalette.skin500,
                             shape: BoxShape.circle,
                           ),
                         ),

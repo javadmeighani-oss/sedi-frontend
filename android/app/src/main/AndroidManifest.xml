@@ -53,6 +53,13 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="engagement" />
+        <!-- Sedi status-bar icon + accent for FCM-rendered notifications (hologram redesign) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_sedi" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/sedi_notification_accent" />
         <!-- flutter_local_notifications: required for Gate4 action cancel/callback -->
         <receiver
             android:exported="false"

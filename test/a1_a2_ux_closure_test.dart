@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/theme/app_theme.dart';
+import 'package:sedi_app/core/theme/sedi_palette.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_layout.dart';
 import 'package:sedi_app/features/auth_otp/presentation/a2_phone_e164.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_otp_input.dart';
@@ -114,7 +115,7 @@ void main() {
       expect(A2Layout.primaryCtaHeight, 52);
       expect(A2Layout.primaryCtaFontSize, 18);
       expect(A2Layout.controlFontSize, 16);
-      expect(AppTheme.a2PageBackground, const Color(0xFFFFFFFF));
+      expect(AppTheme.a2PageBackground, SediPalette.charcoal950);
       expect(AppTheme.a2CompactControlMax, A2Layout.compactControlMax);
       expect(AppTheme.a2PrimaryCtaMax, A2Layout.primaryCtaMax);
 

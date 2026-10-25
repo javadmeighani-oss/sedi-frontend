@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/theme/sedi_palette.dart';
 import 'package:sedi_app/core/utils/brand_name.dart';
 import 'package:sedi_app/data/dto/auth/otp_request.dart';
 import 'package:sedi_app/data/dto/auth/otp_verify.dart';
@@ -189,7 +190,7 @@ void main() {
     expect(profile.contains('logoutSection'), isFalse);
     expect(profile.contains('TextDirection.ltr'), isTrue);
     expect(profile.contains('A3DestinationSurface.canvas'), isTrue);
-    expect(A3DestinationSurface.canvas, const Color(0xFFFFFFFF));
+    expect(A3DestinationSurface.canvas, SediPalette.shell100);
 
     final notifications = _read('lib/services/notifications/notifications_service.dart');
     expect(notifications.contains("'/notifications/'"), isTrue);

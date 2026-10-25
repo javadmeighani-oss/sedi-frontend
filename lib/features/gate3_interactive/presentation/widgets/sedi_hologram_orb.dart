@@ -24,6 +24,9 @@ class SediHologramOrb extends StatefulWidget {
   /// Orbit rings are skipped for small icons (< [ringMinDiameter]).
   final bool showRings;
 
+  /// false = one static frame (list avatars, icons): no Ticker is started.
+  final bool animate;
+
   static const String logoAsset = 'assets/images/sedi_wordmark.png';
   static const double logoWidthFactor = 0.68;
   static const double logoAspect = 906 / 315;
@@ -36,6 +39,7 @@ class SediHologramOrb extends StatefulWidget {
     required this.diameter,
     this.showLogo = true,
     this.showRings = true,
+    this.animate = true,
   });
 
   @override
@@ -111,7 +115,8 @@ class _SediHologramOrbState extends State<SediHologramOrb>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _reduceMotion = (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ||
+        !widget.animate;
     if (_reduceMotion) {
       if (_ticker.isActive) _ticker.stop();
     } else if (!_ticker.isActive) {

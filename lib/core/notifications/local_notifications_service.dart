@@ -9,15 +9,24 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'background_notification_action_handler.dart';
 import 'tray_notification_snapshot_store.dart';
 
 /// Expected Android raw resource name (file without extension): sedi_alarm.
 const String androidSoundResource = 'sedi_alarm';
+
+/// Android status-bar small icon (white silhouette drawable, hologram redesign).
+const String androidBrandSmallIcon = 'ic_stat_sedi';
+
+/// Hologram large icon shown in the expanded/lock-screen notification.
+const String androidBrandLargeIconAsset =
+    'assets/images/sedi_notification_large.png';
 
 /// iOS sound file name (as in Runner bundle): sedi_alarm.wav (or .caf).
 const String iosSoundFile = 'sedi_alarm.wav';
@@ -268,7 +277,7 @@ class LocalNotificationsService {
     }
     onNotificationResponse = onResponse;
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings(androidBrandSmallIcon);
     const darwin = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestSoundPermission: true,
@@ -300,8 +309,22 @@ class LocalNotificationsService {
         await impl?.createNotificationChannel(ch);
       }
     }
+    await _loadBrandLargeIcon();
     _initialized = true;
     return true;
+  }
+
+  static ByteArrayAndroidBitmap? _brandLargeIcon;
+
+  /// Fail-open: a missing asset only means no large icon.
+  static Future<void> _loadBrandLargeIcon() async {
+    if (_brandLargeIcon != null || !Platform.isAndroid) return;
+    try {
+      final data = await rootBundle.load(androidBrandLargeIconAsset);
+      _brandLargeIcon = ByteArrayAndroidBitmap(data.buffer.asUint8List());
+    } catch (e) {
+      debugPrint('[LocalNotif] brand large icon unavailable: $e');
+    }
   }
 
   /// Public for tests. Old channel IDs remain installed; Gate4 routes to v5/v4.
@@ -466,6 +489,9 @@ class LocalNotificationsService {
       final android = AndroidNotificationDetails(
         channelId,
         channelDisplayName(channelId),
+        icon: androidBrandSmallIcon,
+        color: SediPalette.pistachio500,
+        largeIcon: _brandLargeIcon,
         channelDescription: '${sediBrandName('en')} notifications',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
@@ -550,6 +576,9 @@ class LocalNotificationsService {
       final android = AndroidNotificationDetails(
         channelId,
         channelDisplayName(channelId),
+        icon: androidBrandSmallIcon,
+        color: SediPalette.pistachio500,
+        largeIcon: _brandLargeIcon,
         channelDescription: '${sediBrandName('en')} notifications',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
@@ -645,6 +674,9 @@ class LocalNotificationsService {
       final android = AndroidNotificationDetails(
         channelId,
         channelDisplayName(channelId),
+        icon: androidBrandSmallIcon,
+        color: SediPalette.pistachio500,
+        largeIcon: _brandLargeIcon,
         channelDescription: '${sediBrandName('en')} notifications',
         importance: importance,
         priority: priority,
@@ -714,6 +746,9 @@ class LocalNotificationsService {
     final android = AndroidNotificationDetails(
       _channelId,
       _channelName,
+      icon: androidBrandSmallIcon,
+      color: SediPalette.pistachio500,
+      largeIcon: _brandLargeIcon,
       channelDescription: '${sediBrandName('en')} health and reminder alerts',
       importance: Importance.high,
       priority: Priority.high,
