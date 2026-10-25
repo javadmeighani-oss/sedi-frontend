@@ -1,8 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 /// Presentation-only collapsible tray around the A3 destination icon row.
+/// Hologram redesign: a glass tray that floats over the scene (same API).
 class Gate3TopNavigationTray extends StatefulWidget {
   final bool expanded;
   final VoidCallback onToggle;
@@ -63,17 +66,30 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
   @override
   Widget build(BuildContext context) {
     final showIcons = widget.expanded || _size.value > 0.001;
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(
-          bottom: BorderSide(color: AppTheme.gate2BorderSubtle, width: 0.8),
-        ),
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(18),
-        ),
-      ),
-      child: Column(
+    const radius = BorderRadius.vertical(bottom: Radius.circular(22));
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                SediPalette.charcoal900.withOpacity(0.78),
+                SediPalette.charcoal900.withOpacity(0.50),
+              ],
+            ),
+            border: Border(
+              bottom: BorderSide(
+                color: SediPalette.shell100.withOpacity(0.12),
+                width: 0.8,
+              ),
+            ),
+            borderRadius: radius,
+          ),
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           GestureDetector(
@@ -114,6 +130,8 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -134,7 +152,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: AppTheme.textSecondary,
+        color: SediPalette.skin300,
         strokeWidth: strokeWidth,
       ),
     );

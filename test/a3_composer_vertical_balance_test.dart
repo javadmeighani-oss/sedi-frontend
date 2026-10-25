@@ -18,7 +18,8 @@ Gate3Composer _composer({required String placeholder}) {
 }
 
 void main() {
-  testWidgets('empty composer uses +15% vertical geometry without a fixed height',
+  testWidgets(
+      'hologram composer is a single glass row [+] [field] [mic] without a fixed height',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -32,7 +33,7 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontSize, 16.2);
     expect(field.decoration?.hintStyle?.fontSize, 12.8);
-    expect(field.textAlignVertical, TextAlignVertical.top);
+    expect(field.textAlignVertical, TextAlignVertical.center);
     expect(field.minLines, 1);
     expect(field.maxLines, isNull);
 
@@ -42,16 +43,8 @@ void main() {
         matching: find.byType(ConstrainedBox),
       ).first,
     );
-    expect(textBox.constraints.minHeight, 40);
+    expect(textBox.constraints.minHeight, 44);
     expect(textBox.constraints.maxHeight, 168);
-
-    final textPad = tester.widget<Padding>(
-      find.ancestor(
-        of: find.byType(TextField),
-        matching: find.byType(Padding),
-      ).first,
-    );
-    expect(textPad.padding, const EdgeInsets.fromLTRB(14, 8, 14, 0));
 
     final add = tester.widget<Gate3ComposerActionButton>(
       find.widgetWithIcon(Gate3ComposerActionButton, Icons.add_rounded),
@@ -59,26 +52,18 @@ void main() {
     final mic = tester.widget<Gate3ComposerActionButton>(
       find.widgetWithIcon(Gate3ComposerActionButton, Icons.mic_rounded),
     );
-    expect(add.size, 36);
+    expect(add.size, 44);
     expect(add.iconSize, 22);
-    expect(mic.size, 40);
+    expect(mic.size, 44);
     expect(mic.iconSize, 24);
 
-    final toolbarPad = tester.widget<Padding>(
-      find.ancestor(
-        of: find.byWidget(add),
-        matching: find.byType(Padding),
-      ).first,
-    );
-    expect(toolbarPad.padding, const EdgeInsets.fromLTRB(8, 7, 8, 8));
-
-    final column = tester.widget<Column>(
+    final row = tester.widget<Row>(
       find.descendant(
         of: find.byType(Gate3Composer),
-        matching: find.byType(Column),
+        matching: find.byType(Row),
       ).first,
     );
-    expect(column.mainAxisSize, MainAxisSize.min);
+    expect(row.crossAxisAlignment, CrossAxisAlignment.end);
     expect(find.byType(TextField), findsOneWidget);
   });
 }

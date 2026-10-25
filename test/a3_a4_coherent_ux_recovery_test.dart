@@ -11,6 +11,7 @@ import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_orb_presence.dart';
 import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.dart';
@@ -389,7 +390,7 @@ void main() {
   });
 
   group('R1 orb resonance center', () {
-    testWidgets('one full-width visualizer shares the orb centerline',
+    testWidgets('one full-width visualizer sits under the hologram, same centre line',
         (tester) async {
       for (final state in Gate3InteractionState.values) {
         await tester.pumpWidget(
@@ -414,9 +415,9 @@ void main() {
         final bars = tester.getRect(
           find.byType(SediHorizontalResonanceVisualizer),
         );
-        expect(bars.center.dy, closeTo(orb.center.dy, 0.5));
+        expect(bars.top, greaterThan(orb.bottom));
         expect(bars.center.dx, closeTo(orb.center.dx, 1.0));
-        expect(find.text('Sedi.'), findsOneWidget);
+        expect(find.byKey(SediHologramOrb.logoKey), findsOneWidget);
         final usable = 390 - 2 * SediOrbPresence.horizontalInset;
         final expected = SediBrainOrb.diameterFor(usable.toDouble());
         expect(tester.getSize(find.byType(SediBrainOrb)).width,
@@ -472,7 +473,7 @@ void main() {
       final usable = 390 - 2 * SediOrbPresence.horizontalInset;
       expect(
         closed.height,
-        closeTo(SediBrainOrb.diameterFor(usable.toDouble()), 0.5),
+        closeTo(SediOrbPresence.heightFor(usable.toDouble(), 72), 0.5),
       );
       expect(closed.width, greaterThan(SediBrainOrb.minDiameter));
     });

@@ -12,6 +12,7 @@ import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_sta
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 
@@ -48,7 +49,7 @@ void main() {
     );
   });
 
-  test('A3 source keeps white shell, four domains, and hidden subject selector', () {
+  test('A3 source keeps the charcoal hologram shell, four domains, and hidden subject selector', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -56,7 +57,7 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart',
     );
 
-    expect(page.contains('backgroundColor: Colors.white'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.charcoal950'), isTrue);
     expect(page.contains('Offstage('), isTrue);
     expect(page.contains('Gate3SubjectSelector'), isTrue);
     expect(row.contains('profileTitle'), isTrue);
@@ -66,7 +67,7 @@ void main() {
     expect(row.contains('healthCare'), isFalse);
   });
 
-  testWidgets('A3 orb always renders Latin Sedi. in RTL locale', (tester) async {
+  testWidgets('A3 hologram always renders the Latin wordmark in RTL locale', (tester) async {
     expect(sediOrbBrandLatin, 'Sedi.');
     await tester.pumpWidget(
       const Directionality(
@@ -74,7 +75,7 @@ void main() {
         child: SediBrainOrb(state: Gate3InteractionState.speaking, lang: 'fa'),
       ),
     );
-    expect(find.text('Sedi.'), findsOneWidget);
+    expect(find.byKey(SediHologramOrb.logoKey), findsOneWidget);
     expect(find.text('صدی'), findsNothing);
     expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);

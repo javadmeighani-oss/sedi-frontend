@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 class MessageBubble extends StatefulWidget {
   final String message;
@@ -10,6 +11,17 @@ class MessageBubble extends StatefulWidget {
   final VoidCallback? onEdit;
   final String? editLabel;
   final bool showTyping;
+
+  /// Localized labels (EN defaults keep older call sites unchanged).
+  final String? readMoreLabel;
+  final String? readLessLabel;
+  final String? retryLabel;
+
+  /// Soft halo so assistant text stays readable over the background hologram.
+  static const List<Shadow> _sediTextShadows = [
+    Shadow(color: Color(0xF2161814), blurRadius: 14),
+    Shadow(color: Color(0xCC161814), blurRadius: 3),
+  ];
 
   /// First-strong-character direction for bidi-safe user text.
   static TextDirection resolveTextDirection(String text) {
@@ -40,6 +52,9 @@ class MessageBubble extends StatefulWidget {
     this.onEdit,
     this.editLabel,
     this.showTyping = false,
+    this.readMoreLabel,
+    this.readLessLabel,
+    this.retryLabel,
   });
 
   @override
@@ -76,10 +91,11 @@ class _MessageBubbleState extends State<MessageBubble> {
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
             textDirection: textDirection,
             textAlign: textAlign,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: SediPalette.shell100,
               fontSize: 15,
               height: 1.45,
+              shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
             ),
           );
 
@@ -95,9 +111,11 @@ class _MessageBubbleState extends State<MessageBubble> {
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Text(
-              _expanded ? 'Read less' : 'Read more',
+              _expanded
+                  ? (widget.readLessLabel ?? 'Read less')
+                  : (widget.readMoreLabel ?? 'Read more'),
               style: const TextStyle(
-                color: AppTheme.textSecondary,
+                color: SediPalette.pistachio300,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -108,10 +126,10 @@ class _MessageBubbleState extends State<MessageBubble> {
           const SizedBox(height: 6),
           GestureDetector(
             onTap: widget.onRetry,
-            child: const Text(
-              'Tap to retry',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
+            child: Text(
+              widget.retryLabel ?? 'Tap to retry',
+              style: const TextStyle(
+                color: SediPalette.skin300,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -147,7 +165,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               child: Icon(
                 Icons.edit_outlined,
                 size: 16,
-                color: AppTheme.textSecondary.withOpacity(0.9),
+                color: SediPalette.shell300.withOpacity(0.7),
               ),
             ),
           ),
@@ -194,7 +212,14 @@ class _MessageBubbleState extends State<MessageBubble> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.metalGrey.withOpacity(0.15),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        SediPalette.pistachio500.withOpacity(0.26),
+                        SediPalette.skin500.withOpacity(0.17),
+                      ],
+                    ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppTheme.radiusLarge),
                       topRight: Radius.circular(AppTheme.radiusLarge),
@@ -202,10 +227,16 @@ class _MessageBubbleState extends State<MessageBubble> {
                       bottomRight: Radius.circular(AppTheme.radiusSmall),
                     ),
                     border: Border.all(
-                      color: AppTheme.metalGrey.withOpacity(0.35),
+                      color: SediPalette.skin300.withOpacity(0.4),
                       width: 1,
                     ),
-                    boxShadow: AppTheme.softShadow,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x47000000),
+                        blurRadius: 24,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: body,
                 ),
@@ -288,7 +319,7 @@ class _TypingDotsState extends State<_TypingDots>
         width: 6,
         height: 6,
         decoration: const BoxDecoration(
-          color: AppTheme.iconInactive,
+          color: SediPalette.pistachio300,
           shape: BoxShape.circle,
         ),
       ),

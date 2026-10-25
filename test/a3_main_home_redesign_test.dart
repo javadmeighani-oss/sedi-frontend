@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/theme/sedi_palette.dart';
 import 'package:sedi_app/core/utils/brand_name.dart';
 import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_state.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_top_navigation_tray.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_orb_presence.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_presence_tokens.dart';
@@ -44,8 +46,13 @@ void main() {
     expect(page.contains('late final ChatController _controller'), isTrue);
     expect(page.contains('_topTrayExpanded'), isTrue);
     expect(page.contains('sendUserMessage(widget.initialDraft'), isFalse);
+    // Hologram scene: the presence is a background layer under a transparent chat.
     expect(page.contains('Positioned(') && page.contains('SediOrbPresence'), isTrue);
-    expect(RegExp(r'Positioned[\s\S]*SediOrbPresence').hasMatch(page), isFalse);
+    expect(page.contains('SediSceneBackdrop'), isTrue);
+    expect(page.contains('ShaderMask'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.charcoal950'), isTrue);
+    expect(page.contains('l10n.readMore'), isTrue);
+    expect(page.contains('l10n.tapToRetry'), isTrue);
 
     expect(row.contains('profileTitle'), isTrue);
     expect(row.contains('lifestyle'), isTrue);
@@ -56,10 +63,16 @@ void main() {
 
     expect(orb.contains('SediFrequencyRingPainter'), isFalse);
     expect(orb.contains('SediOrbTexturePainter'), isFalse);
-    expect(orb.contains('sediOrbBrandLatin'), isTrue);
-    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.204, 0.0001));
-    expect(SediPresenceTokens.orbMinDiameter, closeTo(73.6, 0.0001));
-    expect(SediPresenceTokens.orbMaxDiameter, closeTo(83.2, 0.0001));
+    expect(orb.contains('SediHologramOrb'), isTrue);
+    final holo = _read(
+      'lib/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart',
+    );
+    expect(holo.contains('assets/images/sedi_wordmark.png'), isTrue);
+    expect(holo.contains('disableAnimations'), isTrue);
+    expect(holo.contains('Random('), isFalse);
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.54, 0.0001));
+    expect(SediPresenceTokens.orbMinDiameter, closeTo(150, 0.0001));
+    expect(SediPresenceTokens.orbMaxDiameter, closeTo(250, 0.0001));
     expect(SediPresenceTokens.barOpacityScale, closeTo(1.20, 0.0001));
     expect(presence.contains('horizontalInset * 2'), isFalse);
     expect(presence.contains('maxW - SediOrbPresence.horizontalInset'), isFalse);
@@ -85,11 +98,9 @@ void main() {
     expect(vis.contains('height = SediPresenceTokens.visualizerHeight'), isTrue);
     expect(vis.contains('phaseSpeed = 0.85'), isTrue);
     expect(vis.contains('barOpacityScale'), isTrue);
-    expect(orb.contains('d * 0.34'), isTrue);
-    expect(orb.contains('0.80'), isFalse);
 
     expect(sediOrbBrandLatin, 'Sedi.');
-    expect(SediPresenceTokens.presenceGreen, const Color(0xFF86F83C));
+    expect(SediPresenceTokens.presenceGreen, SediPalette.pistachio500);
     expect(SediPresenceTokens.amplitudeScale, 0.80);
     expect(SediHorizontalResonanceVisualizer.height, 52);
     expect(SediHorizontalResonanceVisualizer.barCount, 98);
@@ -205,11 +216,11 @@ void main() {
     expect(speakingCapped, lessThan(SediHorizontalResonanceVisualizer.previousSpeakingPeak));
   });
 
-  test('responsive orb diameter is 80% of prior tokens and clamped', () {
-    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.255 * 0.80, 0.0001));
-    expect(SediPresenceTokens.orbMinDiameter, closeTo(92 * 0.80, 0.0001));
-    expect(SediPresenceTokens.orbMaxDiameter, closeTo(104 * 0.80, 0.0001));
-    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.204, 0.01));
+  test('hologram diameter is 54% of the usable width and clamped 150..250', () {
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.54, 0.0001));
+    expect(SediPresenceTokens.orbMinDiameter, closeTo(150, 0.0001));
+    expect(SediPresenceTokens.orbMaxDiameter, closeTo(250, 0.0001));
+    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.54, 0.01));
     expect(SediBrainOrb.diameterFor(200), SediBrainOrb.minDiameter);
     expect(SediBrainOrb.diameterFor(800), SediBrainOrb.maxDiameter);
     expect(SediPresenceTokens.barCountFor(400), inInclusiveRange(96, 100));
@@ -347,7 +358,7 @@ void main() {
     expect(collapsedChat.height, greaterThan(expandedChat.height));
   });
 
-  testWidgets('presence renders one visualizer, no ring/texture, Latin Sedi.',
+  testWidgets('presence renders one visualizer and the wordmark hologram',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -369,7 +380,7 @@ void main() {
     );
     await tester.pump();
     expect(find.byType(SediHorizontalResonanceVisualizer), findsOneWidget);
-    expect(find.text('Sedi.'), findsOneWidget);
+    expect(find.byKey(SediHologramOrb.logoKey), findsOneWidget);
     expect(find.text('صدی'), findsNothing);
     final presenceRect = tester.getRect(find.byType(SediOrbPresence));
     final orbRect = tester.getRect(find.byType(SediBrainOrb));

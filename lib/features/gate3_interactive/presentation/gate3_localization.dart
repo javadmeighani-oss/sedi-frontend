@@ -363,6 +363,16 @@ class Gate3Localization {
 
   String get editMessage => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
 
+  String get readMore => _t(en: 'Read more', fa: 'بیشتر', ar: 'المزيد');
+
+  String get readLess => _t(en: 'Read less', fa: 'کمتر', ar: 'أقل');
+
+  String get tapToRetry => _t(
+        en: 'Tap to retry',
+        fa: 'برای تلاش دوباره بزن',
+        ar: 'اضغط لإعادة المحاولة',
+      );
+
   String _t({required String en, required String fa, required String ar}) {
     switch (lang) {
       case 'fa':

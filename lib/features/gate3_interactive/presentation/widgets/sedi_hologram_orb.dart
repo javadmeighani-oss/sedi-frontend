@@ -1,0 +1,508 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+
+import '../../../../core/theme/sedi_palette.dart';
+import '../../models/gate3_interaction_state.dart';
+
+/// Sedi hologram (approved concept D-070 / D-072): a translucent pistachio
+/// dome that holds ONLY the official Sedi wordmark, wrapped by a soft
+/// pistachio + rose halo and two orbit rings.
+///
+/// Presentation only. State authority is [Gate3InteractionState]
+/// (idle / listening / thinking / speaking). No microphone, I9 or health data.
+/// The wordmark is language-invariant (Latin "Sedi") on purpose.
+///
+/// Reduced motion (`MediaQuery.disableAnimations`) freezes every animation.
+class SediHologramOrb extends StatefulWidget {
+  final Gate3InteractionState state;
+  final double diameter;
+  final bool showLogo;
+
+  /// Orbit rings are skipped for small icons (< [ringMinDiameter]).
+  final bool showRings;
+
+  static const String logoAsset = 'assets/images/sedi_wordmark.png';
+  static const double logoWidthFactor = 0.68;
+  static const double logoAspect = 906 / 315;
+  static const double ringMinDiameter = 100;
+  static const ValueKey<String> logoKey = ValueKey<String>('sedi-hologram-logo');
+
+  const SediHologramOrb({
+    super.key,
+    required this.state,
+    required this.diameter,
+    this.showLogo = true,
+    this.showRings = true,
+  });
+
+  @override
+  State<SediHologramOrb> createState() => _SediHologramOrbState();
+}
+
+/// Shared animation clock: painters repaint from it without rebuilding widgets.
+class _HoloClock extends ChangeNotifier {
+  Gate3InteractionState state = Gate3InteractionState.idle;
+  double holoTurns = 0;
+  double ringTurns = 0;
+  double breath = 0;
+  double pulse = 0;
+  double ripple = 0;
+
+  static double _holoSpeed(Gate3InteractionState s) {
+    switch (s) {
+      case Gate3InteractionState.idle:
+        return 1 / 16;
+      case Gate3InteractionState.listening:
+        return 1 / 12;
+      case Gate3InteractionState.thinking:
+        return 1 / 4;
+      case Gate3InteractionState.speaking:
+        return 1 / 10;
+    }
+  }
+
+  static double _ringSpeed(Gate3InteractionState s) {
+    switch (s) {
+      case Gate3InteractionState.thinking:
+        return 1 / 6;
+      case Gate3InteractionState.speaking:
+        return 1 / 12;
+      case Gate3InteractionState.listening:
+        return 1 / 16;
+      case Gate3InteractionState.idle:
+        return 1 / 20;
+    }
+  }
+
+  /// Repaint once without advancing (state changed while motion is reduced).
+  void poke() => notifyListeners();
+
+  void advance(double dt) {
+    holoTurns = (holoTurns + dt * _holoSpeed(state)) % 1.0;
+    ringTurns = (ringTurns + dt * _ringSpeed(state)) % 1.0;
+    breath = (breath + dt * (2 * math.pi / 5.5)) % (2 * math.pi);
+    pulse = (pulse + dt * (2 * math.pi / 1.1)) % (2 * math.pi);
+    if (state == Gate3InteractionState.listening) {
+      ripple = (ripple + dt / 2.6) % 1.0;
+    } else {
+      ripple = 0;
+    }
+    notifyListeners();
+  }
+}
+
+class _SediHologramOrbState extends State<SediHologramOrb>
+    with SingleTickerProviderStateMixin {
+  final _HoloClock _clock = _HoloClock();
+  late final Ticker _ticker;
+  Duration _last = Duration.zero;
+  bool _reduceMotion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock.state = widget.state;
+    _ticker = createTicker(_onTick);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (_reduceMotion) {
+      if (_ticker.isActive) _ticker.stop();
+    } else if (!_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant SediHologramOrb oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      _clock.state = widget.state;
+      if (_reduceMotion) _clock.poke();
+    }
+  }
+
+  void _onTick(Duration elapsed) {
+    final dt = (elapsed - _last).inMicroseconds / 1000000.0;
+    _last = elapsed;
+    _clock.advance(dt.clamp(0.0, 0.1).toDouble());
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _clock.dispose();
+    super.dispose();
+  }
+
+  Widget _logo(double d) {
+    final w = d * SediHologramOrb.logoWidthFactor;
+    final h = w / SediHologramOrb.logoAspect;
+    Widget image() => Image.asset(
+          SediHologramOrb.logoAsset,
+          width: w,
+          height: h,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (context, error, stackTrace) =>
+              SizedBox(width: w, height: h),
+        );
+    return Align(
+      alignment: const Alignment(0, 0.04),
+      child: SizedBox(
+        width: w,
+        height: h,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(
+                sigmaX: d * 0.03,
+                sigmaY: d * 0.03,
+              ),
+              child: ColorFiltered(
+                colorFilter: const ColorFilter.mode(
+                  SediPalette.pistachio500,
+                  BlendMode.srcIn,
+                ),
+                child: image(),
+              ),
+            ),
+            ShaderMask(
+              key: SediHologramOrb.logoKey,
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (rect) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFFFFF),
+                  SediPalette.pistachio100,
+                  SediPalette.pistachio300,
+                ],
+                stops: [0.0, 0.45, 1.0],
+              ).createShader(rect),
+              child: image(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.diameter;
+    final outer = d * 1.9;
+    final rings = widget.showRings && d >= SediHologramOrb.ringMinDiameter;
+    return Semantics(
+      label: 'Sedi',
+      image: true,
+      child: SizedBox(
+        width: d,
+        height: d,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              left: -(outer - d) / 2,
+              top: -(outer - d) / 2,
+              width: outer,
+              height: outer,
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _AuraRingsPainter(
+                      clock: _clock,
+                      diameter: d,
+                      rings: rings,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            RepaintBoundary(
+              child: CustomPaint(
+                size: Size.square(d),
+                painter: _DomePainter(clock: _clock),
+              ),
+            ),
+            if (widget.showLogo) _logo(d),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AuraRingsPainter extends CustomPainter {
+  final _HoloClock clock;
+  final double diameter;
+  final bool rings;
+
+  _AuraRingsPainter({
+    required this.clock,
+    required this.diameter,
+    required this.rings,
+  }) : super(repaint: clock);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = diameter / 2;
+    final breath = 0.975 + 0.025 * math.sin(clock.breath);
+    final auraR = r * 1.68 * breath;
+    final listening = clock.state == Gate3InteractionState.listening;
+
+    final pistachio = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          SediPalette.pistachio500.withOpacity(listening ? 0.20 : 0.34),
+          SediPalette.pistachio500.withOpacity(0.10),
+          SediPalette.pistachio500.withOpacity(0.0),
+        ],
+        stops: const [0.0, 0.40, 0.66],
+      ).createShader(Rect.fromCircle(center: c, radius: auraR));
+    canvas.drawCircle(c, auraR, pistachio);
+
+    final roseAlpha = listening ? 0.40 : 0.24;
+    final rose = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          SediPalette.skin500.withOpacity(0.0),
+          SediPalette.skin500.withOpacity(roseAlpha),
+          SediPalette.skin500.withOpacity(0.0),
+        ],
+        stops: const [0.40, 0.56, 0.74],
+      ).createShader(Rect.fromCircle(center: c, radius: auraR));
+    canvas.drawCircle(c, auraR, rose);
+
+    if (!rings) return;
+    _ring(
+      canvas,
+      c,
+      rw: r * 1.48,
+      rh: r * 0.15,
+      turns: clock.ringTurns,
+      line: SediPalette.pistachio300.withOpacity(0.50),
+      dot: SediPalette.pistachio100,
+      glow: SediPalette.pistachio300,
+      tilt: 0,
+    );
+    _ring(
+      canvas,
+      c,
+      rw: r * 1.68,
+      rh: r * 0.21,
+      turns: -clock.ringTurns * 0.7 + 0.25,
+      line: SediPalette.skin300.withOpacity(0.56),
+      dot: SediPalette.skin300,
+      glow: SediPalette.skin500,
+      tilt: -0.10,
+    );
+  }
+
+  void _ring(
+    Canvas canvas,
+    Offset c, {
+    required double rw,
+    required double rh,
+    required double turns,
+    required Color line,
+    required Color dot,
+    required Color glow,
+    required double tilt,
+  }) {
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(tilt);
+    final oval = Rect.fromCenter(
+      center: Offset.zero,
+      width: rw * 2,
+      height: rh * 2,
+    );
+    canvas.drawOval(
+      oval,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = line,
+    );
+    final a = turns * 2 * math.pi;
+    final p = Offset(rw * math.cos(a), rh * math.sin(a));
+    canvas.drawCircle(
+      p,
+      5,
+      Paint()
+        ..color = glow.withOpacity(0.6)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    canvas.drawCircle(p, 2.4, Paint()..color = dot);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _AuraRingsPainter oldDelegate) =>
+      oldDelegate.diameter != diameter || oldDelegate.rings != rings;
+}
+
+class _DomePainter extends CustomPainter {
+  final _HoloClock clock;
+
+  _DomePainter({required this.clock}) : super(repaint: clock);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final rect = Rect.fromCircle(center: c, radius: r);
+
+    canvas.save();
+    if (clock.state == Gate3InteractionState.speaking) {
+      final s = 1.0 + 0.022 * math.sin(clock.pulse);
+      canvas.translate(c.dx, c.dy);
+      canvas.scale(s);
+      canvas.translate(-c.dx, -c.dy);
+    }
+
+    // Outer glow (soft, symmetric — no drop shadow under the dome).
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..color = SediPalette.pistachio500.withOpacity(0.34)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.30),
+    );
+
+    canvas.save();
+    canvas.clipPath(Path()..addOval(rect));
+
+    canvas.drawRect(rect, Paint()..color = SediPalette.domeUnderlay);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.32, -0.48),
+          radius: 1.25,
+          colors: [
+            SediPalette.pistachio100.withOpacity(0.55),
+            SediPalette.pistachio300.withOpacity(0.30),
+            SediPalette.pistachio500.withOpacity(0.22),
+            SediPalette.pistachio900.withOpacity(0.55),
+            SediPalette.charcoal950.withOpacity(0.75),
+          ],
+          stops: const [0.0, 0.22, 0.46, 0.82, 1.0],
+        ).createShader(rect),
+    );
+
+    // Holographic sweep (pistachio + rose), rotating.
+    final speedUp = clock.state == Gate3InteractionState.thinking;
+    final sweep = SweepGradient(
+      colors: [
+        SediPalette.pistachio100.withOpacity(0.0),
+        SediPalette.skin300.withOpacity(0.44),
+        SediPalette.pistachio300.withOpacity(0.42),
+        SediPalette.pistachio100.withOpacity(0.0),
+        SediPalette.skin500.withOpacity(0.38),
+        SediPalette.skin100.withOpacity(0.26),
+        SediPalette.pistachio100.withOpacity(0.0),
+      ],
+      stops: const [0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0],
+      transform: GradientRotation(clock.holoTurns * 2 * math.pi),
+    );
+    canvas.drawRect(
+      rect.inflate(r * 0.2),
+      Paint()
+        ..shader = sweep.createShader(rect)
+        ..blendMode = BlendMode.screen
+        ..colorFilter = ColorFilter.mode(
+          Colors.white.withOpacity(speedUp ? 0.9 : 0.68),
+          BlendMode.modulate,
+        )
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.08),
+    );
+
+    // Inner shade (bottom-right) and inset glow (edge).
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.35, 0.50),
+          radius: 0.95,
+          colors: [
+            SediPalette.charcoal950.withOpacity(0.0),
+            SediPalette.charcoal950.withOpacity(0.45),
+          ],
+          stops: const [0.55, 1.0],
+        ).createShader(rect),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            SediPalette.pistachio100.withOpacity(0.0),
+            SediPalette.pistachio100.withOpacity(0.30),
+          ],
+          stops: const [0.78, 1.0],
+        ).createShader(rect),
+    );
+    canvas.restore();
+
+    canvas.drawCircle(
+      c,
+      r - 0.5,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = SediPalette.pistachio100.withOpacity(0.35),
+    );
+
+    // Specular highlight.
+    canvas.save();
+    canvas.translate(c.dx - r * 0.30, c.dy - r * 0.60);
+    canvas.rotate(-0.42);
+    final spec = Rect.fromCenter(
+      center: Offset.zero,
+      width: r * 0.72,
+      height: r * 0.40,
+    );
+    canvas.drawOval(
+      spec,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white.withOpacity(0.70),
+            Colors.white.withOpacity(0.0),
+          ],
+        ).createShader(spec),
+    );
+    canvas.restore();
+
+    // Listening ripples (rose).
+    if (clock.state == Gate3InteractionState.listening) {
+      for (var k = 0; k < 2; k++) {
+        final p = (clock.ripple + k * 0.5) % 1.0;
+        canvas.drawCircle(
+          c,
+          r * (1.0 + 0.7 * p),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5
+            ..color = SediPalette.skin300.withOpacity((1 - p) * 0.9),
+        );
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _DomePainter oldDelegate) => false;
+}

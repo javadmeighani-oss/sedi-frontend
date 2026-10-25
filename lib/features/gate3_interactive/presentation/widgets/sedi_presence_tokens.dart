@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/sedi_palette.dart';
+
 /// A3 Sedi-presence visual tokens only. Not the destination design system.
+///
+/// Hologram redesign (D-071/D-072): the orb is ~30 % smaller than the first
+/// concept (210 dp at 390 dp width) and sits in the background layer.
 class SediPresenceTokens {
   SediPresenceTokens._();
 
-  /// Approved Sedi-presence green — outline, brand, and horizontal bars.
-  static const Color presenceGreen = Color(0xFF86F83C);
+  /// Pistachio — resonance bars and hologram halo.
+  static const Color presenceGreen = SediPalette.pistachio500;
 
-  static const double orbWidthFactor = 0.204;
-  static const double orbMinDiameter = 73.6;
-  static const double orbMaxDiameter = 83.2;
+  /// Rose end of the resonance bars (outer edge).
+  static const Color presenceRose = SediPalette.skin300;
+
+  static const double orbWidthFactor = 0.54;
+  static const double orbMinDiameter = 150;
+  static const double orbMaxDiameter = 250;
 
   static const double visualizerHeight = 52;
   static const double barPitch = 4;

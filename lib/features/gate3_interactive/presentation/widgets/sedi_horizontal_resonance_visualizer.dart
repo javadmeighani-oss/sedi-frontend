@@ -218,6 +218,7 @@ class _HorizontalResonancePainter extends CustomPainter {
   final int globalBarTotal;
 
   static const _presence = SediPresenceTokens.presenceGreen;
+  static const _presenceEdge = SediPresenceTokens.presenceRose;
 
   const _HorizontalResonancePainter({
     required this.phase,
@@ -273,7 +274,12 @@ class _HorizontalResonancePainter extends CustomPainter {
           (0.18 + energy * 0.55 + shape * 0.2).clamp(0.12, 0.92).toDouble();
       final finalOpacity =
           (baseOpacity * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0);
-      paint.color = _presence.withOpacity(finalOpacity);
+      // Pistachio at the centreline, rose toward the outer edges.
+      final edgeMix =
+          math.pow(((relativeX - 0.5).abs() * 2.0).clamp(0.0, 1.0), 1.4);
+      final barColor =
+          Color.lerp(_presence, _presenceEdge, edgeMix.toDouble()) ?? _presence;
+      paint.color = barColor.withOpacity(finalOpacity);
 
       canvas.drawLine(
         Offset(x, midY - half),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
@@ -27,6 +29,7 @@ import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
 import '../widgets/sedi_orb_presence.dart';
+import '../widgets/sedi_scene_backdrop.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
@@ -244,6 +247,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
+  /// Hologram brightness by conversation density (D-072): empty/first open
+  /// 1.0, active chat ~0.55, long history ~0.30. It lights up again while Sedi
+  /// speaks and dims while the keyboard is open.
+  double _orbAmbient({required bool keyboardOpen}) {
+    if (keyboardOpen) return 0.22;
+    final n = _controller.messages.length;
+    var ambient = n == 0 ? 1.0 : (n > 10 ? 0.30 : 0.55);
+    if (_controller.isSpeaking) ambient = math.max(ambient, 0.85);
+    return ambient;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -252,6 +266,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     // When pushed (e.g. Lifestyle → Chat), allow one-route pop back.
     // Root A3 (no previous route) keeps the existing double-back exit policy.
     final routeCanPop = ModalRoute.of(context)?.canPop ?? false;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     final content = PopScope(
       canPop: routeCanPop,
@@ -259,172 +274,207 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         if (didPop) return;
         _handleBackPress();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Directionality(
-            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-            child: Column(
-              children: [
-                Gate3TopNavigationTray(
-                  expanded: _topTrayExpanded,
-                  onToggle: () {
-                    setState(() => _topTrayExpanded = !_topTrayExpanded);
-                  },
-                  expandLabel: l10n.expandDestinations,
-                  collapseLabel: l10n.collapseDestinations,
-                  child: Gate3MainIconRow(
-                    lang: presentationLang,
-                    unreadNotificationCount: _unreadNotificationCount,
-                    onLifestyle: () {
-                      if (!_subjects.isActiveSelf) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.lifestyleOtherUnavailable)),
-                        );
-                        return;
-                      }
-                      _goTo(const LifestylePage());
-                    },
-                    onGadgets: () => _goTo(const DevicesPage()),
-                    onNotifications: _openNotificationsInbox,
-                  ),
-                ),
-                Offstage(
-                  offstage: true,
-                  child: Gate3SubjectSelector(l10n: l10n),
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SediOrbPresence.horizontalInset,
-                  ),
-                  child: SediOrbPresence(
-                    state: _orbState(),
-                    lang: presentationLang,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: AppTheme.borderInactive.withOpacity(0.22),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x12000000),
-                            blurRadius: 18,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(26),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        10,
-                                        12,
-                                        10,
-                                        8,
-                                      ),
-                                      child: _buildMessages(l10n),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 12,
-                                    bottom: 12,
-                                    child: Gate3ReturnToLatestButton(
-                                      scrollController: _scrollController,
-                                      onTap: _scrollToBottom,
-                                      tooltip: l10n.returnToLatest,
-                                    ),
-                                  ),
-                                ],
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: SediPalette.charcoal950,
+          resizeToAvoidBottomInset: true,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              const SediSceneBackdrop(),
+              SafeArea(
+                child: Directionality(
+                  textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+                  child: LayoutBuilder(
+                    builder: (context, box) {
+                      final usableW =
+                          box.maxWidth - 2 * SediOrbPresence.horizontalInset;
+                      final gap = SediOrbPresence.gapFor(box.maxHeight);
+                      final presenceTop =
+                          (box.maxHeight * 0.07).clamp(56.0, 84.0).toDouble();
+                      final presenceBottom = presenceTop +
+                          SediOrbPresence.heightFor(usableW, gap);
+                      final chatTopPad =
+                          keyboardOpen ? 56.0 : presenceBottom + 10;
+                      return Stack(
+                        children: [
+                          // Background layer: hologram + horizontal resonance.
+                          Positioned(
+                            top: presenceTop,
+                            left: 0,
+                            right: 0,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: SediOrbPresence.horizontalInset,
+                              ),
+                              child: SediOrbPresence(
+                                state: _orbState(),
+                                lang: presentationLang,
+                                ambient:
+                                    _orbAmbient(keyboardOpen: keyboardOpen),
+                                gap: gap,
                               ),
                             ),
-                            Gate3Composer(
-                              key: ValueKey('gate3-composer-$_composerDraftToken'),
-                              placeholder: l10n.composerPlaceholder,
-                              lang: presentationLang,
-                              isRtl: isRtl,
-                              initialText:
-                                  _composerDraftSeed ?? widget.initialDraft,
-                              onListeningChanged: (listening) {
-                                if (!mounted) return;
-                                if (_composerListening == listening) return;
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (!mounted) return;
-                                  if (_composerListening == listening) return;
-                                  setState(
-                                      () => _composerListening = listening);
-                                });
-                              },
-                              onSendText: _handleSendText,
-                              onStartRecording: () {
-                                _controller.startVoiceRecording().then((ok) {
-                                  if (!mounted) return;
-                                  if (ok == false) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          l10n.microphonePermissionRequired,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 100,
-                                          left: 16,
-                                          right: 16,
+                          ),
+                          // Transparent chat floating over the hologram.
+                          Positioned.fill(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: ShaderMask(
+                                          blendMode: BlendMode.dstIn,
+                                          shaderCallback: (rect) =>
+                                              const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0x00FFFFFF),
+                                              Color(0xFFFFFFFF),
+                                            ],
+                                            stops: [0.0, 0.16],
+                                          ).createShader(rect),
+                                          child:
+                                              _buildMessages(l10n, chatTopPad),
                                         ),
                                       ),
-                                    );
-                                  } else {
-                                    setState(() => _composerListening = true);
-                                  }
-                                });
-                              },
-                              onStopRecordingAndSend: () {
-                                _controller.stopVoiceRecording().then((path) async {
-                                  if (!mounted) return;
-                                  if (path != null && kDebugMode) {
-                                    debugPrint(
-                                        '[Audio] recorded file: $path');
-                                  }
-                                  setState(() => _composerListening = false);
-                                  if (path == null) return;
-                                  // R-021 / M4: the recording becomes TEXT in the composer (never auto-sent).
-                                  final text = await _attachmentFlow
-                                      .transcribeVoice(context, presentationLang, path);
-                                  if (!mounted || text == null) return;
-                                  setState(() {
-                                    _composerDraftSeed = text;
-                                    _composerDraftToken++;
-                                  });
-                                });
-                              },
-                              isRecording: _controller.isRecording,
-                              recordingTime:
-                                  _controller.recordingTimeFormatted,
+                                      Positioned(
+                                        right: 12,
+                                        bottom: 12,
+                                        child: Gate3ReturnToLatestButton(
+                                          scrollController: _scrollController,
+                                          onTap: _scrollToBottom,
+                                          tooltip: l10n.returnToLatest,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Gate3Composer(
+                                  key: ValueKey(
+                                      'gate3-composer-$_composerDraftToken'),
+                                  placeholder: l10n.composerPlaceholder,
+                                  lang: presentationLang,
+                                  isRtl: isRtl,
+                                  initialText:
+                                      _composerDraftSeed ?? widget.initialDraft,
+                                  onListeningChanged: (listening) {
+                                    if (!mounted) return;
+                                    if (_composerListening == listening) {
+                                      return;
+                                    }
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (!mounted) return;
+                                      if (_composerListening == listening) {
+                                        return;
+                                      }
+                                      setState(
+                                          () => _composerListening = listening);
+                                    });
+                                  },
+                                  onSendText: _handleSendText,
+                                  onStartRecording: () {
+                                    _controller.startVoiceRecording().then((ok) {
+                                      if (!mounted) return;
+                                      if (ok == false) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              l10n.microphonePermissionRequired,
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: const EdgeInsets.only(
+                                              bottom: 100,
+                                              left: 16,
+                                              right: 16,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        setState(
+                                            () => _composerListening = true);
+                                      }
+                                    });
+                                  },
+                                  onStopRecordingAndSend: () {
+                                    _controller
+                                        .stopVoiceRecording()
+                                        .then((path) async {
+                                      if (!mounted) return;
+                                      if (path != null && kDebugMode) {
+                                        debugPrint(
+                                            '[Audio] recorded file: $path');
+                                      }
+                                      setState(() => _composerListening = false);
+                                      if (path == null) return;
+                                      // R-021 / M4: the recording becomes TEXT in the composer (never auto-sent).
+                                      final text = await _attachmentFlow
+                                          .transcribeVoice(
+                                              context, presentationLang, path);
+                                      if (!mounted || text == null) return;
+                                      setState(() {
+                                        _composerDraftSeed = text;
+                                        _composerDraftToken++;
+                                      });
+                                    });
+                                  },
+                                  isRecording: _controller.isRecording,
+                                  recordingTime:
+                                      _controller.recordingTimeFormatted,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                          // Glass destinations tray (Profile | Lifestyle | Gadgets | Notifications).
+                          Positioned(
+                            top: 0,
+                            left: 12,
+                            right: 12,
+                            child: Gate3TopNavigationTray(
+                              expanded: _topTrayExpanded,
+                              onToggle: () {
+                                setState(
+                                    () => _topTrayExpanded = !_topTrayExpanded);
+                              },
+                              expandLabel: l10n.expandDestinations,
+                              collapseLabel: l10n.collapseDestinations,
+                              child: Gate3MainIconRow(
+                                lang: presentationLang,
+                                unreadNotificationCount:
+                                    _unreadNotificationCount,
+                                onLifestyle: () {
+                                  if (!_subjects.isActiveSelf) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text(l10n.lifestyleOtherUnavailable),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  _goTo(const LifestylePage());
+                                },
+                                onGadgets: () => _goTo(const DevicesPage()),
+                                onNotifications: _openNotificationsInbox,
+                              ),
+                            ),
+                          ),
+                          Offstage(
+                            offstage: true,
+                            child: Gate3SubjectSelector(l10n: l10n),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -433,21 +483,21 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     return content;
   }
 
-  Widget _buildMessages(Gate3Localization l10n) {
+  Widget _buildMessages(Gate3Localization l10n, double topPad) {
     if (_controller.messages.isEmpty &&
         _controller.conversationState == ConversationState.initializing) {
       return const ColoredBox(
-        color: Color(0xFFFFFFFF),
+        color: Color(0x00000000),
         child: SizedBox.expand(),
       );
     }
 
     if (_controller.messages.isEmpty) {
-      // Non-transcript empty presentation — top-aligned, no artificial gap.
+      // Non-transcript empty presentation — below the hologram, no artificial gap.
       return ListView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: EdgeInsets.fromLTRB(12, topPad, 12, 12),
         children: [
           Text(
             l10n.emptyConversationHint,
@@ -455,7 +505,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             style: TextStyle(
               fontSize: 14,
               height: 1.35,
-              color: AppTheme.textSecondary.withOpacity(0.85),
+              color: SediPalette.shell300.withOpacity(0.78),
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -466,7 +516,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      padding: EdgeInsets.fromLTRB(10, topPad, 10, 8),
       itemCount: _controller.messages.length + (_controller.isThinking ? 1 : 0),
       itemBuilder: (context, index) {
         if (_controller.isThinking &&
@@ -490,6 +540,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
               ? () => _editUserMessageAsNewDraft(msg.text)
               : null,
           editLabel: l10n.editMessage,
+          readMoreLabel: l10n.readMore,
+          readLessLabel: l10n.readLess,
+          retryLabel: l10n.tapToRetry,
         );
       },
     );
