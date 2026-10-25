@@ -110,7 +110,6 @@ class _DevicesPageState extends State<DevicesPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
-          const A3HologramHeader(),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -199,6 +198,7 @@ class _DevicesPageState extends State<DevicesPage> {
       appBar: A3PageAppBar(
         title: Text(l10n.title),
         backgroundColor: A3DestinationSurface.canvas,
+        actions: const [A3HologramHeader.appBarAction()],
       ),
       body: body,
     );
