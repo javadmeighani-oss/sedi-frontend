@@ -921,12 +921,15 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                A2HologramHeader(
-                  l10n: _l10n,
-                  hero: hero && tall,
-                  state: orbState,
-                  animate: tall,
-                ),
+                // Short screens: only the first (language) step keeps a small
+                // static hologram; later steps keep the form above the fold.
+                if (tall || hero)
+                  A2HologramHeader(
+                    l10n: _l10n,
+                    hero: hero && tall,
+                    state: orbState,
+                    animate: tall,
+                  ),
                 child,
               ],
             ),
