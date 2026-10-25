@@ -15,11 +15,15 @@ class A2HologramHeader extends StatelessWidget {
   final bool hero;
   final Gate3InteractionState state;
 
+  /// false on short screens: static hologram frame (no Ticker), smaller header.
+  final bool animate;
+
   const A2HologramHeader({
     super.key,
     required this.l10n,
     this.hero = false,
     this.state = Gate3InteractionState.idle,
+    this.animate = true,
   });
 
   @override
@@ -29,7 +33,7 @@ class A2HologramHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(height: hero ? 28 : 8),
-        SediHologramOrb(state: state, diameter: orbD),
+        SediHologramOrb(state: state, diameter: orbD, animate: animate),
         SizedBox(height: hero ? 44 : 30),
         if (hero) ...[
           ShaderMask(

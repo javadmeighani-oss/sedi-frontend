@@ -911,6 +911,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+        // Short screens keep the form above the fold: small static hologram.
+        final tall = constraints.maxHeight >= 720;
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24, 28, 24, 28 + bottomInset),
           child: ConstrainedBox(
@@ -921,8 +923,9 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               children: [
                 A2HologramHeader(
                   l10n: _l10n,
-                  hero: hero,
+                  hero: hero && tall,
                   state: orbState,
+                  animate: tall,
                 ),
                 child,
               ],
