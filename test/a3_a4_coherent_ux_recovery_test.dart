@@ -443,15 +443,20 @@ void main() {
               );
             },
             home: Scaffold(
-              body: SizedBox(
-                width: 390,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SediOrbPresence.horizontalInset,
-                  ),
-                  child: const SediOrbPresence(
-                    state: Gate3InteractionState.speaking,
-                    lang: 'fa',
+              // Align loosens the body height: in the real A3 page the presence sits
+              // in an unconstrained Positioned, so the keyboard never resizes it.
+              body: Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: 390,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: SediOrbPresence.horizontalInset,
+                    ),
+                    child: const SediOrbPresence(
+                      state: Gate3InteractionState.speaking,
+                      lang: 'fa',
+                    ),
                   ),
                 ),
               ),
