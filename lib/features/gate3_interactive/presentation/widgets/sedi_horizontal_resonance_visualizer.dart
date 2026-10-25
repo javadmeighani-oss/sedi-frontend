@@ -235,8 +235,9 @@ class _HorizontalResonancePainter extends CustomPainter {
 
     final count = segmentBarCount;
     final pitch = size.width / count;
-    // Crisp 2dp hairlines (design D-079), pistachio only.
-    final barWidth = (pitch * 0.5).clamp(1.4, 2.2).toDouble();
+    // Delicate ~1dp hairlines with clear gaps (design boards, D-079): never
+    // chunky columns, and never wider than the gap-free pitch.
+    final barWidth = (pitch * 0.30).clamp(0.9, 1.3).toDouble();
     final midY = size.height / 2;
     final cycle =
         (phase * SediHorizontalResonanceVisualizer.phaseSpeed) % 1.0;
@@ -266,8 +267,8 @@ class _HorizontalResonancePainter extends CustomPainter {
               (SediHorizontalResonanceVisualizer.peakCeiling - 0.06))
           .clamp(0.0, 1.0)
           .toDouble();
-      // Rest: 5dp at the edges up to ~14dp at the centre; live adds up to ~34dp.
-      final totalHeight = (5.0 + bell * (9.0 + 34.0 * live)) *
+      // Rest: ~4dp at the edges up to ~12dp at the centre; live adds up to ~24dp.
+      final totalHeight = (4.0 + bell * (8.0 + 24.0 * live)) *
           (SediHorizontalResonanceVisualizer.amplitudeScale / 0.8);
       final half = math.min(totalHeight, size.height) / 2;
 
@@ -276,16 +277,17 @@ class _HorizontalResonancePainter extends CustomPainter {
       path.lineTo(x, midY + half);
     }
 
-    // Soft glow, then the crisp bars (two draw calls for all bars).
+    // Faint halo (narrower than the pitch so bars never merge), then the
+    // crisp hairlines — two draw calls for all bars.
     canvas.drawPath(
       path,
       Paint()
         ..isAntiAlias = true
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..strokeWidth = barWidth * 2.4
-        ..color = _presence.withOpacity(0.30)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+        ..strokeWidth = barWidth * 2.0
+        ..color = _presence.withOpacity(0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
     );
     final opacity =
         (0.70 * SediPresenceTokens.barOpacityScale + energy * 0.2)
