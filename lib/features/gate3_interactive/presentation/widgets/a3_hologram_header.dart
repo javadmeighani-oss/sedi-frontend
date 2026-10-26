@@ -14,8 +14,8 @@ class A3HologramHeader extends StatelessWidget {
 
   /// Small hologram for an AppBar action (pages whose list must keep its height).
   const A3HologramHeader.appBarAction({super.key})
-      : diameter = 34,
-        _inAppBar = true;
+    : diameter = 34,
+      _inAppBar = true;
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +35,11 @@ class A3HologramHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 18),
       child: Center(
+        // Same sphere size as before; the four rings spread sideways only, so
+        // the header keeps its height (D-096). One static frame, no Ticker.
         child: SediHologramOrb(
           state: Gate3InteractionState.idle,
           diameter: diameter,
-          showRings: false,
           animate: false,
         ),
       ),
