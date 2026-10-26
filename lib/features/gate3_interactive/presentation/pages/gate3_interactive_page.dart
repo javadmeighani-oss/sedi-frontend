@@ -67,6 +67,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
   int _composerDraftToken = 0;
 
+  /// localId of the user message being edited; null = normal compose.
+  String? _editingLocalId;
+
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
   StreamSubscription<String>? _draftSub;
@@ -147,6 +150,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _subjectGenSeen = _subjects.generation;
     // Invalidate chat transcript when subject switches — no stale leakage.
     _controller.messages.clear();
+    _editingLocalId = null;
     _syncChatSubject();
     setState(() {});
   }
@@ -223,16 +227,32 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _handleSendText(String text) {
+    final editingId = _editingLocalId;
+    if (editingId != null) {
+      // Edit mode: the edited text REPLACES the original message (D-093).
+      setState(() => _editingLocalId = null);
+      _controller.replaceUserMessage(editingId, text);
+      return;
+    }
     _controller.sendUserMessage(text);
   }
 
-  /// Presentation-only: seed composer with historical user text.
-  /// Does not mutate transcript; Send creates a NEW user message.
-  void _editUserMessageAsNewDraft(String text) {
+  /// Start editing a sent user message: its text goes into the composer and
+  /// Send replaces that message (and re-asks) instead of adding a new one.
+  void _beginEditUserMessage(String localId, String text) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty || _controller.isBusy) return;
     setState(() {
+      _editingLocalId = localId;
       _composerDraftSeed = trimmed;
+      _composerDraftToken++;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingLocalId = null;
+      _composerDraftSeed = '';
       _composerDraftToken++;
     });
   }
@@ -361,6 +381,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                     ],
                                   ),
                                 ),
+                                if (_editingLocalId != null)
+                                  _EditBanner(
+                                    label: l10n.editingMessage,
+                                    cancelLabel: l10n.cancelEdit,
+                                    onCancel: _cancelEdit,
+                                  ),
                                 Gate3Composer(
                                   key: ValueKey(
                                       'gate3-composer-$_composerDraftToken'),
@@ -565,7 +591,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
               ? () => _controller.retryFailedMessage(msg.localId)
               : null,
           onEdit: msg.isUser && msg.text.trim().isNotEmpty
-              ? () => _editUserMessageAsNewDraft(msg.text)
+              ? () => _beginEditUserMessage(msg.localId, msg.text)
               : null,
           editLabel: l10n.editMessage,
           readMoreLabel: l10n.readMore,
@@ -587,6 +613,65 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         '${day.month.toString().padLeft(2, '0')}-'
         '${day.day.toString().padLeft(2, '0')}';
     return CalendarDateMath.formatIsoForLanguage(iso, l10n.lang);
+  }
+}
+
+/// "Editing your message" strip above the composer, with a cancel button.
+class _EditBanner extends StatelessWidget {
+  final String label;
+  final String cancelLabel;
+  final VoidCallback onCancel;
+
+  const _EditBanner({
+    required this.label,
+    required this.cancelLabel,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Container(
+        padding: const EdgeInsetsDirectional.only(start: 12, end: 4),
+        decoration: BoxDecoration(
+          color: SediPalette.sageFill,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SediPalette.sageLine),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: SediPalette.pistachio900,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: SediPalette.charcoal950,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: cancelLabel,
+              onPressed: onCancel,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: SediPalette.pistachio900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

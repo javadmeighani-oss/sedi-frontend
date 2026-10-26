@@ -50,7 +50,9 @@ void main() {
     );
   });
 
-  test('A3 source keeps the light pistachio shell, four domains, and hidden subject selector', () {
+  test(
+      'A3 source keeps the light pistachio shell, four domains, and hidden subject selector',
+      () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -68,7 +70,8 @@ void main() {
     expect(row.contains('healthCare'), isFalse);
   });
 
-  testWidgets('A3 hologram always renders the Latin wordmark in RTL locale', (tester) async {
+  testWidgets('A3 hologram always renders the Latin wordmark in RTL locale',
+      (tester) async {
     expect(sediOrbBrandLatin, 'Sedi.');
     await tester.pumpWidget(
       const Directionality(
@@ -92,8 +95,7 @@ void main() {
         isTrue);
   });
 
-  test('A3 orb presence integrates resonance; lifestyle uses starter bus',
-      () {
+  test('A3 orb presence integrates resonance; lifestyle uses starter bus', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -113,21 +115,26 @@ void main() {
     final src = _read('lib/features/chat/state/chat_controller.dart');
     expect(src.contains('bool isSpeaking = false'), isTrue);
     expect(src.contains('isThinking = true;\n    isSpeaking = false;'), isTrue);
-    expect(src.contains('isSpeaking = true;\n            messages.add'), isTrue);
+    expect(
+        src.contains('isSpeaking = true;\n            messages.add'), isTrue);
     expect(src.contains('isSpeaking = false'), isTrue);
     expect(src.contains('initialize({String? initialMessage'), isTrue);
     expect(src.contains('onDelta:'), isTrue);
     expect(src.contains('messages[idx].text + delta'), isTrue);
   });
 
-  test('user edit-as-new-message uses composer seed without transcript mutation', () {
+  test('user edit replaces the original message (D-093), not a new one', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
     final bubble = _read(
       'lib/features/chat/presentation/widgets/message_bubble.dart',
     );
-    expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+    final controller = _read('lib/features/chat/state/chat_controller.dart');
+    expect(page.contains('_beginEditUserMessage'), isTrue);
+    expect(page.contains('_editingLocalId'), isTrue);
+    expect(page.contains('replaceUserMessage'), isTrue);
+    expect(controller.contains('replaceUserMessage'), isTrue);
     expect(page.contains('onEdit:'), isTrue);
     expect(bubble.contains('onEdit'), isTrue);
     expect(bubble.contains('Icons.edit_outlined'), isTrue);
@@ -192,7 +199,8 @@ void main() {
     expect(profile.contains('A3DestinationSurface.canvas'), isTrue);
     expect(A3DestinationSurface.canvas, SediPalette.sagePage);
 
-    final notifications = _read('lib/services/notifications/notifications_service.dart');
+    final notifications =
+        _read('lib/services/notifications/notifications_service.dart');
     expect(notifications.contains("'/notifications/'"), isTrue);
     expect(notifications.contains('/notifications/unread'), isTrue);
     expect(notifications.contains('/notifications/inbox/hide'), isTrue);

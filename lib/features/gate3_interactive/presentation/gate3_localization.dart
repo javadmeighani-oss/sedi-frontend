@@ -76,12 +76,9 @@ class Gate3Localization {
       );
 
   String get memoryOffConfirmBody => _t(
-        en:
-            'If you turn Memory off, Sedi will not store new conversation details for later use from this moment, and will not use stored memory for conversation continuity. Care continuity, personalization, and companion accuracy will decrease. Are you sure?',
-        fa:
-            'با خاموش کردن حافظه، از این لحظه صدی اطلاعات جدید گفتگو را برای استفاده در دفعات بعد ذخیره نمی‌کند و از حافظه ذخیره‌شده برای پیوستگی گفتگو استفاده نخواهد کرد. در نتیجه پیوستگی مراقبت، شخصی‌سازی و دقت همراهی صدی کاهش می‌یابد. آیا مطمئن هستید؟',
-        ar:
-            'بإيقاف الذاكرة، لن يخزّن صدی من هذه اللحظة تفاصيل المحادثة الجديدة للاستخدام لاحقًا ولن يستخدم الذاكرة المخزّنة لاستمرار المحادثة. لذلك تنخفض استمرارية الرعاية والتخصيص ودقة مرافقة صدی. هل أنت متأكد؟',
+        en: 'If you turn Memory off, Sedi will not store new conversation details for later use from this moment, and will not use stored memory for conversation continuity. Care continuity, personalization, and companion accuracy will decrease. Are you sure?',
+        fa: 'با خاموش کردن حافظه، از این لحظه صدی اطلاعات جدید گفتگو را برای استفاده در دفعات بعد ذخیره نمی‌کند و از حافظه ذخیره‌شده برای پیوستگی گفتگو استفاده نخواهد کرد. در نتیجه پیوستگی مراقبت، شخصی‌سازی و دقت همراهی صدی کاهش می‌یابد. آیا مطمئن هستید؟',
+        ar: 'بإيقاف الذاكرة، لن يخزّن صدی من هذه اللحظة تفاصيل المحادثة الجديدة للاستخدام لاحقًا ولن يستخدم الذاكرة المخزّنة لاستمرار المحادثة. لذلك تنخفض استمرارية الرعاية والتخصيص ودقة مرافقة صدی. هل أنت متأكد؟',
       );
 
   String get memoryOffConfirmKeepOn => _t(
@@ -130,12 +127,9 @@ class Gate3Localization {
       );
 
   String get userSummaryEmpty => _t(
-        en:
-            'There is not enough information about you in Sedi memory yet. As you continue chatting and using Sedi, this section will gradually become more complete.',
-        fa:
-            'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
-        ar:
-            'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة صدی. مع مواصلة المحادثة واستخدام صدی، سيكتمل هذا القسم تدريجيًا.',
+        en: 'There is not enough information about you in Sedi memory yet. As you continue chatting and using Sedi, this section will gradually become more complete.',
+        fa: 'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
+        ar: 'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة صدی. مع مواصلة المحادثة واستخدام صدی، سيكتمل هذا القسم تدريجيًا.',
       );
 
   String get profileLanguageLabel =>
@@ -143,15 +137,15 @@ class Gate3Localization {
 
   String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
 
-  String get logoutApp =>
-      _t(en: 'Log out of app', fa: 'خروج از برنامه', ar: 'تسجيل الخروج من التطبيق');
+  String get logoutApp => _t(
+      en: 'Log out of app',
+      fa: 'خروج از برنامه',
+      ar: 'تسجيل الخروج من التطبيق');
 
-  String get profileNameLabel =>
-      _t(en: 'Name', fa: 'نام', ar: 'الاسم');
+  String get profileNameLabel => _t(en: 'Name', fa: 'نام', ar: 'الاسم');
   String get profileDobLabel =>
       _t(en: 'Date of birth', fa: 'تاریخ تولد', ar: 'تاريخ الميلاد');
-  String get profileSexLabel =>
-      _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
+  String get profileSexLabel => _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
   String get profilePhoneLabel =>
       _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
 
@@ -240,14 +234,14 @@ class Gate3Localization {
         return status;
     }
   }
+
   String get changePhone =>
       _t(en: 'Change phone', fa: 'تغییر شماره', ar: 'تغيير الهاتف');
   String get newPhoneLabel =>
       _t(en: 'New phone number', fa: 'شماره جدید', ar: 'رقم جديد');
   String get sendPhoneOtp =>
       _t(en: 'Send code', fa: 'ارسال کد', ar: 'إرسال الرمز');
-  String get verifyPhoneOtp =>
-      _t(en: 'Verify', fa: 'تأیید', ar: 'تحقق');
+  String get verifyPhoneOtp => _t(en: 'Verify', fa: 'تأیید', ar: 'تحقق');
   String get otpCodeLabel =>
       _t(en: 'OTP code', fa: 'کد تأیید', ar: 'رمز التحقق');
   String get phoneChangeSuccess => _t(
@@ -272,8 +266,8 @@ class Gate3Localization {
       );
   String get phoneOtpInvalid =>
       _t(en: 'Incorrect code.', fa: 'کد نادرست است.', ar: 'رمز غير صحيح.');
-  String get phoneOtpExpired =>
-      _t(en: 'Code expired.', fa: 'کد منقضی شده است.', ar: 'انتهت صلاحية الرمز.');
+  String get phoneOtpExpired => _t(
+      en: 'Code expired.', fa: 'کد منقضی شده است.', ar: 'انتهت صلاحية الرمز.');
   String get phoneOtpRateLimited => _t(
         en: 'Too many requests. Try again later.',
         fa: 'درخواست‌های زیاد. بعداً تلاش کنید.',
@@ -287,8 +281,7 @@ class Gate3Localization {
   String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
   String get activeSubjectSelf =>
       _t(en: 'Viewing: Me', fa: 'نمایش: خودم', ar: 'العرض: أنا');
-  String get activeSubjectFor =>
-      _t(en: 'Viewing:', fa: 'نمایش:', ar: 'العرض:');
+  String get activeSubjectFor => _t(en: 'Viewing:', fa: 'نمایش:', ar: 'العرض:');
   String get activeSubjectUnknown =>
       _t(en: 'Viewing: —', fa: 'نمایش: —', ar: 'العرض: —');
   String get selectSubject =>
@@ -337,8 +330,7 @@ class Gate3Localization {
         ar: 'اضغط رجوع مرة أخرى للخروج',
       );
 
-  String get returnToLatest =>
-      _t(en: 'Latest', fa: 'آخرین', ar: 'الأحدث');
+  String get returnToLatest => _t(en: 'Latest', fa: 'آخرین', ar: 'الأحدث');
 
   String get close => _t(en: 'Close', fa: 'بستن', ar: 'إغلاق');
 
@@ -362,6 +354,15 @@ class Gate3Localization {
       );
 
   String get editMessage => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
+
+  String get editingMessage => _t(
+        en: 'Editing your message — Sedi will answer again',
+        fa: 'در حال ویرایش پیامت — صدی دوباره جواب می‌دهد',
+        ar: 'تعديل رسالتك — سترد صدی من جديد',
+      );
+
+  String get cancelEdit =>
+      _t(en: 'Cancel edit', fa: 'لغو ویرایش', ar: 'إلغاء التعديل');
 
   String get dayToday => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
 

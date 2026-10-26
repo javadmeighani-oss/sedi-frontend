@@ -248,7 +248,7 @@ class ChatController extends ChangeNotifier {
 
   /// Send user message to backend and display response
   /// NO frontend logic - backend decides everything
-  Future<void> sendUserMessage(String text) async {
+  Future<void> sendUserMessage(String text, {DateTime? createdAt}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
     final localId = DateTime.now().microsecondsSinceEpoch.toString();
@@ -260,6 +260,7 @@ class ChatController extends ChangeNotifier {
         text: trimmed,
         localId: localId,
         status: ChatMessageStatus.sending,
+        createdAt: createdAt,
       ),
     );
     isThinking = true;
@@ -278,25 +279,26 @@ class ChatController extends ChangeNotifier {
         healthSubjectId: activeHealthSubjectId,
         onDelta: (delta) {
           void apply(String delta) {
-          if (!streamStarted) {
-            streamStarted = true;
-            isThinking = false;
-            isSpeaking = true;
-            messages.add(
-              ChatMessage.assistant(text: delta, localId: streamLocalId),
-            );
-          } else {
-            final idx =
-                messages.indexWhere((m) => m.localId == streamLocalId);
-            if (idx >= 0) {
-              messages[idx] = ChatMessage.assistant(
-                text: messages[idx].text + delta,
-                localId: streamLocalId,
+            if (!streamStarted) {
+              streamStarted = true;
+              isThinking = false;
+              isSpeaking = true;
+              messages.add(
+                ChatMessage.assistant(text: delta, localId: streamLocalId),
               );
+            } else {
+              final idx =
+                  messages.indexWhere((m) => m.localId == streamLocalId);
+              if (idx >= 0) {
+                messages[idx] = ChatMessage.assistant(
+                  text: messages[idx].text + delta,
+                  localId: streamLocalId,
+                );
+              }
             }
+            notifyListeners();
           }
-          notifyListeners();
-          }
+
           pacer.enqueue(delta, apply);
         },
       );
@@ -346,6 +348,29 @@ class ChatController extends ChangeNotifier {
 
     _setMessageStatus(localId, ChatMessageStatus.sent);
     await _appendAssistantResponse(response.data!);
+  }
+
+  /// True while a request is in flight (editing is blocked meanwhile).
+  bool get isBusy => isThinking || isSpeaking;
+
+  /// Replace an earlier user message with edited text and ask again (D-093).
+  ///
+  /// The edited message takes the old one's place and timestamp; the replies
+  /// (and any later turns) that belonged to the old wording are dropped from
+  /// the on-screen transcript, then the edited text is sent. The backend has no
+  /// edit endpoint, so it receives the edited text as the newest turn.
+  Future<void> replaceUserMessage(String localId, String newText) async {
+    final trimmed = newText.trim();
+    if (trimmed.isEmpty || isBusy) return;
+    final idx = messages.indexWhere((m) => m.localId == localId && m.isUser);
+    if (idx < 0) {
+      await sendUserMessage(trimmed);
+      return;
+    }
+    final createdAt = messages[idx].createdAt;
+    messages.removeRange(idx, messages.length);
+    notifyListeners();
+    await sendUserMessage(trimmed, createdAt: createdAt);
   }
 
   Future<void> retryFailedMessage(String localId) async {
