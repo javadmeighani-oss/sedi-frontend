@@ -10,7 +10,8 @@ import '../../../../core/theme/sedi_palette.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
-import '../../../../data/models/notification_feedback.dart' show kFeedbackReasonValues;
+import '../../../../data/models/notification_feedback.dart'
+    show kFeedbackReasonValues;
 import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
@@ -337,14 +338,17 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   }
 
   Future<void> _openDetails(
-      NotificationItem item, NotificationInboxL10n l10n) async {
+    NotificationItem item,
+    NotificationInboxL10n l10n,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppTheme.backgroundWhite,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusLarge),
+        ),
       ),
       builder: (context) {
         final media = MediaQuery.of(context);
@@ -503,10 +507,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppTheme.primaryBlack,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppTheme.primaryBlack),
     );
   }
 
@@ -538,9 +539,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       }
       groups[label]!.add(item);
     }
-    return [
-      for (final label in order) (label: label, items: groups[label]!),
-    ];
+    return [for (final label in order) (label: label, items: groups[label]!)];
   }
 
   @override
@@ -615,9 +614,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 ),
               ),
             ),
-          Expanded(
-            child: _buildBody(l10n),
-          ),
+          Expanded(child: _buildBody(l10n)),
         ],
       ),
     );
@@ -673,10 +670,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         child: ListView(
           children: [
             const SizedBox(height: 160),
-            AppEmptyState(
-              title: l10n.emptyTitle,
-              subtitle: l10n.emptySubtitle,
-            ),
+            AppEmptyState(title: l10n.emptyTitle, subtitle: l10n.emptySubtitle),
           ],
         ),
       );
@@ -730,8 +724,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   Widget _buildItemCard(NotificationItem item, NotificationInboxL10n l10n) {
     // Attention = unread OR missing explicit user response (READ alone insufficient).
-    final effectiveRead =
-        item.isRead || _pendingReadIds.contains(item.id);
+    final effectiveRead = item.isRead || _pendingReadIds.contains(item.id);
     final displayAttention = !effectiveRead || !item.hasUserResponse;
     final selected = _selectedIds.contains(item.id);
     // Dedicated selection gutter (>=48dp) — LTR physical left / RTL physical right
@@ -742,9 +735,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       child: A3DestinationCard(
         backgroundColor: displayAttention
             ? SediPalette.pistachio100
-            : AppTheme.gate2CardWhite,
+            : SediPalette.sageInput,
         borderColor: displayAttention
-            ? SediPalette.pistachio500.withOpacity(0.7)
+            ? SediPalette.pistachio900.withOpacity(0.55)
             : AppTheme.gate2BorderSubtle,
         onTap: () async {
           if (_selectionMode) {
@@ -824,8 +817,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
-                      fontWeight:
-                          displayAttention ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: displayAttention
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -839,8 +833,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           : AppTheme.textSecondary.withOpacity(0.92),
                       fontSize: 14,
                       height: 1.4,
-                      fontWeight:
-                          displayAttention ? FontWeight.w500 : FontWeight.w400,
+                      fontWeight: displayAttention
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 10),

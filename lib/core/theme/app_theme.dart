@@ -35,8 +35,8 @@ class AppTheme {
   // Semantic Colors
   // ===============================
   static const Color primary = primaryBlack;
-  static const Color background = backgroundWhite;
-  static const Color surface = backgroundWhite;
+  static const Color background = SediPalette.sagePage;
+  static const Color surface = SediPalette.sageSurface;
 
   static const Color textPrimary = primaryBlack;
   static const Color textSecondary = SediPalette.sageMuted;
@@ -63,17 +63,19 @@ class AppTheme {
   // Gate 2 Luxury Palette
   // ===============================
   static const Color gate2WarmBackground = SediPalette.sagePage;
+
   /// A2 page canvas — flat Soft Sage (D-085).
   static const Color a2PageBackground = SediPalette.sagePage;
   static const Color gate2CardWhite = SediPalette.sageSurface;
   static const Color gate2InputFill = SediPalette.sageInput;
   static const Color gate2ButtonActive = SediPalette.charcoal950;
+
   /// Primary CTA: Pistachio 500 fill with Charcoal text (Palette v1, D-078).
   static const Color ctaFill = SediPalette.pistachio500;
   static const Color ctaText = SediPalette.charcoal950;
 
   /// Gate 2 accent on light surfaces (icons, selected text) — Pistachio 700 (Palette v1).
-  static const Color gate2ButtonOlive = SediPalette.pistachio700;
+  static const Color gate2ButtonOlive = SediPalette.pistachio900;
   static const Color gate2ButtonDisabled = SediPalette.sageFill;
   static const Color gate2TextDisabled = SediPalette.charcoal500;
   static const Color gate2Placeholder = SediPalette.charcoal700;
@@ -126,7 +128,7 @@ class AppTheme {
   static const Color gate3PaleOliveBackground = SediPalette.sageSurface;
 
   /// I9 STABLE / calm positive status (olive; not clinical “safe”).
-  static const Color statusStableOlive = SediPalette.pistachio700;
+  static const Color statusStableOlive = SediPalette.pistachio900;
 
   /// I9 UNSTABLE_OR_CHANGED — warning amber (never danger red).
   static const Color statusChangeAmber = Color(0xFFC49A3C);
@@ -135,16 +137,8 @@ class AppTheme {
   static const Color statusNeutralMuted = SediPalette.charcoal500;
 
   static const List<BoxShadow> gate2CardShadow = [
-    BoxShadow(
-      color: Color(0x0F000000),
-      blurRadius: 24,
-      offset: Offset(0, 8),
-    ),
-    BoxShadow(
-      color: Color(0x08000000),
-      blurRadius: 6,
-      offset: Offset(0, 2),
-    ),
+    BoxShadow(color: Color(0x0F000000), blurRadius: 24, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
   ];
 
   // ===============================

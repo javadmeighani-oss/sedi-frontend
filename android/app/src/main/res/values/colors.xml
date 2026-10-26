@@ -3,6 +3,6 @@
     <color name="ic_launcher_background">#6F7F3A</color>
     <!-- A1 first-frame night sky — system splash must blend, not flash white. -->
     <color name="a1_launch_background">#0A0E14</color>
-    <!-- Notification accent (Sedi Pistachio 500, Palette v1) -->
-    <color name="sedi_notification_accent">#B8CB55</color>
+    <!-- Notification accent (deep olive, Palette v1 Pistachio 900) -->
+    <color name="sedi_notification_accent">#48551F</color>
 </resources>
