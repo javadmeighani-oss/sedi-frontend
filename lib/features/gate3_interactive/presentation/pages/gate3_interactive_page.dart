@@ -184,14 +184,40 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   Gate3Localization get _l10n =>
       Gate3Localization(SediLocaleController.instance.languageCode);
 
+  /// The chat always shows the latest texts (D-094): while [_stickToLatest] is
+  /// true every change of the transcript or of the list size (new message,
+  /// streamed words, typing indicator, keyboard, edit) keeps it at the end.
+  /// Only a drag by the user releases it; scrolling back to the end, the
+  /// "latest" button or sending a message re-attaches it.
+  bool _stickToLatest = true;
+
+  /// Re-attach to the latest messages and scroll there (button, send, edit).
+  void _attachToLatest() {
+    _stickToLatest = true;
+    _scheduleJumpToLatest();
+  }
+
   void _scrollToBottomOnNewMessage() {
+    if (_stickToLatest) _scheduleJumpToLatest();
+  }
+
+  void _scheduleJumpToLatest() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _scrollToBottom();
+      if (!mounted || !_stickToLatest) return;
+      _jumpToLatest();
     });
   }
 
+  void _jumpToLatest() {
+    final pos = gate3SingleReadyScrollPosition(_scrollController);
+    if (pos == null) return;
+    if (pos.maxScrollExtent - pos.pixels > 0.5) {
+      _scrollController.jumpTo(pos.maxScrollExtent);
+    }
+  }
+
   void _scrollToBottom() {
+    _stickToLatest = true;
     final pos = gate3SingleReadyScrollPosition(_scrollController);
     if (pos == null) return;
     _scrollController.animateTo(
@@ -199,6 +225,28 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  /// A user drag away from the end releases the lock; reaching the end locks.
+  bool _onChatScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return false;
+    final nearEnd = n.metrics.maxScrollExtent - n.metrics.pixels <= 48;
+    if (n is ScrollUpdateNotification && n.dragDetails != null) {
+      _stickToLatest = nearEnd;
+    } else if (n is ScrollEndNotification && nearEnd) {
+      _stickToLatest = true;
+    }
+    return false;
+  }
+
+  /// Content or viewport size changed (streaming text, typing dots, keyboard).
+  bool _onChatMetrics(ScrollMetricsNotification n) {
+    if (n.metrics.axis == Axis.vertical &&
+        _stickToLatest &&
+        n.metrics.extentAfter > 0.5) {
+      _scheduleJumpToLatest();
+    }
+    return false;
   }
 
   bool _handleBackPress() {
@@ -227,6 +275,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _handleSendText(String text) {
+    _attachToLatest();
     final editingId = _editingLocalId;
     if (editingId != null) {
       // Edit mode: the edited text REPLACES the original message (D-093).
@@ -365,8 +414,16 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                             ],
                                             stops: [0.0, 0.16],
                                           ).createShader(rect),
-                                          child:
-                                              _buildMessages(l10n, chatTopPad),
+                                          child: NotificationListener<
+                                              ScrollNotification>(
+                                            onNotification: _onChatScroll,
+                                            child: NotificationListener<
+                                                ScrollMetricsNotification>(
+                                              onNotification: _onChatMetrics,
+                                              child: _buildMessages(
+                                                  l10n, chatTopPad),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       Positioned(
