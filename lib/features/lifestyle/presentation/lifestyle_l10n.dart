@@ -22,8 +22,7 @@ class LifestyleL10n {
   String get title => _t(en: 'Lifestyle', fa: 'سبک زندگی', ar: 'نمط الحياة');
   String get health => _t(en: 'Health', fa: 'سلامت', ar: 'الصحة');
   String get myHistory => _t(en: 'My History', fa: 'تاریخچه من', ar: 'سجلي');
-  String get mySchedule =>
-      _t(en: 'My Schedule', fa: 'برنامه من', ar: 'جدولي');
+  String get mySchedule => _t(en: 'My Schedule', fa: 'برنامه من', ar: 'جدولي');
   String get nutritionPlan =>
       _t(en: 'Nutrition Plan', fa: 'برنامه تغذیه', ar: 'خطة التغذية');
   String get exercisePlan =>
@@ -87,9 +86,12 @@ class LifestyleL10n {
       _t(en: '1 year / available', fa: '۱ سال / موجود', ar: 'سنة / المتاح');
   String get availableFrom =>
       _t(en: 'Available from', fa: 'موجود از', ar: 'متاح من');
-  String get availableTo => _t(en: 'Available to', fa: 'موجود تا', ar: 'متاح إلى');
-  String get noHrData =>
-      _t(en: 'No heart-rate data yet.', fa: 'هنوز داده ضربان نیست.', ar: 'لا بيانات نبض بعد.');
+  String get availableTo =>
+      _t(en: 'Available to', fa: 'موجود تا', ar: 'متاح إلى');
+  String get noHrData => _t(
+      en: 'No heart-rate data yet.',
+      fa: 'هنوز داده ضربان نیست.',
+      ar: 'لا بيانات نبض بعد.');
 
   String get recentConversations => _t(
         en: 'Recent conversations',
@@ -99,12 +101,9 @@ class LifestyleL10n {
   String get sediSummaries =>
       _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدی');
   String get historyExplain => _t(
-        en:
-            'This is a read-only archive of conversations from the last 30 days and Sedi summaries.',
-        fa:
-            'این بایگانی فقط‌خواندنی گفتگوهای ۳۰ روز گذشته و خلاصه‌های صدی است.',
-        ar:
-            'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات صدی.',
+        en: 'This is a read-only archive of conversations from the last 30 days and Sedi summaries.',
+        fa: 'این بایگانی فقط‌خواندنی گفتگوهای ۳۰ روز گذشته و خلاصه‌های صدی است.',
+        ar: 'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات صدی.',
       );
   String get conversationsLast30Days => _t(
         en: 'Conversations from the last 30 days',
@@ -156,8 +155,119 @@ class LifestyleL10n {
       _t(en: '1 hour before', fa: '۱ ساعت قبل', ar: 'قبل ساعة');
   String get reminder1d =>
       _t(en: '1 day before', fa: '۱ روز قبل', ar: 'قبل يوم');
-  String get noEvents =>
-      _t(en: 'No scheduled items.', fa: 'رویدادی نیست.', ar: 'لا عناصر مجدولة.');
+  String get noEvents => _t(
+      en: 'No scheduled items.', fa: 'رویدادی نیست.', ar: 'لا عناصر مجدولة.');
+
+  // ---- R-026: reminders from chat + notification settings on My Schedule
+  String get scheduleHeroTitle =>
+      _t(en: 'Just tell Sedi', fa: 'فقط به صدی بگو', ar: 'قل لصدی فقط');
+  String get scheduleHeroBody => _t(
+        en: 'In the chat say “remind me tomorrow at 10 am to …”. Sedi saves it here and sends you a notification on time.',
+        fa: 'توی چت بگو «فردا ساعت ۱۰ صبح یادم بنداز ...». صدی همین‌جا ثبتش می‌کنه و سر وقتش برات نوتیف می‌فرسته.',
+        ar: 'في المحادثة قل «ذكّرني غداً الساعة 10 صباحاً بـ ...». سيسجّلها صدی هنا ويرسل لك إشعاراً في وقته.',
+      );
+  String get addReminder =>
+      _t(en: 'Add a reminder', fa: 'افزودن یادآور', ar: 'إضافة تذكير');
+  String get reminderWhat => _t(
+        en: 'What should I remind you of?',
+        fa: 'چی رو یادت بندازم؟',
+        ar: 'بماذا أذكّرك؟',
+      );
+  String get reminderDate => _t(en: 'Date', fa: 'تاریخ', ar: 'التاريخ');
+  String get reminderTime => _t(en: 'Time', fa: 'ساعت', ar: 'الوقت');
+  String get reminderWhen =>
+      _t(en: 'Notify me', fa: 'کِی خبرم کنی', ar: 'متى تنبّهني');
+  String get save => _t(en: 'Save', fa: 'ثبت', ar: 'حفظ');
+  String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
+  String get deleteItem => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
+  String get fromChat => _t(en: 'From chat', fa: 'از چت', ar: 'من المحادثة');
+  String get pickFutureTime => _t(
+        en: 'Please choose a time in the future.',
+        fa: 'یه زمان در آینده انتخاب کن.',
+        ar: 'اختر وقتاً في المستقبل.',
+      );
+  String get reminderNeedsTitle => _t(
+        en: 'Write what to remind you of.',
+        fa: 'بنویس چی رو یادت بندازم.',
+        ar: 'اكتب ما أذكّرك به.',
+      );
+  String get saveFailed => _t(
+        en: 'Could not save. Try again.',
+        fa: 'ذخیره نشد؛ دوباره امتحان کن.',
+        ar: 'تعذّر الحفظ. حاول مجدداً.',
+      );
+  String get notifSettingsTitle => _t(
+        en: 'Notification settings',
+        fa: 'تنظیمات اعلان‌ها',
+        ar: 'إعدادات الإشعارات',
+      );
+  String get notifSettingsSubtitle => _t(
+        en: 'What Sedi may send you, and when',
+        fa: 'چی بفرستم و کِی',
+        ar: 'ما الذي يرسله صدی ومتى',
+      );
+  String get chCompanion => _t(
+        en: 'Sedi check-ins',
+        fa: 'احوال‌پرسی و همراهی صدی',
+        ar: 'اطمئنان صدی ومرافقته',
+      );
+  String get chAppointment => _t(
+        en: 'Appointment & event reminders',
+        fa: 'یادآور نوبت و رویدادها',
+        ar: 'تذكير المواعيد والأحداث',
+      );
+  String get chMedication =>
+      _t(en: 'Medication reminders', fa: 'یادآور دارو', ar: 'تذكير الدواء');
+  String get chSystem =>
+      _t(en: 'System reminders', fa: 'یادآورهای سیستم', ar: 'تذكيرات النظام');
+  String get chHealthAlert =>
+      _t(en: 'Health alerts', fa: 'هشدارهای سلامت', ar: 'تنبيهات الصحة');
+  String get quietHours =>
+      _t(en: 'Quiet hours', fa: 'ساعت سکوت', ar: 'ساعات الهدوء');
+  String get quietHoursHint => _t(
+        en: 'No notifications in this window (except emergencies).',
+        fa: 'در این بازه نوتیفی نمی‌فرستم (به جز اورژانس).',
+        ar: 'لا إشعارات في هذه الفترة (عدا الطوارئ).',
+      );
+  String get quietFrom => _t(en: 'From', fa: 'از', ar: 'من');
+  String get quietTo => _t(en: 'To', fa: 'تا', ar: 'إلى');
+  String get engagementTitle => _t(
+        en: 'How often Sedi writes',
+        fa: 'هر چند وقت صدی بنویسه',
+        ar: 'كم مرة يكتب صدی',
+      );
+  String get engagementLow => _t(en: 'Less', fa: 'کمتر', ar: 'أقل');
+  String get engagementNormal => _t(en: 'Normal', fa: 'متوسط', ar: 'متوسط');
+  String get engagementHigh => _t(en: 'More', fa: 'بیشتر', ar: 'أكثر');
+  String get appointmentOffWarning => _t(
+        en: 'Appointment & event reminders are off, so these items will not notify you.',
+        fa: 'یادآور نوبت و رویدادها خاموشه؛ برای این برنامه‌ها نوتیف نمی‌رسه.',
+        ar: 'تذكير المواعيد متوقف، لذلك لن تصلك إشعارات لهذه العناصر.',
+      );
+
+  /// Localized label for the stored event type; null for "other"/unknown (no chip).
+  String? eventTypeLabel(String? type) {
+    switch (type) {
+      case 'doctor_visit':
+        return _t(en: 'Doctor visit', fa: 'نوبت دکتر', ar: 'موعد طبيب');
+      case 'lab_test':
+        return _t(en: 'Lab test', fa: 'آزمایش', ar: 'تحليل');
+      case 'exam':
+        return _t(en: 'Exam', fa: 'امتحان', ar: 'اختبار');
+      case 'work_meeting':
+        return _t(en: 'Meeting', fa: 'جلسه', ar: 'اجتماع');
+      case 'deadline':
+        return _t(en: 'Deadline', fa: 'مهلت', ar: 'موعد نهائي');
+      default:
+        return null;
+    }
+  }
+
+  String get settingsLoadFailed => _t(
+        en: 'Settings are not available right now.',
+        fa: 'الان تنظیمات در دسترس نیست.',
+        ar: 'الإعدادات غير متاحة الآن.',
+      );
 
   String get noNutrition => _t(
         en: 'No nutrition plan yet.',
@@ -214,22 +324,17 @@ class LifestyleL10n {
         fa: 'موردی برای این روز نیست.',
         ar: 'لا عناصر لهذا اليوم.',
       );
+
   /// Contextual assistant starter (not composer draft; not auto-submitted).
   String get nutritionChatStarter => _t(
-        en:
-            'If you like, we can review your nutrition plan together and improve it for your goals. Where would you like to start?',
-        fa:
-            'اگر بخواهی، می‌توانیم برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar:
-            'إذا رغبت، يمكننا مراجعة خطة تغذيتك معًا وتحسينها بما يناسب هدفك. من أين تحب أن نبدأ؟',
+        en: 'If you like, we can review your nutrition plan together and improve it for your goals. Where would you like to start?',
+        fa: 'اگر بخواهی، می‌توانیم برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. دوست داری از کجا شروع کنیم؟',
+        ar: 'إذا رغبت، يمكننا مراجعة خطة تغذيتك معًا وتحسينها بما يناسب هدفك. من أين تحب أن نبدأ؟',
       );
   String get exerciseChatStarter => _t(
-        en:
-            'If you like, we can review your exercise plan together and adjust it to your situation and goals. Where would you like to start?',
-        fa:
-            'اگر بخواهی، می‌توانیم برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar:
-            'إذا رغبت، يمكننا مراجعة خطة تمرينك معًا وتعديلها بما يناسب وضعك وهدفك. من أين تحب أن نبدأ؟',
+        en: 'If you like, we can review your exercise plan together and adjust it to your situation and goals. Where would you like to start?',
+        fa: 'اگر بخواهی، می‌توانیم برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. دوست داری از کجا شروع کنیم؟',
+        ar: 'إذا رغبت، يمكننا مراجعة خطة تمرينك معًا وتعديلها بما يناسب وضعك وهدفك. من أين تحب أن نبدأ؟',
       );
 
   String cycleRangeLabel(String start, String end) {
@@ -319,8 +424,10 @@ class LifestyleL10n {
 
   String get markSkipped => _t(en: 'Could not', fa: 'نشد', ar: 'لم أستطع');
 
-  String get whySkippedTitle =>
-      _t(en: 'Why could not you do it?', fa: 'چرا انجام نشد؟', ar: 'لماذا لم تتمكن؟');
+  String get whySkippedTitle => _t(
+      en: 'Why could not you do it?',
+      fa: 'چرا انجام نشد؟',
+      ar: 'لماذا لم تتمكن؟');
 
   String get whySkippedHint => _t(
         en: 'This helps Sedi make tomorrow fit you better.',
@@ -335,7 +442,8 @@ class LifestyleL10n {
       case 'too_hard':
         return _t(en: 'Too hard', fa: 'سخت بود', ar: 'كان صعباً');
       case 'not_feeling_well':
-        return _t(en: 'Not feeling well', fa: 'حالم خوب نبود', ar: 'لم أشعر بخير');
+        return _t(
+            en: 'Not feeling well', fa: 'حالم خوب نبود', ar: 'لم أشعر بخير');
       case 'dont_like':
         return _t(en: 'Did not like it', fa: 'دوست نداشتم', ar: 'لم يعجبني');
       case 'forgot':
@@ -358,7 +466,8 @@ class LifestyleL10n {
       case 'stretching':
         return _t(en: 'Stretching', fa: 'کشش', ar: 'تمدد');
       case 'chair':
-        return _t(en: 'Chair exercise', fa: 'تمرین روی صندلی', ar: 'تمرين الكرسي');
+        return _t(
+            en: 'Chair exercise', fa: 'تمرین روی صندلی', ar: 'تمرين الكرسي');
       case 'breathing':
         return _t(en: 'Breathing', fa: 'تنفس', ar: 'تنفس');
       case 'balance':

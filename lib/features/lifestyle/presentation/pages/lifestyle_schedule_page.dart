@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../services/lifestyle/lifestyle_schedule_service.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
+import '../widgets/schedule_notification_settings_card.dart';
+import '../widgets/schedule_reminder_sheets.dart';
 
+/// "My Schedule" (R-026 redesign): everything Sedi will remind you of, how she notifies you, and a way to add
+/// reminders by hand. Items Sedi created from chat are marked.
 class LifestyleSchedulePage extends StatefulWidget {
   const LifestyleSchedulePage({super.key});
 
@@ -19,12 +24,11 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   List<LifestyleUserEventDto> _events = const [];
   List<LifestyleI8ActionDto> _actions = const [];
   bool _loading = true;
+  bool _appointmentChannelOn = true;
   String? _error;
 
   LifestyleL10n get _l10n =>
       LifestyleL10n(SediLocaleController.instance.languageCode);
-
-  static const _presets = <int?>[null, 0, 15, 30, 60, 1440];
 
   @override
   void initState() {
@@ -48,7 +52,8 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     });
   }
 
-  DateTime? _parse(String? s) => s == null ? null : DateTime.tryParse(s)?.toLocal();
+  DateTime? _parse(String? s) =>
+      s == null ? null : DateTime.tryParse(s)?.toLocal();
 
   String _bucketFor(DateTime dt) {
     final now = DateTime.now();
@@ -60,6 +65,10 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       return 'week';
     }
     return 'later';
+  }
+
+  void _toast(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _setReminder(LifestyleUserEventDto e, int? minutes) async {
@@ -74,30 +83,59 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     if (res.ok) {
       await _load();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res.errorMessage)),
-      );
+      _toast(res.errorMessage);
     }
   }
 
-  String _presetLabel(LifestyleL10n l10n, int? m) {
-    switch (m) {
-      case null:
-        return l10n.reminderOff;
-      case 0:
-        return l10n.reminderAtTime;
-      case 15:
-        return l10n.reminder15;
-      case 30:
-        return l10n.reminder30;
-      case 60:
-        return l10n.reminder1h;
-      case 1440:
-        return l10n.reminder1d;
-      default:
-        return l10n.reminderOff;
+  Future<void> _chooseReminder(LifestyleUserEventDto e) async {
+    final current = !e.reminderEnabled
+        ? null
+        : (e.reminderOffsets.isEmpty ? 0 : e.reminderOffsets.first);
+    final choice = await showReminderPresetSheet(
+      context,
+      l10n: _l10n,
+      current: current,
+    );
+    if (choice == null) return;
+    await _setReminder(e, choice.minutes);
+  }
+
+  Future<void> _addReminder() async {
+    final input = await showModalBottomSheet<NewReminderInput>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.gate2CardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => ScheduleAddReminderSheet(l10n: _l10n),
+    );
+    if (input == null || !mounted) return;
+    final res = await _svc.createReminder(
+      title: input.title,
+      startsAt: input.startsAt,
+      offsetMinutes: input.offsetMinutes,
+    );
+    if (!mounted) return;
+    if (res.ok) {
+      await _load();
+    } else {
+      _toast(_l10n.saveFailed);
     }
   }
+
+  Future<void> _delete(LifestyleUserEventDto e) async {
+    final res = await _svc.deleteEvent(e.id);
+    if (!mounted) return;
+    if (res.ok) {
+      await _load();
+    } else {
+      _toast(_l10n.saveFailed);
+    }
+  }
+
+  String _presetLabel(LifestyleL10n l10n, int? m) =>
+      schedulePresetLabel(l10n, m);
 
   @override
   Widget build(BuildContext context) {
@@ -138,8 +176,23 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                   ),
                 ])
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                   children: [
+                    _hero(l10n),
+                    const SizedBox(height: 12),
+                    ScheduleNotificationSettingsCard(
+                      l10n: l10n,
+                      onAppointmentChannelChanged: (on) {
+                        if (mounted) setState(() => _appointmentChannelOn = on);
+                      },
+                    ),
+                    if (!_appointmentChannelOn) ...[
+                      const SizedBox(height: 10),
+                      _warning(l10n.appointmentOffWarning),
+                    ],
+                    const SizedBox(height: 12),
+                    _addButton(l10n),
+                    const SizedBox(height: 20),
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -208,6 +261,84 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     );
   }
 
+  Widget _hero(LifestyleL10n l10n) {
+    return A3DestinationCard(
+      backgroundColor: SediPalette.pistachio100,
+      borderColor: SediPalette.pistachio500,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.chat_bubble_outline_rounded,
+              color: SediPalette.pistachio900, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.scheduleHeroTitle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15.5,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.scheduleHeroBody,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.6,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _warning(String text) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: SediPalette.sageFill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: SediPalette.sageLine),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.notifications_off_outlined,
+              size: 20, color: SediPalette.pistachio900),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style:
+                  const TextStyle(fontSize: 12.5, color: AppTheme.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addButton(LifestyleL10n l10n) {
+    return FilledButton.icon(
+      onPressed: _addReminder,
+      icon: const Icon(Icons.add_alert_outlined),
+      label: Text(l10n.addReminder),
+      style: FilledButton.styleFrom(
+        backgroundColor: AppTheme.ctaFill,
+        foregroundColor: AppTheme.ctaText,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    );
+  }
+
   Widget _section(
       String title, List<LifestyleUserEventDto> items, LifestyleL10n l10n) {
     return Padding(
@@ -238,81 +369,106 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     );
   }
 
+  Widget _chip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: SediPalette.sageInput,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SediPalette.sageLine, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: SediPalette.pistachio900),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _eventTile(LifestyleUserEventDto e, LifestyleL10n l10n) {
+    // 60 = one hour before, 1440 = one day before (locked presets).
     final current = !e.reminderEnabled
         ? null
         : (e.reminderOffsets.isEmpty ? 0 : e.reminderOffsets.first);
     final when = A3DestinationSurface.formatIsoTimestamp(e.startsAt, l10n.lang);
+    final fromChat = e.source == 'conversation';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: A3DestinationCard(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              e.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    e.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: l10n.deleteItem,
+                  icon: const Icon(Icons.more_vert,
+                      color: AppTheme.textSecondary),
+                  onSelected: (v) {
+                    if (v == 'delete') _delete(e);
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                        value: 'delete', child: Text(l10n.deleteItem)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
             Text(
               when,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-              ),
+              style:
+                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
             ),
             if (e.location != null && e.location!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 e.location!,
                 style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 13,
-                ),
+                    color: AppTheme.textSecondary, fontSize: 13),
               ),
             ],
-            if (e.eventType != null && e.eventType!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                e.eventType!,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 13,
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _chooseReminder(e),
+                  child: _chip(
+                    current == null
+                        ? Icons.notifications_off_outlined
+                        : Icons.notifications_active_outlined,
+                    '${l10n.reminder}: ${_presetLabel(l10n, current)}',
+                  ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 6),
-            Text(
-              l10n.scheduleStatusLabel(e.status),
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.reminder,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-              ),
-            ),
-            DropdownButton<int?>(
-              value: _presets.contains(current) ? current : null,
-              isExpanded: true,
-              underline: const SizedBox.shrink(),
-              items: _presets
-                  .map((m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(_presetLabel(l10n, m)),
-                      ))
-                  .toList(),
-              onChanged: (v) => _setReminder(e, v),
+                if (fromChat)
+                  _chip(Icons.chat_bubble_outline_rounded, l10n.fromChat),
+                if (l10n.eventTypeLabel(e.eventType) != null)
+                  _chip(Icons.label_outline, l10n.eventTypeLabel(e.eventType)!),
+                _chip(Icons.flag_outlined, l10n.scheduleStatusLabel(e.status)),
+              ],
             ),
           ],
         ),

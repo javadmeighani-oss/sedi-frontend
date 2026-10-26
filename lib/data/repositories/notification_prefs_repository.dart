@@ -2,6 +2,23 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_response.dart';
 import '../../core/preferences/notification_prefs.dart';
 
+/// A read-only snapshot of the backend notification preferences (UI channel keys).
+class NotificationPrefsView {
+  final Map<String, bool> channels;
+  final bool quietEnabled;
+  final String quietStart;
+  final String quietEnd;
+  final String engagement;
+
+  const NotificationPrefsView({
+    required this.channels,
+    required this.quietEnabled,
+    required this.quietStart,
+    required this.quietEnd,
+    required this.engagement,
+  });
+}
+
 /// Syncs notification preferences with backend GET/PUT /notifications/prefs.
 class NotificationPrefsRepository {
   final ApiClient _client;
@@ -40,6 +57,34 @@ class NotificationPrefsRepository {
       default:
         return 1;
     }
+  }
+
+  /// Reads the backend preferences (no local caching). Null when unavailable.
+  Future<NotificationPrefsView?> fetch({required int userId}) async {
+    final response = await _client.getRaw(
+      '/notifications/prefs',
+      queryParams: {'user_id': userId.toString()},
+    );
+    if (!response.ok || response.data == null) return null;
+    final prefs = response.data!;
+    final channels = <String, bool>{};
+    final rawChannels = prefs['channels'];
+    for (final entry in _backendToUiChannel.entries) {
+      final v = rawChannels is Map ? rawChannels[entry.key] : null;
+      channels[entry.value] = v is bool ? v : true;
+    }
+    final quiet = prefs['quiet_hours'];
+    final enabled = quiet is Map && quiet['enabled'] == true;
+    final start = quiet is Map ? quiet['start']?.toString() : null;
+    final end = quiet is Map ? quiet['end']?.toString() : null;
+    final level = prefs['engagement_level'];
+    return NotificationPrefsView(
+      channels: channels,
+      quietEnabled: enabled,
+      quietStart: (start == null || start.isEmpty) ? '22:30' : start,
+      quietEnd: (end == null || end.isEmpty) ? '07:30' : end,
+      engagement: engagementToUi(level is int ? level : 1),
+    );
   }
 
   /// Load from backend; cache locally on success. Falls back to local cache.
@@ -88,6 +133,7 @@ class NotificationPrefsRepository {
     Map<String, bool>? channelUpdates,
     String? quietStart,
     String? quietEnd,
+    bool? quietEnabled,
     String? engagementLevel,
   }) async {
     final body = <String, dynamic>{};
@@ -105,9 +151,9 @@ class NotificationPrefsRepository {
       }
     }
 
-    if (quietStart != null || quietEnd != null) {
+    if (quietStart != null || quietEnd != null || quietEnabled != null) {
       body['quiet_hours'] = {
-        'enabled': true,
+        'enabled': quietEnabled ?? true,
         if (quietStart != null) 'start': quietStart,
         if (quietEnd != null) 'end': quietEnd,
       };
