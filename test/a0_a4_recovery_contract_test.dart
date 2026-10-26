@@ -114,9 +114,10 @@ void main() {
   test('ChatController speaking lifecycle is SSE-delta only', () {
     final src = _read('lib/features/chat/state/chat_controller.dart');
     expect(src.contains('bool isSpeaking = false'), isTrue);
-    expect(src.contains('isThinking = true;\n    isSpeaking = false;'), isTrue);
-    expect(
-        src.contains('isSpeaking = true;\n            messages.add'), isTrue);
+    // Whitespace-insensitive: dart format may re-indent these blocks.
+    final flat = src.replaceAll(RegExp(r'\s+'), ' ');
+    expect(flat.contains('isThinking = true; isSpeaking = false;'), isTrue);
+    expect(flat.contains('isSpeaking = true; messages.add'), isTrue);
     expect(src.contains('isSpeaking = false'), isTrue);
     expect(src.contains('initialize({String? initialMessage'), isTrue);
     expect(src.contains('onDelta:'), isTrue);
