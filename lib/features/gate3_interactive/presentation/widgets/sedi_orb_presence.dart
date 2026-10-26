@@ -19,8 +19,14 @@ class SediOrbPresence extends StatefulWidget {
   /// Vertical gap between the hologram and the resonance line.
   final double gap;
 
-  /// Hologram opacity in the A3 background: 40 % transparent (Javad, D-091).
+  /// Hologram opacity in the A3 background on an empty chat: 40 % transparent
+  /// (Javad, D-091).
   static const double hologramOpacity = 0.60;
+
+  /// While messages float over it the hologram must not hinder reading
+  /// (Javad, D-092): 60 % transparent. Charcoal text over the (olive)
+  /// wordmark at this opacity measures about 7:1.
+  static const double hologramOpacityChat = 0.40;
 
   /// Horizontal inset from the A3 usable edge (responsive, not device-fixed).
   static const double horizontalInset = 12;

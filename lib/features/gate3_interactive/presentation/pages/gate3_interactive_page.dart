@@ -250,11 +250,15 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
-  /// Background hologram opacity (D-091): always 40 % transparent; fainter
+  /// Background hologram opacity (D-091/D-092). Its purpose is to never get in
+  /// the way of reading: 40 % transparent on an empty chat, 60 % transparent
+  /// once messages float over it (worst-case text contrast >= 7:1), fainter
   /// while the keyboard is open. Sedi's state shows in the motion instead.
   double _orbAmbient({required bool keyboardOpen}) {
     if (keyboardOpen) return 0.22;
-    return SediOrbPresence.hologramOpacity;
+    return _controller.messages.isEmpty
+        ? SediOrbPresence.hologramOpacity
+        : SediOrbPresence.hologramOpacityChat;
   }
 
   @override
