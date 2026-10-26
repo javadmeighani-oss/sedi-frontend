@@ -234,7 +234,8 @@ jobs:
             test/gate2_otp_paste_and_slot_edit_test.dart \
             test/gate2_post_otp_auth_me_runtime_test.dart \
             test/gate2_post_otp_profile_load_test.dart \
-            test/gate2_post_otp_router_test.dart
+            test/gate2_post_otp_router_test.dart \
+            test/r026_schedule_notifications_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:
