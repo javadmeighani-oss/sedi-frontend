@@ -70,7 +70,7 @@ void main() {
     expect(holo.contains('assets/images/sedi_wordmark.png'), isTrue);
     expect(holo.contains('disableAnimations'), isTrue);
     expect(holo.contains('Random('), isFalse);
-    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.54, 0.0001));
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.44, 0.0001));
     expect(SediPresenceTokens.orbMinDiameter, closeTo(150, 0.0001));
     expect(SediPresenceTokens.orbMaxDiameter, closeTo(250, 0.0001));
     expect(SediPresenceTokens.barOpacityScale, closeTo(1.20, 0.0001));
@@ -226,10 +226,10 @@ void main() {
   });
 
   test('hologram diameter is 54% of the usable width and clamped 150..250', () {
-    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.54, 0.0001));
+    expect(SediPresenceTokens.orbWidthFactor, closeTo(0.44, 0.0001));
     expect(SediPresenceTokens.orbMinDiameter, closeTo(150, 0.0001));
     expect(SediPresenceTokens.orbMaxDiameter, closeTo(250, 0.0001));
-    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.54, 0.01));
+    expect(SediBrainOrb.diameterFor(400), closeTo(400 * 0.44, 0.01));
     expect(SediBrainOrb.diameterFor(200), SediBrainOrb.minDiameter);
     expect(SediBrainOrb.diameterFor(800), SediBrainOrb.maxDiameter);
     expect(SediPresenceTokens.barCountFor(400), inInclusiveRange(96, 100));

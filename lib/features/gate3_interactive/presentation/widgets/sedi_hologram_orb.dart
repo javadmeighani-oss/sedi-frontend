@@ -35,7 +35,8 @@ class SediHologramOrb extends StatefulWidget {
   static const double logoWidthFactor = 0.68;
   static const double logoAspect = 906 / 315;
   static const double ringMinDiameter = 100;
-  static const ValueKey<String> logoKey = ValueKey<String>('sedi-hologram-logo');
+  static const ValueKey<String> logoKey =
+      ValueKey<String>('sedi-hologram-logo');
 
   const SediHologramOrb({
     super.key,
@@ -55,7 +56,9 @@ class SediHologramOrb extends StatefulWidget {
 class _HoloClock extends ChangeNotifier {
   Gate3InteractionState state = Gate3InteractionState.idle;
   double holoTurns = 0;
-  double ringTurns = 0;
+
+  /// Seconds of planet travel (speed depends on the state).
+  double orbitSec = 0;
   double breath = 0;
   double pulse = 0;
   double ripple = 0;
@@ -73,16 +76,18 @@ class _HoloClock extends ChangeNotifier {
     }
   }
 
-  static double _ringSpeed(Gate3InteractionState s) {
+  /// Planet travel speed multiplier: calm when watching/listening, quick
+  /// while thinking, steady while speaking.
+  static double _orbitSpeed(Gate3InteractionState s) {
     switch (s) {
       case Gate3InteractionState.thinking:
-        return 1 / 6;
+        return 2.4;
       case Gate3InteractionState.speaking:
-        return 1 / 12;
+        return 1.4;
       case Gate3InteractionState.listening:
-        return 1 / 16;
+        return 0.7;
       case Gate3InteractionState.idle:
-        return 1 / 20;
+        return 1.0;
     }
   }
 
@@ -91,7 +96,8 @@ class _HoloClock extends ChangeNotifier {
 
   void advance(double dt) {
     holoTurns = (holoTurns + dt * _holoSpeed(state)) % 1.0;
-    ringTurns = (ringTurns + dt * _ringSpeed(state)) % 1.0;
+    orbitSec = (orbitSec + dt * _orbitSpeed(state)) %
+        11160.0; // lcm of the planet periods: no jump on wrap
     breath = (breath + dt * (2 * math.pi / 5.5)) % (2 * math.pi);
     pulse = (pulse + dt * (2 * math.pi / 1.1)) % (2 * math.pi);
     if (state == Gate3InteractionState.listening) {
@@ -203,9 +209,36 @@ class _SediHologramOrbState extends State<SediHologramOrb>
   @override
   Widget build(BuildContext context) {
     final d = widget.diameter;
-    final outer = d * 1.9;
+    // Rings reach 2.0 sphere radii (= 2.0 d / 2 on each side) plus planet glow.
+    final outer = d * 2.25;
     final rings = widget.showRings && d >= SediHologramOrb.ringMinDiameter;
     final dim = widget.dim.clamp(0.0, 1.0).toDouble();
+
+    // Layer order (v4, D-091): back half of the rings -> glass sphere -> front
+    // half of the rings -> wordmark. The ring front passes below the wordmark.
+    Widget ringLayer({required bool front}) => Positioned(
+          left: -(outer - d) / 2,
+          top: -(outer - d) / 2,
+          width: outer,
+          height: outer,
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: dim,
+              duration: const Duration(milliseconds: 400),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _AuraRingsPainter(
+                    clock: _clock,
+                    diameter: d,
+                    rings: rings,
+                    front: front,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
     return Semantics(
       label: 'Sedi',
       image: true,
@@ -216,27 +249,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Positioned(
-              left: -(outer - d) / 2,
-              top: -(outer - d) / 2,
-              width: outer,
-              height: outer,
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  opacity: dim,
-                  duration: const Duration(milliseconds: 400),
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      painter: _AuraRingsPainter(
-                        clock: _clock,
-                        diameter: d,
-                        rings: rings,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            ringLayer(front: false),
             AnimatedOpacity(
               opacity: dim,
               duration: const Duration(milliseconds: 400),
@@ -247,6 +260,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
                 ),
               ),
             ),
+            if (rings) ringLayer(front: true),
             if (widget.showLogo) _logo(d),
           ],
         ),
@@ -255,27 +269,60 @@ class _SediHologramOrbState extends State<SediHologramOrb>
   }
 }
 
+enum _PlanetGlow { bright, mid, dim }
+
+class _Planet {
+  final int ring;
+  final double startDeg;
+  final double periodSec;
+
+  /// Radius in px for a sphere of radius 120 (scaled with the real sphere).
+  final double radius;
+  final _PlanetGlow glow;
+  const _Planet(
+      this.ring, this.startDeg, this.periodSec, this.radius, this.glow);
+}
+
+/// Four concentric horizontal rings around the sphere (approved board v4,
+/// D-090/D-091) with six small planets of different glow. The back half of the
+/// rings is drawn under the sphere, the front half over it.
 class _AuraRingsPainter extends CustomPainter {
   final _HoloClock clock;
   final double diameter;
   final bool rings;
 
+  /// false = back layer (under the sphere), true = front layer (over it).
+  final bool front;
+
+  static const List<double> _ringFactor = [1.34, 1.56, 1.78, 2.00];
+  static const List<double> _ringInclDeg = [70, 71, 72, 73];
+  static const List<_Planet> _planets = [
+    _Planet(0, 40, 18, 5.0, _PlanetGlow.bright),
+    _Planet(1, 205, 24, 3.5, _PlanetGlow.mid),
+    _Planet(1, 25, 24, 4.0, _PlanetGlow.dim),
+    _Planet(2, 115, 31, 5.5, _PlanetGlow.bright),
+    _Planet(3, 300, 40, 3.5, _PlanetGlow.dim),
+    _Planet(3, 150, 40, 4.5, _PlanetGlow.mid),
+  ];
+
   _AuraRingsPainter({
     required this.clock,
     required this.diameter,
     required this.rings,
+    required this.front,
   }) : super(repaint: clock);
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
     final r = diameter / 2;
-    final breath = 0.975 + 0.025 * math.sin(clock.breath);
-    final auraR = r * 1.62 * breath;
+    final k = r / 120.0;
     final listening = clock.state == Gate3InteractionState.listening;
 
-    // Flat theme (D-085): no soft halo - only while listening a faint one.
-    if (listening) {
+    // Back layer only: a faint aura while Sedi listens (flat theme otherwise).
+    if (!front && listening) {
+      final breath = 0.975 + 0.025 * math.sin(clock.breath);
+      final auraR = r * 1.62 * breath;
       canvas.drawCircle(
         c,
         auraR,
@@ -291,72 +338,128 @@ class _AuraRingsPainter extends CustomPainter {
     }
 
     if (!rings) return;
-    _ring(
-      canvas,
-      c,
-      rw: r * 1.48,
-      rh: r * 0.15,
-      turns: clock.ringTurns,
-      line: SediPalette.pistachio700.withOpacity(0.38),
-      dot: SediPalette.pistachio900,
-      glow: SediPalette.pistachio500,
-      tilt: 0,
-    );
-    _ring(
-      canvas,
-      c,
-      rw: r * 1.68,
-      rh: r * 0.21,
-      turns: -clock.ringTurns * 0.7 + 0.25,
-      line: SediPalette.pistachio900.withOpacity(0.22),
-      dot: SediPalette.pistachio700,
-      glow: SediPalette.pistachio300,
-      tilt: -0.10,
-    );
+
+    // Speaking: the ring glow pulses gently with Sedi's voice.
+    final pulse = clock.state == Gate3InteractionState.speaking
+        ? 0.85 + 0.15 * math.sin(clock.pulse)
+        : 1.0;
+
+    for (var i = 0; i < _ringFactor.length; i++) {
+      final rx = r * _ringFactor[i];
+      final ry = rx * math.cos(_ringInclDeg[i] * math.pi / 180.0);
+      final oval = Rect.fromCenter(center: c, width: rx * 2, height: ry * 2);
+      // Flutter arcs run clockwise on screen: 0..pi is the lower (near) half.
+      final start = front ? 0.0 : math.pi;
+      canvas.drawArc(
+        oval,
+        start,
+        math.pi,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(3.0, (front ? 6.0 : 5.0) * k)
+          ..color = SediPalette.pistachio500
+              .withOpacity((front ? 0.45 : 0.22) * pulse),
+      );
+      canvas.drawArc(
+        oval,
+        start,
+        math.pi,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.0, (front ? 1.8 : 1.4) * k)
+          ..color = SediPalette.pistachio900.withOpacity(front ? 0.70 : 0.34),
+      );
+    }
+
+    for (final pl in _planets) {
+      final a = (pl.startDeg * math.pi / 180.0) +
+          2 * math.pi * clock.orbitSec / pl.periodSec;
+      final sinA = math.sin(a);
+      final isFront = sinA >= 0;
+      if (isFront != front) continue;
+      final rx = r * _ringFactor[pl.ring];
+      final incl = _ringInclDeg[pl.ring] * math.pi / 180.0;
+      final ry = rx * math.cos(incl);
+      final p = c + Offset(rx * math.cos(a), ry * sinA);
+      // Depth cue: nearer planets are slightly larger.
+      final zn = sinA * math.sin(incl);
+      _planet(canvas, p, pl.radius * k * (1 + 0.28 * zn), pl.glow);
+    }
   }
 
-  void _ring(
-    Canvas canvas,
-    Offset c, {
-    required double rw,
-    required double rh,
-    required double turns,
-    required Color line,
-    required Color dot,
-    required Color glow,
-    required double tilt,
-  }) {
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(tilt);
-    final oval = Rect.fromCenter(
-      center: Offset.zero,
-      width: rw * 2,
-      height: rh * 2,
-    );
-    canvas.drawOval(
-      oval,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = line,
-    );
-    final a = turns * 2 * math.pi;
-    final p = Offset(rw * math.cos(a), rh * math.sin(a));
+  void _planet(Canvas canvas, Offset p, double rad, _PlanetGlow glow) {
+    final haloMul = switch (glow) {
+      _PlanetGlow.bright => 4.2,
+      _PlanetGlow.mid => 3.2,
+      _PlanetGlow.dim => 2.2,
+    };
+    final haloColor = glow == _PlanetGlow.dim
+        ? SediPalette.pistachio700
+        : SediPalette.pistachio500;
+    final haloAlpha = switch (glow) {
+      _PlanetGlow.bright => 0.85,
+      _PlanetGlow.mid => 0.55,
+      _PlanetGlow.dim => 0.30,
+    };
+    final haloR = rad * haloMul;
     canvas.drawCircle(
       p,
-      5,
+      haloR,
       Paint()
-        ..color = glow.withOpacity(0.55)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..shader = RadialGradient(
+          colors: [
+            haloColor.withOpacity(haloAlpha),
+            haloColor.withOpacity(haloAlpha * 0.35),
+            haloColor.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(Rect.fromCircle(center: p, radius: haloR)),
     );
-    canvas.drawCircle(p, 2.4, Paint()..color = dot);
-    canvas.restore();
+    final colors = switch (glow) {
+      _PlanetGlow.bright => const [
+          SediPalette.shell100,
+          SediPalette.pistachio300,
+          SediPalette.pistachio700,
+          SediPalette.pistachio900,
+        ],
+      _PlanetGlow.mid => const [
+          SediPalette.pistachio100,
+          SediPalette.pistachio500,
+          Color(0xFF5F6F26),
+          SediPalette.pistachio900,
+        ],
+      _PlanetGlow.dim => const [
+          SediPalette.pistachio500,
+          Color(0xFF6E7D2A),
+          SediPalette.pistachio900,
+          SediPalette.pistachio900,
+        ],
+    };
+    canvas.drawCircle(
+      p,
+      rad,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.32, -0.4),
+          radius: 0.8,
+          colors: colors,
+          stops: const [0.0, 0.4, 0.85, 1.0],
+        ).createShader(Rect.fromCircle(center: p, radius: rad)),
+    );
+    canvas.drawCircle(
+      p + Offset(-rad * 0.32, -rad * 0.34),
+      rad * 0.22,
+      Paint()..color = Colors.white.withOpacity(0.85),
+    );
   }
 
   @override
   bool shouldRepaint(covariant _AuraRingsPainter oldDelegate) =>
-      oldDelegate.diameter != diameter || oldDelegate.rings != rings;
+      oldDelegate.diameter != diameter ||
+      oldDelegate.rings != rings ||
+      oldDelegate.front != front;
 }
 
 class _DomePainter extends CustomPainter {
@@ -435,9 +538,37 @@ class _DomePainter extends CustomPainter {
           radius: 0.95,
           colors: [
             SediPalette.pistachio900.withOpacity(0.0),
-            SediPalette.pistachio900.withOpacity(0.34),
+            SediPalette.pistachio900.withOpacity(0.46),
           ],
-          stops: const [0.55, 1.0],
+          stops: const [0.50, 1.0],
+        ).createShader(rect),
+    );
+
+    // Reflected light from below (gives the sphere volume) and a soft rim.
+    final bounce = Rect.fromCenter(
+      center: Offset(c.dx - r * 0.02, c.dy + r * 0.68),
+      width: r * 0.90,
+      height: r * 0.56,
+    );
+    canvas.drawOval(
+      bounce,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            SediPalette.pistachio300.withOpacity(0.75),
+            SediPalette.pistachio300.withOpacity(0.0),
+          ],
+        ).createShader(bounce),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            SediPalette.pistachio900.withOpacity(0.0),
+            SediPalette.pistachio900.withOpacity(0.30),
+          ],
+          stops: const [0.60, 1.0],
         ).createShader(rect),
     );
     canvas.restore();

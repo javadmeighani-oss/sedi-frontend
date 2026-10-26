@@ -35,6 +35,7 @@ import '../widgets/sedi_scene_backdrop.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
+
   /// Composer-only seed text. Never auto-sends; never inserts into transcript.
   final String? initialDraft;
   final bool fromNotification;
@@ -249,15 +250,11 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
-  /// Hologram brightness by conversation density (D-072): empty/first open
-  /// 1.0, active chat ~0.55, long history ~0.30. It lights up again while Sedi
-  /// speaks and dims while the keyboard is open.
+  /// Background hologram opacity (D-091): always 40 % transparent; fainter
+  /// while the keyboard is open. Sedi's state shows in the motion instead.
   double _orbAmbient({required bool keyboardOpen}) {
     if (keyboardOpen) return 0.22;
-    final n = _controller.messages.length;
-    var ambient = n == 0 ? 1.0 : (n > 10 ? 0.30 : 0.55);
-    if (_controller.isSpeaking) ambient = math.max(ambient, 0.85);
-    return ambient;
+    return SediOrbPresence.hologramOpacity;
   }
 
   @override
@@ -292,16 +289,16 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     builder: (context, box) {
                       final usableW =
                           box.maxWidth - 2 * SediOrbPresence.horizontalInset;
-                      // The hologram sits just above the resonance line (D-078);
-                      // the line itself stays at about the middle of the screen.
-                      const gap = 28.0;
+                      // The hologram sits lower, almost resting on the resonance
+                      // line (D-091); the line stays at about the middle.
+                      const gap = 4.0;
                       final orbD = SediBrainOrb.diameterFor(usableW);
-                      final barsTop =
-                          (box.maxHeight * 0.455).clamp(260.0, 460.0).toDouble();
-                      final presenceTop =
-                          math.max(56.0, barsTop - gap - orbD);
-                      final presenceBottom = presenceTop +
-                          SediOrbPresence.heightFor(usableW, gap);
+                      final barsTop = (box.maxHeight * 0.455)
+                          .clamp(260.0, 460.0)
+                          .toDouble();
+                      final presenceTop = math.max(56.0, barsTop - gap - orbD);
+                      final presenceBottom =
+                          presenceTop + SediOrbPresence.heightFor(usableW, gap);
                       final chatTopPad =
                           keyboardOpen ? 56.0 : presenceBottom + 10;
                       return Stack(
@@ -385,7 +382,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                   },
                                   onSendText: _handleSendText,
                                   onStartRecording: () {
-                                    _controller.startVoiceRecording().then((ok) {
+                                    _controller
+                                        .startVoiceRecording()
+                                        .then((ok) {
                                       if (!mounted) return;
                                       if (ok == false) {
                                         ScaffoldMessenger.of(context)
@@ -417,11 +416,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                         debugPrint(
                                             '[Audio] recorded file: $path');
                                       }
-                                      setState(() => _composerListening = false);
+                                      setState(
+                                          () => _composerListening = false);
                                       if (path == null) return;
                                       // R-021 / M4: the recording becomes TEXT in the composer (never auto-sent).
-                                      final text = await _attachmentFlow
-                                          .transcribeVoice(
+                                      final text =
+                                          await _attachmentFlow.transcribeVoice(
                                               context, presentationLang, path);
                                       if (!mounted || text == null) return;
                                       setState(() {
@@ -458,8 +458,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                   if (!_subjects.isActiveSelf) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content:
-                                            Text(l10n.lifestyleOtherUnavailable),
+                                        content: Text(
+                                            l10n.lifestyleOtherUnavailable),
                                       ),
                                     );
                                     return;

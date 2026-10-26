@@ -12,12 +12,15 @@ class SediOrbPresence extends StatefulWidget {
   final Gate3InteractionState state;
   final String lang;
 
-  /// Hologram brightness: 1.0 empty/first open, ~0.5 active chat, ~0.3 long
-  /// history. Bars follow (dimmed when the hologram is dim).
+  /// Opacity of the whole hologram (default [hologramOpacity] = 40 %
+  /// transparent). The resonance line dims too while the keyboard is open.
   final double ambient;
 
-  /// Vertical gap between the hologram and the resonance bars.
+  /// Vertical gap between the hologram and the resonance line.
   final double gap;
+
+  /// Hologram opacity in the A3 background: 40 % transparent (Javad, D-091).
+  static const double hologramOpacity = 0.60;
 
   /// Horizontal inset from the A3 usable edge (responsive, not device-fixed).
   static const double horizontalInset = 12;
@@ -36,7 +39,7 @@ class SediOrbPresence extends StatefulWidget {
     super.key,
     required this.state,
     required this.lang,
-    this.ambient = 1.0,
+    this.ambient = hologramOpacity,
     this.gap = 72,
   });
 
@@ -85,11 +88,16 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
               SizedBox(
                 height: orbD,
                 child: Center(
-                  child: SediBrainOrb(
-                    state: widget.state,
-                    lang: widget.lang,
-                    diameter: orbD,
-                    dim: widget.ambient,
+                  // Background hologram: the whole object (sphere, rings,
+                  // planets, wordmark) is 40 % transparent (D-091).
+                  child: AnimatedOpacity(
+                    opacity: widget.ambient.clamp(0.0, 1.0).toDouble(),
+                    duration: const Duration(milliseconds: 400),
+                    child: SediBrainOrb(
+                      state: widget.state,
+                      lang: widget.lang,
+                      diameter: orbD,
+                    ),
                   ),
                 ),
               ),

@@ -12,7 +12,9 @@ class SediPresenceTokens {
   /// Deep olive — resonance hairlines (readable on Soft Sage).
   static const Color presenceGreen = SediPalette.pistachio900;
 
-  static const double orbWidthFactor = 0.54;
+  /// Sphere diameter / usable width. The four rings reach 2.0 radii on each
+  /// side, so the whole hologram spans about 0.88 of the width (D-091).
+  static const double orbWidthFactor = 0.44;
   static const double orbMinDiameter = 150;
   static const double orbMaxDiameter = 250;
 
