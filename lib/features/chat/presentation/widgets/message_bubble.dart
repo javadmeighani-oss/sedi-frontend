@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_palette.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 
 class MessageBubble extends StatefulWidget {
   final String message;
@@ -97,6 +99,8 @@ class _MessageBubbleState extends State<MessageBubble> {
                   : SediPalette.shell100,
               fontSize: 15,
               height: 1.45,
+              // ~20 % heavier strokes than before (D-097) for easier reading.
+              fontWeight: FontWeight.w500,
               shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
             ),
           );
@@ -183,7 +187,23 @@ class _MessageBubbleState extends State<MessageBubble> {
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 320),
-            child: body,
+            // Every Sedi message starts with her small hologram sphere (D-097).
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsetsDirectional.only(top: 2, end: 8),
+                  child: SediHologramOrb(
+                    state: Gate3InteractionState.idle,
+                    diameter: 24,
+                    showLogo: false,
+                    showRings: false,
+                    animate: false,
+                  ),
+                ),
+                Flexible(child: body),
+              ],
+            ),
           ),
         ),
       );

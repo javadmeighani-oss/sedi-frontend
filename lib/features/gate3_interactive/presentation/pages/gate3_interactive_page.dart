@@ -227,14 +227,19 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     );
   }
 
-  /// A user drag away from the end releases the lock; reaching the end locks.
+  /// Touching the list releases the lock at once, so the user can always scroll
+  /// by hand, even while Sedi is still writing (D-097). The lock is taken
+  /// again when a scroll ends near the latest messages.
   bool _onChatScroll(ScrollNotification n) {
     if (n.metrics.axis != Axis.vertical) return false;
-    final nearEnd = n.metrics.maxScrollExtent - n.metrics.pixels <= 48;
-    if (n is ScrollUpdateNotification && n.dragDetails != null) {
-      _stickToLatest = nearEnd;
-    } else if (n is ScrollEndNotification && nearEnd) {
-      _stickToLatest = true;
+    if (n is ScrollStartNotification && n.dragDetails != null) {
+      _stickToLatest = false;
+    } else if (n is ScrollEndNotification) {
+      final nearEnd = n.metrics.maxScrollExtent - n.metrics.pixels <= 48;
+      if (nearEnd) {
+        _stickToLatest = true;
+        _scheduleJumpToLatest();
+      }
     }
     return false;
   }

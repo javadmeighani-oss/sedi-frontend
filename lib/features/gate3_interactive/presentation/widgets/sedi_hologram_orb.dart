@@ -33,6 +33,9 @@ class SediHologramOrb extends StatefulWidget {
 
   static const String logoAsset = 'assets/images/sedi_wordmark.png';
   static const double logoWidthFactor = 0.68;
+
+  /// Sphere diameter / ring reference diameter when the rings are shown.
+  static const double sphereScaleWithRings = 0.80;
   static const double logoAspect = 906 / 315;
   static const double ringMinDiameter = 60;
   static const ValueKey<String> logoKey = ValueKey<String>(
@@ -216,6 +219,10 @@ class _SediHologramOrbState extends State<SediHologramOrb>
     final outer = d * 2.25;
     final rings = widget.showRings && d >= SediHologramOrb.ringMinDiameter;
     final dim = widget.dim.clamp(0.0, 1.0).toDouble();
+    // With the rings on, the sphere is 20 % smaller than the ring reference so
+    // sphere and rings are in proportion (D-097). Without rings (icons,
+    // avatars) the sphere fills the whole box.
+    final sphereD = rings ? d * SediHologramOrb.sphereScaleWithRings : d;
 
     // Layer order (v4, D-091): back half of the rings -> glass sphere -> front
     // half of the rings -> wordmark. The ring front passes below the wordmark.
@@ -253,18 +260,26 @@ class _SediHologramOrbState extends State<SediHologramOrb>
           alignment: Alignment.center,
           children: [
             ringLayer(front: false),
-            AnimatedOpacity(
-              opacity: dim,
-              duration: const Duration(milliseconds: 400),
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  size: Size.square(d),
-                  painter: _DomePainter(clock: _clock),
+            Center(
+              child: AnimatedOpacity(
+                opacity: dim,
+                duration: const Duration(milliseconds: 400),
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    size: Size.square(sphereD),
+                    painter: _DomePainter(clock: _clock),
+                  ),
                 ),
               ),
             ),
             if (rings) ringLayer(front: true),
-            if (widget.showLogo) _logo(d),
+            if (widget.showLogo)
+              Center(
+                child: SizedBox.square(
+                  dimension: sphereD,
+                  child: _logo(sphereD),
+                ),
+              ),
           ],
         ),
       ),
