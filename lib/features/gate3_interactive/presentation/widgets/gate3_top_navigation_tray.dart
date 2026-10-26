@@ -37,13 +37,14 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
   @override
   void initState() {
     super.initState();
-    _size = AnimationController(
-      vsync: this,
-      duration: Gate3TopNavigationTray.toggleDuration,
-      value: widget.expanded ? 1 : 0,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _size =
+        AnimationController(
+          vsync: this,
+          duration: Gate3TopNavigationTray.toggleDuration,
+          value: widget.expanded ? 1 : 0,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
   }
 
   @override
@@ -75,54 +76,51 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
           decoration: BoxDecoration(
             color: SediPalette.sageSurface.withOpacity(0.96),
             border: const Border(
-              bottom: BorderSide(
-                color: SediPalette.sageLine,
-                width: 0.8,
-              ),
+              bottom: BorderSide(color: SediPalette.sageLine, width: 0.8),
             ),
             borderRadius: radius,
           ),
           child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onToggle,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                heightFactor: _size.value,
-                child: showIcons
-                    ? Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                        child: widget.child,
-                      )
-                    : const SizedBox(width: double.infinity, height: 0),
-              ),
-            ),
-          ),
-          Semantics(
-            key: const ValueKey('a3-top-tray-semantics'),
-            button: true,
-            label: widget.expanded
-                ? widget.collapseLabel
-                : widget.expandLabel,
-            child: Material(
-              color: const Color(0x00000000),
-              child: InkWell(
-                key: const ValueKey('a3-top-tray-toggle'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: widget.onToggle,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: Gate3TopNavigationTray.handleHeight,
-                  child: Center(
-                    child: _TrayChevron(expanded: widget.expanded),
+                child: ClipRect(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    heightFactor: _size.value,
+                    child: showIcons
+                        ? Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                            child: widget.child,
+                          )
+                        : const SizedBox(width: double.infinity, height: 0),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
+              Semantics(
+                key: const ValueKey('a3-top-tray-semantics'),
+                button: true,
+                label: widget.expanded
+                    ? widget.collapseLabel
+                    : widget.expandLabel,
+                child: Material(
+                  color: const Color(0x00000000),
+                  child: InkWell(
+                    key: const ValueKey('a3-top-tray-toggle'),
+                    onTap: widget.onToggle,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: Gate3TopNavigationTray.handleHeight,
+                      child: Center(
+                        child: _TrayChevron(expanded: widget.expanded),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -132,8 +130,8 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
 
 /// Visible chevron only. Handle tap target stays [Gate3TopNavigationTray.handleHeight].
 class _TrayChevron extends StatelessWidget {
-  static const double visualSize = 18 * 1.30;
-  static const double strokeWidth = 1.5 * 1.10;
+  static const double visualSize = 18 * 1.56; // +20 % (D-095)
+  static const double strokeWidth = 2.6; // bolder, clearly visible (D-095)
 
   final bool expanded;
 
@@ -173,9 +171,9 @@ class _TrayChevronPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
 
-    final insetX = size.width * 0.28;
-    final top = size.height * 0.38;
-    final bottom = size.height * 0.58;
+    final insetX = size.width * 0.22;
+    final top = size.height * 0.35;
+    final bottom = size.height * 0.62;
     final midX = size.width / 2;
     final apexY = pointingUp ? top : bottom;
     final wingY = pointingUp ? bottom : top;

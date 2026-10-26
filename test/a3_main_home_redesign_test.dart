@@ -81,7 +81,7 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_top_navigation_tray.dart',
     );
     expect(tray.contains('handleHeight = 44'), isTrue);
-    expect(tray.contains('visualSize = 18 * 1.30'), isTrue);
+    expect(tray.contains('visualSize = 18 * 1.56'), isTrue);
     expect(tray.contains('strokeWidth = 1.5 * 1.10'), isTrue);
     expect(tray.contains('size: 18'), isFalse);
     expect(Gate3TopNavigationTray.handleHeight, 44);
@@ -430,7 +430,7 @@ void main() {
       matching: find.byType(CustomPaint),
     );
     expect(chevron, findsOneWidget);
-    expect(tester.getSize(chevron).width, closeTo(18 * 1.30, 0.01));
-    expect(tester.getSize(chevron).height, closeTo(18 * 1.30, 0.01));
+    expect(tester.getSize(chevron).width, closeTo(18 * 1.56, 0.01));
+    expect(tester.getSize(chevron).height, closeTo(18 * 1.56, 0.01));
   });
 }
