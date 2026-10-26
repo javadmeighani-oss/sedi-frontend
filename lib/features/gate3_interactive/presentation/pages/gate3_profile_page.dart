@@ -14,7 +14,6 @@ import '../gate3_localization.dart';
 import '../gate3_memory_l10n.dart';
 import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
-import '../widgets/a3_hologram_header.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
 
@@ -141,7 +140,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       _phoneFlowSuccess = null;
     });
     final lang = SediLocaleController.instance.languageCode;
-    final res = await _otp.requestPhoneChangeOtp(newPhone: e164, language: lang);
+    final res =
+        await _otp.requestPhoneChangeOtp(newPhone: e164, language: lang);
     if (!mounted) return;
     setState(() {
       _phoneBusy = false;
@@ -196,8 +196,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    final textDir =
-        l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+    final textDir = l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
@@ -218,7 +217,6 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                   children: [
-                    const A3HologramHeader(),
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -372,7 +370,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               decoration: const InputDecoration(
                 isDense: true,
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ),
@@ -459,8 +458,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       );
     }
     if (me.birthYear != null && me.birthMonth != null && me.birthDay != null) {
-      final iso =
-          '${me.birthYear!.toString().padLeft(4, '0')}-'
+      final iso = '${me.birthYear!.toString().padLeft(4, '0')}-'
           '${me.birthMonth!.toString().padLeft(2, '0')}-'
           '${me.birthDay!.toString().padLeft(2, '0')}';
       return CalendarDateMath.formatIsoForProfileDisplay(iso, lang);

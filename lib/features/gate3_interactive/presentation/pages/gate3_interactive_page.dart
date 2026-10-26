@@ -329,7 +329,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   /// once messages float over it (worst-case text contrast >= 7:1), fainter
   /// while the keyboard is open. Sedi's state shows in the motion instead.
   double _orbAmbient({required bool keyboardOpen}) {
-    if (keyboardOpen) return 0.22;
+    if (keyboardOpen) return 0.14;
     return _controller.messages.isEmpty
         ? SediOrbPresence.hologramOpacity
         : SediOrbPresence.hologramOpacityChat;

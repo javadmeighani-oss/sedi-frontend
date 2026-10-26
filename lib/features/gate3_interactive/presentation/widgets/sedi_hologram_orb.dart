@@ -31,11 +31,14 @@ class SediHologramOrb extends StatefulWidget {
   /// 0..1 brightness of the dome and halo (the wordmark always stays 100 %).
   final double dim;
 
+  /// false for repeated small icons (chat messages): the wordmark is drawn without the shared [logoKey].
+  final bool keyedLogo;
+
   static const String logoAsset = 'assets/images/sedi_wordmark.png';
   static const double logoWidthFactor = 0.68;
 
   /// Sphere diameter / ring reference diameter when the rings are shown.
-  static const double sphereScaleWithRings = 0.80;
+  static const double sphereScaleWithRings = 0.68;
   static const double logoAspect = 906 / 315;
   static const double ringMinDiameter = 60;
   static const ValueKey<String> logoKey = ValueKey<String>(
@@ -50,6 +53,7 @@ class SediHologramOrb extends StatefulWidget {
     this.showRings = true,
     this.animate = true,
     this.dim = 1.0,
+    this.keyedLogo = true,
   });
 
   @override
@@ -100,8 +104,7 @@ class _HoloClock extends ChangeNotifier {
 
   void advance(double dt) {
     holoTurns = (holoTurns + dt * _holoSpeed(state)) % 1.0;
-    orbitSec =
-        (orbitSec + dt * _orbitSpeed(state)) %
+    orbitSec = (orbitSec + dt * _orbitSpeed(state)) %
         11160.0; // lcm of the planet periods: no jump on wrap
     breath = (breath + dt * (2 * math.pi / 5.5)) % (2 * math.pi);
     pulse = (pulse + dt * (2 * math.pi / 1.1)) % (2 * math.pi);
@@ -131,8 +134,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reduceMotion =
-        (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ||
+    _reduceMotion = (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ||
         !widget.animate;
     if (_reduceMotion) {
       if (_ticker.isActive) _ticker.stop();
@@ -169,14 +171,14 @@ class _SediHologramOrbState extends State<SediHologramOrb>
     final w = d * SediHologramOrb.logoWidthFactor;
     final h = w / SediHologramOrb.logoAspect;
     Widget image() => Image.asset(
-      SediHologramOrb.logoAsset,
-      width: w,
-      height: h,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      errorBuilder: (context, error, stackTrace) =>
-          SizedBox(width: w, height: h),
-    );
+          SediHologramOrb.logoAsset,
+          width: w,
+          height: h,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (context, error, stackTrace) =>
+              SizedBox(width: w, height: h),
+        );
     return Align(
       alignment: const Alignment(0, 0.04),
       child: SizedBox(
@@ -199,7 +201,7 @@ class _SediHologramOrbState extends State<SediHologramOrb>
               ),
             ),
             ColorFiltered(
-              key: SediHologramOrb.logoKey,
+              key: widget.keyedLogo ? SediHologramOrb.logoKey : null,
               colorFilter: const ColorFilter.mode(
                 SediPalette.pistachio900,
                 BlendMode.srcIn,
@@ -227,27 +229,27 @@ class _SediHologramOrbState extends State<SediHologramOrb>
     // Layer order (v4, D-091): back half of the rings -> glass sphere -> front
     // half of the rings -> wordmark. The ring front passes below the wordmark.
     Widget ringLayer({required bool front}) => Positioned(
-      left: -(outer - d) / 2,
-      top: -(outer - d) / 2,
-      width: outer,
-      height: outer,
-      child: IgnorePointer(
-        child: AnimatedOpacity(
-          opacity: dim,
-          duration: const Duration(milliseconds: 400),
-          child: RepaintBoundary(
-            child: CustomPaint(
-              painter: _AuraRingsPainter(
-                clock: _clock,
-                diameter: d,
-                rings: rings,
-                front: front,
+          left: -(outer - d) / 2,
+          top: -(outer - d) / 2,
+          width: outer,
+          height: outer,
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: dim,
+              duration: const Duration(milliseconds: 400),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _AuraRingsPainter(
+                    clock: _clock,
+                    diameter: d,
+                    rings: rings,
+                    front: front,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
 
     return Semantics(
       label: 'Sedi',
@@ -398,8 +400,7 @@ class _AuraRingsPainter extends CustomPainter {
     }
 
     for (final pl in _planets) {
-      final a =
-          (pl.startDeg * math.pi / 180.0) +
+      final a = (pl.startDeg * math.pi / 180.0) +
           2 * math.pi * clock.orbitSec / pl.periodSec;
       final sinA = math.sin(a);
       final isFront = sinA >= 0;
@@ -444,23 +445,23 @@ class _AuraRingsPainter extends CustomPainter {
     );
     final colors = switch (glow) {
       _PlanetGlow.bright => const [
-        SediPalette.shell100,
-        SediPalette.pistachio300,
-        SediPalette.pistachio700,
-        SediPalette.pistachio900,
-      ],
+          SediPalette.shell100,
+          SediPalette.pistachio300,
+          SediPalette.pistachio700,
+          SediPalette.pistachio900,
+        ],
       _PlanetGlow.mid => const [
-        SediPalette.pistachio100,
-        SediPalette.pistachio500,
-        Color(0xFF5F6F26),
-        SediPalette.pistachio900,
-      ],
+          SediPalette.pistachio100,
+          SediPalette.pistachio500,
+          Color(0xFF5F6F26),
+          SediPalette.pistachio900,
+        ],
       _PlanetGlow.dim => const [
-        SediPalette.pistachio500,
-        Color(0xFF6E7D2A),
-        SediPalette.pistachio900,
-        SediPalette.pistachio900,
-      ],
+          SediPalette.pistachio500,
+          Color(0xFF6E7D2A),
+          SediPalette.pistachio900,
+          SediPalette.pistachio900,
+        ],
     };
     canvas.drawCircle(
       p,

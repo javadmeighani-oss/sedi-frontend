@@ -6,14 +6,14 @@ import '../../../../core/theme/sedi_palette.dart';
 import '../../models/gate3_interaction_state.dart';
 import 'sedi_presence_tokens.dart';
 
-/// Horizontal resonance line (D-091/D-097): a fine sound-waveform line with an
-/// echo, tallest at the centre under the hologram and fading to the screen
-/// edges (replaces the chunky bar columns).
+/// Horizontal resonance (D-101): a neat sound spectrum of thin vertical lines on a
+/// regular grid (reference: a voice waveform), tallest at the centre under the
+/// hologram and tapering to dots at the screen edges.
 ///
 /// Four states, four motions (state authority = [Gate3InteractionState]):
-///  - idle      = Sedi SEES / watches: an almost flat line with a faint shimmer;
+///  - idle      = Sedi SEES / watches: nearly flat, tiny breathing ticks;
 ///  - listening = Sedi HEARS: sound swells arrive from both edges to the centre;
-///  - thinking  = Sedi THINKS: a short wave packet scans left and right;
+///  - thinking  = Sedi THINKS: a short packet of raised lines scans left and right;
 ///  - speaking  = Sedi SPEAKS: syllable-like bursts flow out from the centre.
 /// States cross-fade smoothly. Deterministic — no per-frame random noise, no
 /// scribble path, and no ECG/medical grammar. Visual-only; not I9,
@@ -227,16 +227,16 @@ class _SediHorizontalResonanceVisualizerState
   }
 }
 
-/// Draws the resonance line like a sound waveform (D-097): a fine, smooth
-/// audio-style line made of several carrier waves, with an echo line and a
-/// faint glow. The four states change how the sound "behaves":
-///  - idle      (sees)   : almost flat, only a tiny shimmer;
-///  - listening (hears)  : waves arrive from both edges towards the centre;
-///  - thinking           : a short wave packet scans left and right;
+/// Draws the resonance as a neat SOUND SPECTRUM (D-101, reference: a voice waveform): thin vertical lines on a
+/// regular grid, tallest at the centre and tapering to dots at the edges, a faint centre axis and a few glowing
+/// tips. The four states change how the sound behaves:
+///  - idle      (sees)   : nearly flat - small breathing ticks along the axis;
+///  - listening (hears)  : swells arrive from both edges towards the centre;
+///  - thinking           : a short packet of lines rises and scans left and right;
 ///  - speaking           : syllable-like bursts flow outward from the centre.
 ///
-/// `phase` loops 0..1 every 10 s; every temporal frequency is an integer
-/// number of cycles per loop, so the motion wraps without a jump.
+/// Every line has its own fixed "character" (deterministic, not random per frame) and every temporal frequency is an
+/// integer number of cycles per 10 s loop, so the motion wraps without a jump.
 class _ResonanceLinePainter extends CustomPainter {
   final double phase;
   final double energy;
@@ -251,6 +251,9 @@ class _ResonanceLinePainter extends CustomPainter {
   static const _presence = SediPresenceTokens.presenceGreen;
   static const double _tau = 2 * math.pi;
 
+  /// Distance between two lines (dp).
+  static const double _pitch = 5.0;
+
   const _ResonanceLinePainter({
     required this.phase,
     required this.energy,
@@ -263,79 +266,55 @@ class _ResonanceLinePainter extends CustomPainter {
     required this.globalBarTotal,
   });
 
-  /// Sound-like carrier at [x] (0..1) in -1..1: four sines of different
-  /// pitch, so the line looks like an audio waveform rather than a ribbon.
-  double _carrier(double x, double p, double shift) {
-    final v = 0.55 * math.sin(_tau * (9.0 * x + 3 * p + shift)) +
-        0.35 * math.sin(_tau * (17.0 * x - 5 * p + 0.13 + shift)) +
-        0.25 * math.sin(_tau * (31.0 * x + 7 * p + 0.31 + shift)) +
-        0.18 * math.sin(_tau * (47.0 * x - 11 * p + 0.57));
-    return v / 1.05;
-  }
-
-  /// Amplitude (0..1) of the line at [x] for the current state mix.
-  double _amplitude(double x) {
-    final d = ((x - 0.5).abs() * 2.0).clamp(0.0, 1.0).toDouble();
-    final env = math.exp(-math.pow(d / 0.78, 2)).toDouble();
-    final p = phase;
-
-    // Sees: a faint shimmer that breathes.
-    final idle = 0.09 * (1.0 + 0.4 * math.sin(_tau * p));
-
-    // Hears: swells travel in from the edges to the centre.
-    final listen = 0.52 * (0.55 + 0.45 * math.sin(_tau * (2.2 * d + 4 * p)));
-
-    // Thinks: a short packet sweeps left and right over a quiet line.
-    final c = 0.5 + 0.38 * math.sin(_tau * 2 * p);
-    final packet = math.exp(-math.pow((x - c) / 0.14, 2)).toDouble();
-    final think = 0.10 + 0.70 * packet;
-
-    // Speaks: syllable bursts flowing outward from the centre.
-    final burst = math.sin(_tau * (5 * p - 1.4 * d));
-    final speak = 1.0 *
-        (0.35 + 0.65 * burst * burst) *
-        (0.75 +
-            0.25 *
-                SediHorizontalResonanceVisualizer.audioResonanceShape(
-                  x,
-                  p,
-                  0.8,
-                ));
-
-    final mix =
-        wIdle * idle + wListen * listen + wThink * think + wSpeak * speak;
-    return (mix * env).clamp(0.0, 1.0).toDouble();
+  /// Stable pseudo-random value 0..1 for line [i] and channel [k] (no per-frame noise).
+  static double _hash(int i, int k) {
+    final v = math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+    return v - v.floorToDouble();
   }
 
   double _globalX(double x) => globalBarTotal <= 1
       ? 0.5
       : (globalBarOffset + x * (globalBarTotal - 1)) / (globalBarTotal - 1);
 
-  Path _line(Size size, double shift, double scale) {
-    final midY = size.height / 2;
-    final amp =
-        midY * 0.92 * (SediHorizontalResonanceVisualizer.amplitudeScale / 0.8);
-    final n = math.max(samples, (size.width / 2).ceil());
-    final pts = <Offset>[];
-    for (var i = 0; i <= n; i++) {
-      final x = i / n;
-      final gx = _globalX(x);
-      final level =
-          (_carrier(gx, phase, shift) * _amplitude(gx)).clamp(-1.0, 1.0);
-      final y = midY - level * amp * scale;
-      pts.add(Offset(size.width * x, y));
-    }
-    // Smooth curve through the mid-points (no angular kinks).
-    final path = Path()..moveTo(pts.first.dx, pts.first.dy);
-    for (var i = 1; i < pts.length - 1; i++) {
-      final mid = Offset(
-        (pts[i].dx + pts[i + 1].dx) / 2,
-        (pts[i].dy + pts[i + 1].dy) / 2,
-      );
-      path.quadraticBezierTo(pts[i].dx, pts[i].dy, mid.dx, mid.dy);
-    }
-    path.lineTo(pts.last.dx, pts.last.dy);
-    return path;
+  /// Height 0..1 of line [i] at relative position [x] (0..1) for the current state mix.
+  double _level(int i, double x) {
+    final d = ((x - 0.5).abs() * 2.0).clamp(0.0, 1.0).toDouble();
+    // Bell envelope with a small floor so the edges taper to dots, not to nothing.
+    final env = 0.05 + 0.95 * math.exp(-math.pow(d / 0.58, 2)).toDouble();
+    final p = phase;
+
+    // Each line has its own fixed character and a slow personal flutter.
+    final base = 0.30 + 0.70 * _hash(i, 1);
+    final k = 1 + (_hash(i, 2) * 4).floor(); // 1..4 cycles per loop
+    final flutter = 0.72 + 0.28 * math.sin(_tau * (k * p + _hash(i, 3)));
+
+    // Sees: tiny breathing ticks.
+    final idle = 0.10 * (0.7 + 0.3 * math.sin(_tau * (p + _hash(i, 4))));
+
+    // Hears: swells travel in from the edges to the centre.
+    final s1 = math.sin(_tau * (1.6 * d + 3 * p));
+    final listen = 0.22 + 0.78 * s1 * s1;
+
+    // Thinks: a packet of raised lines scans left and right.
+    final c = 0.5 + 0.38 * math.sin(_tau * 2 * p);
+    final packet = math.exp(-math.pow((x - c) / 0.13, 2)).toDouble();
+    final think = 0.08 + 0.92 * packet;
+
+    // Speaks: syllable bursts flowing outward from the centre.
+    final s2 = math.sin(_tau * (5 * p - 1.2 * d));
+    final speak = (0.30 + 0.70 * s2 * s2) *
+        (0.80 +
+            0.20 *
+                SediHorizontalResonanceVisualizer.audioResonanceShape(
+                  x,
+                  p,
+                  0.8,
+                ));
+
+    // Idle keeps its own tiny ticks; the active states are shaped by each line's own character.
+    final active = wListen * listen + wThink * think + wSpeak * speak;
+    final shaped = wIdle * idle + active * base * flutter;
+    return (env * shaped).clamp(0.0, 1.0).toDouble();
   }
 
   Shader _fade(Size size, Color color, double alpha) => LinearGradient(
@@ -350,32 +329,72 @@ class _ResonanceLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || samples < 2) return;
+    if (size.width <= 0) return;
+    final midY = size.height / 2;
+    final maxHalf =
+        midY * 0.92 * (SediHorizontalResonanceVisualizer.amplitudeScale / 0.8);
+    final n = math.max(8, (size.width / _pitch).floor());
+    final pitch = size.width / n;
     final mainAlpha =
         (0.70 * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0).toDouble();
 
-    Paint stroke(double width, Shader shader) => Paint()
-      ..isAntiAlias = true
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = width
-      ..shader = shader;
+    // Faint centre axis.
+    canvas.drawLine(
+      Offset(0, midY),
+      Offset(size.width, midY),
+      Paint()
+        ..strokeWidth = 0.8
+        ..shader = _fade(size, _presence, 0.32),
+    );
 
-    final main = _line(size, 0.0, 1.0);
-    final echo = _line(size, 0.11, 0.72);
+    final lines = Path();
+    final tips = <Offset>[];
+    final glow = <Offset>[];
+    for (var i = 0; i <= n; i++) {
+      final x = pitch * i;
+      final rel = i / n;
+      final level = _level(i, _globalX(rel));
+      final half = math.max(1.0, level * maxHalf);
+      lines.moveTo(x, midY - half);
+      lines.lineTo(x, midY + half);
+      // A few tall lines carry a glowing tip, like sparks on the waveform.
+      if (level > 0.62 && _hash(i, 5) > 0.72) {
+        tips.add(Offset(x, midY - half));
+        glow.add(Offset(x, midY + half));
+      }
+    }
 
-    // Faint echo line behind, then a soft glow, then the crisp main line.
     canvas.drawPath(
-      echo,
-      stroke(1.0, _fade(size, SediPalette.pistachio700, 0.55)),
+      lines,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.7
+        ..shader = _fade(size, SediPalette.pistachio500, 0.30)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2),
     );
     canvas.drawPath(
-      main,
-      stroke(5.0, _fade(size, SediPalette.pistachio500, 0.28))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      lines,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.1
+        ..shader = _fade(size, _presence, mainAlpha),
     );
-    canvas.drawPath(main, stroke(1.5, _fade(size, _presence, mainAlpha)));
+
+    final spark = Paint()..color = SediPalette.pistachio500.withOpacity(0.85);
+    final sparkGlow = Paint()
+      ..color = SediPalette.pistachio500.withOpacity(0.45)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    for (final o in tips) {
+      canvas.drawCircle(o, 3.2, sparkGlow);
+      canvas.drawCircle(o, 1.5, spark);
+    }
+    for (final o in glow) {
+      canvas.drawCircle(o, 1.2, spark);
+    }
   }
 
   @override

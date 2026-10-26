@@ -106,9 +106,8 @@ class _MessageBubbleState extends State<MessageBubble> {
           );
 
     final column = Column(
-      crossAxisAlignment: widget.isSedi
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.stretch,
+      crossAxisAlignment:
+          widget.isSedi ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         text,
@@ -188,17 +187,23 @@ class _MessageBubbleState extends State<MessageBubble> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 320),
             // Every Sedi message starts with her small hologram sphere (D-097).
+            // The typing dots sit on the SAME line as her icon (D-101).
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: widget.showTyping
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsetsDirectional.only(top: 2, end: 8),
-                  child: SediHologramOrb(
+                Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    top: widget.showTyping ? 0 : 1,
+                    end: 8,
+                  ),
+                  child: const SediHologramOrb(
                     state: Gate3InteractionState.idle,
-                    diameter: 24,
-                    showLogo: false,
+                    diameter: 34,
                     showRings: false,
                     animate: false,
+                    keyedLogo: false,
                   ),
                 ),
                 Flexible(child: body),
@@ -220,9 +225,8 @@ class _MessageBubbleState extends State<MessageBubble> {
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final available = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : 300.0;
+            final available =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : 300.0;
             final bubbleMax = available.clamp(0.0, 300.0).toDouble();
 
             final bubble = ConstrainedBox(
@@ -245,7 +249,6 @@ class _MessageBubbleState extends State<MessageBubble> {
                       color: SediPalette.pistachio900,
                       width: 1,
                     ),
-
                   ),
                   child: body,
                 ),

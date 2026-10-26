@@ -21,12 +21,12 @@ class SediOrbPresence extends StatefulWidget {
 
   /// Hologram opacity in the A3 background on an empty chat: 40 % transparent
   /// (Javad, D-091).
-  static const double hologramOpacity = 0.60;
+  static const double hologramOpacity = 0.36;
 
   /// While messages float over it the hologram must not hinder reading
   /// (Javad, D-092): 60 % transparent. Charcoal text over the (olive)
   /// wordmark at this opacity measures about 7:1.
-  static const double hologramOpacityChat = 0.40;
+  static const double hologramOpacityChat = 0.24;
 
   /// Horizontal inset from the A3 usable edge (responsive, not device-fixed).
   static const double horizontalInset = 12;
@@ -84,7 +84,8 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
         final orbD = SediBrainOrb.diameterFor(usable);
         final bars = SediPresenceTokens.barCountFor(usable);
         final height = SediOrbPresence.heightFor(usable, widget.gap);
-        final barsOpacity = widget.ambient < 0.4 ? 0.35 : 1.0;
+        // Only the keyboard-open state (very faint hologram) dims the line.
+        final barsOpacity = widget.ambient < 0.2 ? 0.35 : 1.0;
 
         return SizedBox(
           width: usable,
