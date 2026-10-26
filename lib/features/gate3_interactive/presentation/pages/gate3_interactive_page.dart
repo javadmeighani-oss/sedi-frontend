@@ -279,7 +279,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.dark,
         child: Scaffold(
-          backgroundColor: SediPalette.shell100,
+          backgroundColor: SediPalette.sagePage,
           resizeToAvoidBottomInset: true,
           body: Stack(
             fit: StackFit.expand,
@@ -512,7 +512,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             style: TextStyle(
               fontSize: 14,
               height: 1.35,
-              color: SediPalette.charcoal500,
+              color: SediPalette.sageMuted,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -599,13 +599,13 @@ class _DayChip extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: SediPalette.shell300.withOpacity(0.9),
+          color: SediPalette.sageFill,
           borderRadius: BorderRadius.circular(13),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: SediPalette.skin700,
+            color: SediPalette.pistachio900,
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
           ),

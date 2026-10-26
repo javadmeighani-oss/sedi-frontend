@@ -78,7 +78,7 @@ class _AttachmentMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: SediPalette.shell100,
+      color: SediPalette.sageInput,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -92,7 +92,7 @@ class _AttachmentMenuItem extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: SediPalette.pistachio100,
+                  color: SediPalette.sageFill,
                 ),
                 child: Icon(icon, size: 22, color: AppTheme.primaryBlack),
               ),

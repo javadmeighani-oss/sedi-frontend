@@ -17,7 +17,7 @@ void main() {
       'lib/features/lifestyle/presentation/lifestyle_l10n.dart',
     );
 
-    expect(page.contains('Color(0xFFFBF8EE)'), isTrue);
+    expect(page.contains('Color(0xFFDCE0C0)'), isTrue);
     expect(page.contains('gate3PaleOliveBackground'), isFalse);
     expect(page.contains('A3PageAppBar'), isTrue);
     expect(page.contains('LifestyleHealthPage'), isTrue);
@@ -110,7 +110,7 @@ void main() {
     await tester.pump();
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-    expect(scaffold.backgroundColor, const Color(0xFFFBF8EE));
+    expect(scaffold.backgroundColor, const Color(0xFFDCE0C0));
     expect(scaffold.backgroundColor, isNot(AppTheme.gate3PaleOliveBackground));
 
     final l10n = LifestyleL10n('en');

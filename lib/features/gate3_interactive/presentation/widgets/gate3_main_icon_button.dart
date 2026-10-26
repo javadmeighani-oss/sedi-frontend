@@ -40,10 +40,10 @@ class Gate3MainIconButton extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.78),
+                    color: Colors.white.withOpacity(0.55),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: SediPalette.pistachio700.withOpacity(0.22),
+                      color: SediPalette.sageLine,
                     ),
                   ),
                   child: Icon(
@@ -75,7 +75,7 @@ class Gate3MainIconButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: SediPalette.charcoal700,
+                    color: SediPalette.sageMuted,
                     height: 1.15,
                   ),
                 ),

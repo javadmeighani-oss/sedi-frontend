@@ -115,7 +115,7 @@ void main() {
       expect(A2Layout.primaryCtaHeight, 52);
       expect(A2Layout.primaryCtaFontSize, 18);
       expect(A2Layout.controlFontSize, 16);
-      expect(AppTheme.a2PageBackground, SediPalette.shell100);
+      expect(AppTheme.a2PageBackground, SediPalette.sagePage);
       expect(AppTheme.a2CompactControlMax, A2Layout.compactControlMax);
       expect(AppTheme.a2PrimaryCtaMax, A2Layout.primaryCtaMax);
 

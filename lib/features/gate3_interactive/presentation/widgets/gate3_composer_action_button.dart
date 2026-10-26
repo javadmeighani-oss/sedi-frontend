@@ -41,11 +41,11 @@ class Gate3ComposerActionButton extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: backgroundColor ??
-                SediPalette.pistachio100.withOpacity(enabled ? 0.85 : 0.45),
+                SediPalette.sageFill.withOpacity(enabled ? 1.0 : 0.5),
             border: solid
                 ? null
                 : Border.all(
-                    color: SediPalette.pistachio700.withOpacity(0.25),
+                    color: SediPalette.sageLine,
                   ),
             boxShadow: glowColor == null
                 ? null

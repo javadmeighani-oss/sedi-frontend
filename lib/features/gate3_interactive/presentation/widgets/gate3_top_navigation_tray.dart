@@ -73,17 +73,10 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
         filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                SediPalette.shell100.withOpacity(0.90),
-                SediPalette.shell100.withOpacity(0.72),
-              ],
-            ),
-            border: Border(
+            color: SediPalette.sageSurface.withOpacity(0.96),
+            border: const Border(
               bottom: BorderSide(
-                color: SediPalette.pistachio700.withOpacity(0.20),
+                color: SediPalette.sageLine,
                 width: 0.8,
               ),
             ),
@@ -152,7 +145,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: SediPalette.pistachio700,
+        color: SediPalette.pistachio900,
         strokeWidth: strokeWidth,
       ),
     );

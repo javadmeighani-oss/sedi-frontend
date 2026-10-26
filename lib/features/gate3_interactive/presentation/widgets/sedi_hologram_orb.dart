@@ -274,19 +274,21 @@ class _AuraRingsPainter extends CustomPainter {
     final auraR = r * 1.62 * breath;
     final listening = clock.state == Gate3InteractionState.listening;
 
-    canvas.drawCircle(
-      c,
-      auraR,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            SediPalette.pistachio300.withOpacity(listening ? 0.55 : 0.40),
-            SediPalette.pistachio300.withOpacity(0.14),
-            SediPalette.pistachio300.withOpacity(0.0),
-          ],
-          stops: const [0.0, 0.42, 0.68],
-        ).createShader(Rect.fromCircle(center: c, radius: auraR)),
-    );
+    // Flat theme (D-085): no soft halo - only while listening a faint one.
+    if (listening) {
+      canvas.drawCircle(
+        c,
+        auraR,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              SediPalette.pistachio500.withOpacity(0.35),
+              SediPalette.pistachio500.withOpacity(0.0),
+            ],
+            stops: const [0.4, 0.68],
+          ).createShader(Rect.fromCircle(center: c, radius: auraR)),
+      );
+    }
 
     if (!rings) return;
     _ring(
@@ -306,7 +308,7 @@ class _AuraRingsPainter extends CustomPainter {
       rw: r * 1.68,
       rh: r * 0.21,
       turns: -clock.ringTurns * 0.7 + 0.25,
-      line: SediPalette.shell500.withOpacity(0.75),
+      line: SediPalette.pistachio900.withOpacity(0.22),
       dot: SediPalette.pistachio700,
       glow: SediPalette.pistachio300,
       tilt: -0.10,
@@ -375,15 +377,6 @@ class _DomePainter extends CustomPainter {
       canvas.scale(s);
       canvas.translate(-c.dx, -c.dy);
     }
-
-    // Soft symmetric glow (no drop shadow under the dome).
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..color = SediPalette.pistachio500.withOpacity(0.30)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.26),
-    );
 
     canvas.save();
     canvas.clipPath(Path()..addOval(rect));

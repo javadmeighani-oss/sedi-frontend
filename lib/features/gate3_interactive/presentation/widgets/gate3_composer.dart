@@ -155,7 +155,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           border: InputBorder.none,
           hintText: widget.placeholder,
           hintStyle: TextStyle(
-            color: SediPalette.charcoal500,
+            color: SediPalette.sageMuted,
             fontSize: 12.8,
             height: 1.35,
           ),
@@ -255,16 +255,9 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: radius,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.88),
-                  SediPalette.shell100.withOpacity(0.78),
-                ],
-              ),
+              color: SediPalette.sageSurface.withOpacity(0.96),
               border: Border.all(
-                color: SediPalette.pistachio700.withOpacity(0.22),
+                color: SediPalette.sageLine,
               ),
             ),
             child: Padding(

@@ -28,7 +28,7 @@ class AppTheme {
   static const Color primaryBlack = SediPalette.charcoal950;
 
   /// سفید – بک‌گراند اصلی
-  static const Color backgroundWhite = SediPalette.shell100;
+  static const Color backgroundWhite = SediPalette.sageSurface;
   static const Color dangerRed = Color(0xFFD32F2F);
 
   // ===============================
@@ -39,7 +39,7 @@ class AppTheme {
   static const Color surface = backgroundWhite;
 
   static const Color textPrimary = primaryBlack;
-  static const Color textSecondary = metalGrey;
+  static const Color textSecondary = SediPalette.sageMuted;
 
   static const Color iconInactive = metalGrey;
   static const Color iconActive = primaryBlack;
@@ -48,25 +48,25 @@ class AppTheme {
   static const Color borderActive = primaryBlack;
 
   /// Gate 2 — light gray input fill
-  static const Color inputFillLight = SediPalette.shell300;
+  static const Color inputFillLight = SediPalette.sageInput;
 
   /// Gate 2 — very light placeholder text
-  static const Color placeholderLight = SediPalette.shell500;
+  static const Color placeholderLight = SediPalette.sageLine;
 
   /// Gate 2 — selected language button fill
-  static const Color languageSelectedFill = SediPalette.shell300;
+  static const Color languageSelectedFill = SediPalette.sageFill;
 
   /// Gate 2 — disabled action button
-  static const Color buttonDisabled = SediPalette.shell500;
+  static const Color buttonDisabled = SediPalette.sageLine;
 
   // ===============================
   // Gate 2 Luxury Palette
   // ===============================
-  static const Color gate2WarmBackground = SediPalette.shell100;
-  /// A2 page canvas — Shell 100 pistachio-glow scene (LIGHT theme, D-080).
-  static const Color a2PageBackground = SediPalette.shell100;
-  static const Color gate2CardWhite = SediPalette.shell100;
-  static const Color gate2InputFill = SediPalette.shell300;
+  static const Color gate2WarmBackground = SediPalette.sagePage;
+  /// A2 page canvas — flat Soft Sage (D-085).
+  static const Color a2PageBackground = SediPalette.sagePage;
+  static const Color gate2CardWhite = SediPalette.sageSurface;
+  static const Color gate2InputFill = SediPalette.sageInput;
   static const Color gate2ButtonActive = SediPalette.charcoal950;
   /// Primary CTA: Pistachio 500 fill with Charcoal text (Palette v1, D-078).
   static const Color ctaFill = SediPalette.pistachio500;
@@ -74,12 +74,12 @@ class AppTheme {
 
   /// Gate 2 accent on light surfaces (icons, selected text) — Pistachio 700 (Palette v1).
   static const Color gate2ButtonOlive = SediPalette.pistachio700;
-  static const Color gate2ButtonDisabled = SediPalette.shell300;
+  static const Color gate2ButtonDisabled = SediPalette.sageFill;
   static const Color gate2TextDisabled = SediPalette.charcoal500;
-  static const Color gate2Placeholder = SediPalette.charcoal500;
+  static const Color gate2Placeholder = SediPalette.charcoal700;
   static const Color gate2TextPrimary = SediPalette.charcoal950;
-  static const Color gate2TextMuted = SediPalette.charcoal500;
-  static const Color gate2BorderSubtle = SediPalette.shell500;
+  static const Color gate2TextMuted = SediPalette.sageMuted;
+  static const Color gate2BorderSubtle = SediPalette.sageLine;
 
   // ===============================
   // Intro (A1) — Birth of Sedi
@@ -123,7 +123,7 @@ class AppTheme {
   // Gate 3 Premium Palette
   // ===============================
   /// Gate 3 — soft pale olive-green background (premium, calm; avoid pure white).
-  static const Color gate3PaleOliveBackground = SediPalette.shell300;
+  static const Color gate3PaleOliveBackground = SediPalette.sageSurface;
 
   /// I9 STABLE / calm positive status (olive; not clinical “safe”).
   static const Color statusStableOlive = SediPalette.pistachio700;

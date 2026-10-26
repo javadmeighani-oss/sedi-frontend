@@ -55,7 +55,7 @@ class A2HologramHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 height: 1.9,
-                color: SediPalette.charcoal500,
+                color: SediPalette.sageMuted,
               ),
             ),
           ),

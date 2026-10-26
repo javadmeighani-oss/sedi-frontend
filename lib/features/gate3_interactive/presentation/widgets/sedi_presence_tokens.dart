@@ -9,8 +9,8 @@ import '../../../../core/theme/sedi_palette.dart';
 class SediPresenceTokens {
   SediPresenceTokens._();
 
-  /// Pistachio 700 — resonance hairlines (readable on the light theme).
-  static const Color presenceGreen = SediPalette.pistachio700;
+  /// Deep olive — resonance hairlines (readable on Soft Sage).
+  static const Color presenceGreen = SediPalette.pistachio900;
 
   static const double orbWidthFactor = 0.54;
   static const double orbMinDiameter = 150;

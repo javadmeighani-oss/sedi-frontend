@@ -58,7 +58,7 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart',
     );
 
-    expect(page.contains('backgroundColor: SediPalette.shell100'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.sagePage'), isTrue);
     expect(page.contains('Offstage('), isTrue);
     expect(page.contains('Gate3SubjectSelector'), isTrue);
     expect(row.contains('profileTitle'), isTrue);
@@ -190,7 +190,7 @@ void main() {
     expect(profile.contains('logoutSection'), isFalse);
     expect(profile.contains('TextDirection.ltr'), isTrue);
     expect(profile.contains('A3DestinationSurface.canvas'), isTrue);
-    expect(A3DestinationSurface.canvas, SediPalette.shell100);
+    expect(A3DestinationSurface.canvas, SediPalette.sagePage);
 
     final notifications = _read('lib/services/notifications/notifications_service.dart');
     expect(notifications.contains("'/notifications/'"), isTrue);

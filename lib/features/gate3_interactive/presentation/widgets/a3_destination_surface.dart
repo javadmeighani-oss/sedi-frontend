@@ -9,12 +9,12 @@ import '../../../../core/theme/sedi_palette.dart';
 class A3DestinationSurface {
   A3DestinationSurface._();
 
-  static const Color canvas = SediPalette.shell100;
+  static const Color canvas = SediPalette.sagePage;
 
   /// Minimal look (D-078): flat cards, hairline border, no shadow.
   static const List<BoxShadow> cardShadow = <BoxShadow>[];
 
-  static Color get hairline => AppTheme.gate2BorderSubtle.withOpacity(0.55);
+  static Color get hairline => AppTheme.gate2BorderSubtle;
 
   static BoxDecoration cardDecoration({Color? borderColor}) {
     return BoxDecoration(
@@ -123,7 +123,7 @@ class A3DestinationChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected
-          ? SediPalette.pistachio500.withOpacity(0.24)
+          ? SediPalette.pistachio500.withOpacity(0.30)
           : AppTheme.gate2CardWhite,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(

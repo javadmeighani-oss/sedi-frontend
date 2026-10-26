@@ -37,6 +37,15 @@ class SediPalette {
 
   static const Color earth800 = Color(0xFF493C2D);
 
+  // Soft Sage (D-085, Javad picked option F): low-saturation tints of Pistachio -
+  // a flat, eye-comfortable page colour (brightness ~0.72; not white, not dark).
+  static const Color sagePage = Color(0xFFDCE0C0);
+  static const Color sageSurface = Color(0xFFECEFD6);
+  static const Color sageInput = Color(0xFFE2E6C8);
+  static const Color sageFill = Color(0xFFCBD2A5);
+  static const Color sageLine = Color(0xFFB4BC8A);
+  static const Color sageMuted = Color(0xFF3A4026);
+
   /// Solid base under the translucent hologram dome (pistachio 900 / charcoal mix).
   static const Color domeUnderlay = Color(0xFF323B1C);
 

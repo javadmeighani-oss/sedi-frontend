@@ -53,7 +53,7 @@ class Gate2Widgets {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.94),
+            color: AppTheme.gate2CardWhite,
             borderRadius: BorderRadius.circular(AppTheme.gate2RadiusCard),
             boxShadow: AppTheme.gate2CardShadow,
             border: Border.all(
