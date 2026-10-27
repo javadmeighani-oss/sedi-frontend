@@ -212,7 +212,6 @@ class LifestyleL10n {
   String get catMeeting =>
       _t(en: 'Meetings & work', fa: 'جلسه و کار', ar: 'اجتماعات وعمل');
   String get catOther => _t(en: 'Other', fa: 'دیگر', ar: 'أخرى');
-  String get markDone => _t(en: 'Mark as done', fa: 'انجام شد', ar: 'تم');
   String get undoDone => _t(en: 'Undo', fa: 'برگردان', ar: 'تراجع');
   String get doneLabel => _t(en: 'Done', fa: 'انجام شد', ar: 'تم');
   String get rememberedBySedi => _t(
