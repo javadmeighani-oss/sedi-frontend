@@ -90,7 +90,8 @@ void main() {
       final bars = tester.getRect(find.byType(SediHorizontalResonanceVisualizer));
       expect(bars.width, closeTo(400 * SediResonanceDock.widthFactor, 0.5));
       expect(bars.height, closeTo(SediResonanceDock.height, 0.5));
-      expect(bars.center.dx, closeTo(200, 0.5));
+      final dock = tester.getRect(find.byType(SediResonanceDock));
+      expect(bars.center.dx, closeTo(dock.center.dx, 0.5));
     }
   });
 
