@@ -399,7 +399,10 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     final current = !e.reminderEnabled
         ? null
         : (e.reminderOffsets.isEmpty ? 0 : e.reminderOffsets.first);
-    final when = A3DestinationSurface.formatIsoTimestamp(e.startsAt, l10n.lang);
+    // A repeating reminder shows its rhythm («هر روز · 08:00»), not the date of its first occurrence.
+    final repeat = l10n.repeatLabel(e.recurrenceRule, e.startsAt);
+    final when =
+        repeat ?? A3DestinationSurface.formatIsoTimestamp(e.startsAt, l10n.lang);
     final fromChat = e.source == 'conversation';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

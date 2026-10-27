@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../core/notifications/pending_dislike_reasons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../../../data/models/chat_message.dart';
@@ -17,7 +18,9 @@ import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
+import '../../../notifications/presentation/notification_inbox_l10n.dart';
 import '../../../notifications/presentation/pages/notification_inbox_page.dart';
+import '../../../notifications/presentation/widgets/dislike_reason_sheet.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
@@ -108,6 +111,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       _controller.insertPresentationAssistantMessage(text);
     });
     _refreshUnreadBadge();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
     _subjects.loadAccessibleSubjects().then((_) {
       _syncChatSubject();
       _controller.initialize(
@@ -159,6 +163,31 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshUnreadBadge();
+      _askPendingDislikeReason();
+    }
+  }
+
+  bool _askingDislikeReason = false;
+
+  /// P7: a tray "Dislike" carries no reason. The next time the chat is in front, Sedi asks why - once - so her
+  /// notifications can correct themselves (timing, wording, frequency). Dismissing the sheet is fine: no nagging.
+  Future<void> _askPendingDislikeReason() async {
+    if (_askingDislikeReason || !mounted) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    _askingDislikeReason = true;
+    try {
+      final id = await PendingDislikeReasons.takeNext();
+      if (id == null || !mounted) return;
+      final picked = await showDislikeReasonSheet(
+        context,
+        NotificationInboxL10n(SediLocaleController.instance.languageCode),
+      );
+      if (picked == null) return;
+      await _notificationsService.sendDislikeReason(id, picked);
+    } catch (_) {
+      // Fail-open: never break the chat because of a feedback question.
+    } finally {
+      _askingDislikeReason = false;
     }
   }
 

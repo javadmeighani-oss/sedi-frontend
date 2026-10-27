@@ -181,6 +181,59 @@ class LifestyleL10n {
   String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
   String get deleteItem => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
   String get fromChat => _t(en: 'From chat', fa: 'از چت', ar: 'من المحادثة');
+
+  // ---- DEBT-044: repeating reminders asked for in chat
+  /// «هر روز · 08:00» / «Every Monday · 08:00» for a stored rule (`FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO`); null = one-off.
+  String? repeatLabel(String? rule, String? startsAtIso) {
+    if (rule == null || !rule.startsWith('FREQ=')) return null;
+    final parsed =
+        startsAtIso == null ? null : DateTime.tryParse(startsAtIso.trim());
+    final time = parsed == null
+        ? ''
+        : ' · ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+    if (rule.contains('FREQ=DAILY')) {
+      return '${_t(en: 'Every day', fa: 'هر روز', ar: 'كل يوم')}$time';
+    }
+    if (rule.contains('FREQ=WEEKLY')) {
+      const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+      final match = RegExp(r'BYDAY=([A-Z]{2})').firstMatch(rule);
+      final i = match == null ? -1 : codes.indexOf(match.group(1)!);
+      if (i < 0) {
+        return '${_t(en: 'Every week', fa: 'هر هفته', ar: 'كل أسبوع')}$time';
+      }
+      final day = _t(
+        en: const [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ][i],
+        fa: const [
+          'دوشنبه',
+          'سه‌شنبه',
+          'چهارشنبه',
+          'پنجشنبه',
+          'جمعه',
+          'شنبه',
+          'یکشنبه',
+        ][i],
+        ar: const [
+          'الاثنين',
+          'الثلاثاء',
+          'الأربعاء',
+          'الخميس',
+          'الجمعة',
+          'السبت',
+          'الأحد',
+        ][i],
+      );
+      return '${_t(en: 'Every', fa: 'هر', ar: 'كل')} $day$time';
+    }
+    return null;
+  }
   String get pickFutureTime => _t(
         en: 'Please choose a time in the future.',
         fa: 'یه زمان در آینده انتخاب کن.',

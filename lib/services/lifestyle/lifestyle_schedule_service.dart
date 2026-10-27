@@ -16,6 +16,9 @@ class LifestyleUserEventDto {
   /// 'manual' | 'conversation' | 'system' | 'caregiver' (conversation = created by Sedi from chat).
   final String? source;
 
+  /// 'FREQ=DAILY' | 'FREQ=WEEKLY;BYDAY=MO' - a repeating reminder asked for in chat (DEBT-044); null = one-off.
+  final String? recurrenceRule;
+
   const LifestyleUserEventDto({
     required this.id,
     required this.title,
@@ -26,6 +29,7 @@ class LifestyleUserEventDto {
     this.reminderEnabled = false,
     this.reminderOffsets = const [],
     this.source,
+    this.recurrenceRule,
   });
 
   factory LifestyleUserEventDto.fromJson(Map<String, dynamic> json) {
@@ -47,8 +51,14 @@ class LifestyleUserEventDto {
       reminderEnabled: json['reminder_enabled'] == true,
       reminderOffsets: offsets,
       source: json['source']?.toString(),
+      recurrenceRule: _cleanRule(json['recurrence_rule']),
     );
   }
+}
+
+String? _cleanRule(dynamic raw) {
+  final v = raw?.toString().trim() ?? '';
+  return v.startsWith('FREQ=') ? v : null;
 }
 
 class LifestyleI8ActionDto {
