@@ -563,6 +563,11 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                         ),
                     ],
                   ),
+                  if (i.event?.location != null && i.event!.location!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(i.event!.location!, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    ),
                   if (dateText != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
