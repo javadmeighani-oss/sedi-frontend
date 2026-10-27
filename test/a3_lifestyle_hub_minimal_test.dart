@@ -96,10 +96,14 @@ void main() {
     final src = File(
       'lib/features/lifestyle/presentation/pages/lifestyle_schedule_page.dart',
     ).readAsStringSync();
+    // R-031: today first (with a "next" bar), then what is coming up; reminder presets (incl. 1440) live in the sheets.
     expect(src.contains('today'), isTrue);
-    expect(src.contains('tomorrow'), isTrue);
+    expect(src.contains('buildUpcoming'), isTrue);
     expect(src.contains('patchReminder'), isTrue);
-    expect(src.contains('1440'), isTrue);
+    final sheets = File(
+      'lib/features/lifestyle/presentation/widgets/schedule_reminder_sheets.dart',
+    ).readAsStringSync();
+    expect(sheets.contains('1440'), isTrue);
   });
 
   test('15/16 nutrition + exercise weekly plan projection (no fake content)', () {
