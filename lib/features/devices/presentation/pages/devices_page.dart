@@ -8,7 +8,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../../../data/repositories/devices_repository.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
-import '../../../gate3_interactive/presentation/widgets/a3_hologram_header.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../ble/sedi_ble_models.dart';
 import '../../ble/sedi_ble_permissions.dart';
@@ -198,7 +197,6 @@ class _DevicesPageState extends State<DevicesPage> {
       appBar: A3PageAppBar(
         title: Text(l10n.title),
         backgroundColor: A3DestinationSurface.canvas,
-        actions: const [A3HologramHeader.appBarAction()],
       ),
       body: body,
     );

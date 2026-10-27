@@ -37,8 +37,9 @@ void main() {
     expect(page.contains('_topTrayExpanded = false'), isTrue);
     expect(page.contains('Gate3TopNavigationTray'), isTrue);
     expect(page.contains('Gate3MainIconRow'), isTrue);
-    expect(page.contains('SediOrbPresence'), isTrue);
-    expect(page.contains('horizontal: SediOrbPresence.horizontalInset'), isTrue);
+    // D-127: the translucent background hologram is replaced by the Living Echo (full strength, compact in chat).
+    expect(page.contains('SediLivingEcho'), isTrue);
+    expect(page.contains('SediOrbPresence'), isFalse);
     expect(page.contains('Expanded('), isTrue);
     expect(page.contains('Gate3Composer'), isTrue);
     expect(page.contains('Gate3ReturnToLatestButton'), isTrue);
@@ -46,8 +47,8 @@ void main() {
     expect(page.contains('late final ChatController _controller'), isTrue);
     expect(page.contains('_topTrayExpanded'), isTrue);
     expect(page.contains('sendUserMessage(widget.initialDraft'), isFalse);
-    // Hologram scene: the presence is a background layer under a transparent chat.
-    expect(page.contains('Positioned(') && page.contains('SediOrbPresence'), isTrue);
+    // Living Echo sits above the chat in the same column (never behind the text).
+    expect(page.contains('Positioned.fill(') && page.contains('SediLivingEcho('), isTrue);
     expect(page.contains('SediSceneBackdrop'), isTrue);
     expect(page.contains('ShaderMask'), isTrue);
     expect(page.contains('backgroundColor: SediPalette.sagePage'), isTrue);

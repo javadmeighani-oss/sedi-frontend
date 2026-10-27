@@ -95,11 +95,11 @@ void main() {
     }
   });
 
-  test('A3 page docks the resonance above the composer, hologram alone behind', () {
+  test('A3 page docks the resonance above the composer; the Living Echo sits above the chat', () {
     final page = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     ).readAsStringSync();
-    expect(page.contains('withResonance: false'), isTrue);
+    expect(page.contains('SediLivingEcho('), isTrue);
     final dock = page.indexOf('SediResonanceDock(');
     final composer = page.indexOf('Gate3Composer(');
     expect(dock, greaterThan(0));

@@ -99,7 +99,7 @@ void main() {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(page.contains('SediOrbPresence'), isTrue);
+    expect(page.contains('SediLivingEcho'), isTrue);
     expect(page.contains('Gate3ComposerDraftBus'), isTrue);
     expect(page.contains('Gate3AssistantStarterBus'), isTrue);
     final lifestyle = _read(

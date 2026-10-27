@@ -29,8 +29,7 @@ import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
-import '../widgets/sedi_brain_orb.dart';
-import '../widgets/sedi_orb_presence.dart';
+import '../widgets/sedi_living_echo.dart';
 import '../widgets/sedi_resonance_dock.dart';
 import '../widgets/sedi_scene_backdrop.dart';
 
@@ -325,17 +324,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
-  /// Background hologram opacity (D-091/D-092). Its purpose is to never get in
-  /// the way of reading: 40 % transparent on an empty chat, 60 % transparent
-  /// once messages float over it (worst-case text contrast >= 7:1), fainter
-  /// while the keyboard is open. Sedi's state shows in the motion instead.
-  double _orbAmbient({required bool keyboardOpen}) {
-    if (keyboardOpen) return 0.14;
-    return _controller.messages.isEmpty
-        ? SediOrbPresence.hologramOpacity
-        : SediOrbPresence.hologramOpacityChat;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -366,45 +354,23 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
                   child: LayoutBuilder(
                     builder: (context, box) {
-                      final usableW =
-                          box.maxWidth - 2 * SediOrbPresence.horizontalInset;
-                      // The hologram sits lower, almost resting on the resonance
-                      // line (D-091); the line stays at about the middle.
-                      const gap = 4.0;
-                      final orbD = SediBrainOrb.diameterFor(usableW);
-                      final barsTop = (box.maxHeight * 0.455)
-                          .clamp(260.0, 460.0)
-                          .toDouble();
-                      final presenceTop = math.max(56.0, barsTop - gap - orbD);
-                      // The hologram alone lives in the background; the resonance is docked above the composer (D-102).
-                      final presenceBottom = presenceTop + orbD;
-                      final chatTopPad =
-                          keyboardOpen ? 56.0 : presenceBottom + 10;
+                      // Living Echo (D-127): a full-strength sphere in the empty chat; once the conversation runs
+                      // (or the keyboard is open) it moves up into a compact header, so no text is read over it.
+                      final compact =
+                          keyboardOpen || _controller.messages.length >= 2;
+                      final heroSize =
+                          math.min(300.0, box.maxHeight * 0.34).toDouble();
+                      const chatTopPad = 8.0;
                       return Stack(
                         children: [
-                          // Background layer: hologram + horizontal resonance.
-                          Positioned(
-                            top: presenceTop,
-                            left: 0,
-                            right: 0,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: SediOrbPresence.horizontalInset,
-                              ),
-                              child: SediOrbPresence(
-                                state: _orbState(),
-                                lang: presentationLang,
-                                ambient:
-                                    _orbAmbient(keyboardOpen: keyboardOpen),
-                                gap: gap,
-                                withResonance: false,
-                              ),
-                            ),
-                          ),
-                          // Transparent chat floating over the hologram.
                           Positioned.fill(
                             child: Column(
                               children: [
+                                SediLivingEcho(
+                                  state: _orbState(),
+                                  compact: compact,
+                                  heroSize: heroSize,
+                                ),
                                 Expanded(
                                   child: Stack(
                                     children: [

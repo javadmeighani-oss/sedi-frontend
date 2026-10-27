@@ -25,6 +25,13 @@ class MessageBubble extends StatefulWidget {
     Shadow(color: Color(0xCCDCE0C0), blurRadius: 3),
   ];
 
+  /// User bubble (D-127): the same pistachio glass as Sedi's sphere, with deep-olive ink (contrast >= 8:1).
+  static const Color userTextColor = Color(0xFF1B2208);
+  static const List<Color> userBubbleGradient = [
+    SediPalette.pistachio300,
+    SediPalette.pistachio500,
+  ];
+
   /// Sedi's logo sphere diameter and the text metrics of a message line. The first line of text is centred on the
   /// logo's centre (D-102) so the logo, the text and the typing dots share one visual line.
   static const double sediLogoDiameter = 34;
@@ -104,11 +111,11 @@ class _MessageBubbleState extends State<MessageBubble> {
             style: TextStyle(
               color: widget.isSedi
                   ? SediPalette.charcoal950
-                  : SediPalette.shell100,
+                  : MessageBubble.userTextColor,
               fontSize: MessageBubble._fontSize,
               height: MessageBubble._lineHeight,
-              // ~20 % heavier strokes than before (D-097) for easier reading.
-              fontWeight: FontWeight.w500,
+              // D-127: about 15 % heavier than w500 (Javad's phone test) - the nearest weight step is w600.
+              fontWeight: FontWeight.w600,
               shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
             ),
           );
@@ -128,9 +135,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                   ? (widget.readLessLabel ?? 'Read less')
                   : (widget.readMoreLabel ?? 'Read more'),
               style: const TextStyle(
-                color: SediPalette.pistachio300,
+                color: SediPalette.pistachio900,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -142,9 +149,9 @@ class _MessageBubbleState extends State<MessageBubble> {
             child: Text(
               widget.retryLabel ?? 'Tap to retry',
               style: const TextStyle(
-                color: SediPalette.skin100,
+                color: SediPalette.skin700,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -252,7 +259,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: SediPalette.pistachio900,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: MessageBubble.userBubbleGradient,
+                    ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppTheme.radiusLarge),
                       topRight: Radius.circular(AppTheme.radiusLarge),
@@ -260,7 +271,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                       bottomRight: Radius.circular(AppTheme.radiusSmall),
                     ),
                     border: Border.all(
-                      color: SediPalette.pistachio900,
+                      color: SediPalette.pistachio700.withOpacity(0.45),
                       width: 1,
                     ),
                   ),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
-import '../../../gate3_interactive/presentation/widgets/a3_hologram_header.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
@@ -64,11 +63,10 @@ class LifestylePage extends StatelessWidget {
         ),
         body: ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          itemCount: cards.length + 1,
+          itemCount: cards.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
-            if (i == 0) return const A3HologramHeader();
-            final c = cards[i - 1];
+            final c = cards[i];
             return _LifestyleHubDestinationCard(card: c);
           },
         ),
