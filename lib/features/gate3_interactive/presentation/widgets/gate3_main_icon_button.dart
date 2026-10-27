@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
+/// One destination in the A3 tray. Hologram redesign: glass tile, shell icon,
+/// soft rose edge. [plainIcon] is kept for API stability (all tiles share the
+/// same glass look now).
 class Gate3MainIconButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -33,40 +36,22 @@ class Gate3MainIconButton extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                if (plainIcon)
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Icon(
-                      icon,
-                      size: 24,
-                      color: AppTheme.primaryBlack,
-                    ),
-                  )
-                else
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.55),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppTheme.borderInactive.withOpacity(0.25),
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x12000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: AppTheme.primaryBlack,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: SediPalette.sageLine,
                     ),
                   ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: SediPalette.charcoal950,
+                  ),
+                ),
                 if (badge != null)
                   PositionedDirectional(
                     top: -4,
@@ -87,10 +72,10 @@ class Gate3MainIconButton extends StatelessWidget {
                   softWrap: false,
                   overflow: TextOverflow.visible,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2B2F27),
+                    color: SediPalette.sageMuted,
                     height: 1.15,
                   ),
                 ),

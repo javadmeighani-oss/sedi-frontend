@@ -11,6 +11,7 @@ import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_orb_presence.dart';
 import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.dart';
@@ -59,7 +60,8 @@ void main() {
   });
 
   group('Lifestyle → canonical A3 chat', () {
-    testWidgets('nutrition/exercise starter handoff pops to root without nested A3',
+    testWidgets(
+        'nutrition/exercise starter handoff pops to root without nested A3',
         (tester) async {
       var nestedGate3Pushed = false;
       await tester.pumpWidget(
@@ -79,8 +81,8 @@ void main() {
                                 onPressed: () {
                                   openLifestyleChat(
                                     context,
-                                    starterMessage:
-                                        LifestyleL10n('en').nutritionChatStarter,
+                                    starterMessage: LifestyleL10n('en')
+                                        .nutritionChatStarter,
                                   );
                                 },
                                 child: const Text('talk-nutrition'),
@@ -210,7 +212,8 @@ void main() {
       expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
       expect(SediHorizontalResonanceVisualizer.height, 52);
       expect(SediHorizontalResonanceVisualizer.barCount, 98);
-      expect(SediHorizontalResonanceVisualizer.peakCeiling, closeTo(0.65, 0.001));
+      expect(
+          SediHorizontalResonanceVisualizer.peakCeiling, closeTo(0.65, 0.001));
 
       const phases = [0.00, 0.17, 0.41, 0.73];
       const pairs = [
@@ -252,7 +255,8 @@ void main() {
       var maxStep = 0.0;
       var minVal = 1.0;
       var maxVal = 0.0;
-      var prev = SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
+      var prev =
+          SediHorizontalResonanceVisualizer.audioResonanceShape(0.0, phase);
       minVal = prev;
       maxVal = prev;
       for (var i = 1; i <= 97; i++) {
@@ -382,14 +386,15 @@ void main() {
       final page = File(
         'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
       ).readAsStringSync();
-      expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+      expect(page.contains('_beginEditUserMessage'), isTrue);
       expect(page.contains('updateMessage'), isFalse);
       expect(page.contains('patchMessage'), isFalse);
     });
   });
 
   group('R1 orb resonance center', () {
-    testWidgets('one full-width visualizer shares the orb centerline',
+    testWidgets(
+        'one full-width visualizer sits under the hologram, same centre line',
         (tester) async {
       for (final state in Gate3InteractionState.values) {
         await tester.pumpWidget(
@@ -414,14 +419,15 @@ void main() {
         final bars = tester.getRect(
           find.byType(SediHorizontalResonanceVisualizer),
         );
-        expect(bars.center.dy, closeTo(orb.center.dy, 0.5));
+        expect(bars.top, greaterThan(orb.bottom));
         expect(bars.center.dx, closeTo(orb.center.dx, 1.0));
-        expect(find.text('Sedi.'), findsOneWidget);
+        expect(find.byKey(SediHologramOrb.logoKey), findsOneWidget);
         final usable = 390 - 2 * SediOrbPresence.horizontalInset;
         final expected = SediBrainOrb.diameterFor(usable.toDouble());
         expect(tester.getSize(find.byType(SediBrainOrb)).width,
             closeTo(expected, 0.5));
-        expect(bars.height, closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
+        expect(bars.height,
+            closeTo(SediHorizontalResonanceVisualizer.height, 0.01));
       }
     });
 
@@ -442,15 +448,21 @@ void main() {
               );
             },
             home: Scaffold(
-              body: SizedBox(
-                width: 390,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SediOrbPresence.horizontalInset,
-                  ),
-                  child: const SediOrbPresence(
-                    state: Gate3InteractionState.speaking,
-                    lang: 'fa',
+              // The real A3 page keeps the presence in an unconstrained Positioned,
+              // so the keyboard never resizes it; the test body must not shrink either.
+              resizeToAvoidBottomInset: false,
+              body: Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: 390,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: SediOrbPresence.horizontalInset,
+                    ),
+                    child: const SediOrbPresence(
+                      state: Gate3InteractionState.speaking,
+                      lang: 'fa',
+                    ),
                   ),
                 ),
               ),
@@ -472,7 +484,7 @@ void main() {
       final usable = 390 - 2 * SediOrbPresence.horizontalInset;
       expect(
         closed.height,
-        closeTo(SediBrainOrb.diameterFor(usable.toDouble()), 0.5),
+        closeTo(SediOrbPresence.heightFor(usable.toDouble(), 72), 0.5),
       );
       expect(closed.width, greaterThan(SediBrainOrb.minDiameter));
     });

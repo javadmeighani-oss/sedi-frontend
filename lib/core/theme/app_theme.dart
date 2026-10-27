@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'sedi_palette.dart';
+
 /// ============================================
 /// AppTheme - هویت بصری صدی
 /// ============================================
@@ -17,27 +19,27 @@ class AppTheme {
   // ===============================
 
   /// سبز پسته‌ای – هویت اصلی صدی
-  static const Color pistachioGreen = Color(0xFF8BC34A);
+  static const Color pistachioGreen = SediPalette.pistachio500;
 
   /// خاکستری متال – حالت‌های خنثی و inactive
-  static const Color metalGrey = Color(0xFF9E9E9E);
+  static const Color metalGrey = SediPalette.charcoal500;
 
   /// مشکی – متن و آیکن فعال
-  static const Color primaryBlack = Color(0xFF111111);
+  static const Color primaryBlack = SediPalette.charcoal950;
 
   /// سفید – بک‌گراند اصلی
-  static const Color backgroundWhite = Color(0xFFFFFFFF);
+  static const Color backgroundWhite = SediPalette.sageSurface;
   static const Color dangerRed = Color(0xFFD32F2F);
 
   // ===============================
   // Semantic Colors
   // ===============================
   static const Color primary = primaryBlack;
-  static const Color background = backgroundWhite;
-  static const Color surface = backgroundWhite;
+  static const Color background = SediPalette.sagePage;
+  static const Color surface = SediPalette.sageSurface;
 
   static const Color textPrimary = primaryBlack;
-  static const Color textSecondary = metalGrey;
+  static const Color textSecondary = SediPalette.sageMuted;
 
   static const Color iconInactive = metalGrey;
   static const Color iconActive = primaryBlack;
@@ -46,34 +48,40 @@ class AppTheme {
   static const Color borderActive = primaryBlack;
 
   /// Gate 2 — light gray input fill
-  static const Color inputFillLight = Color(0xFFF3F3F3);
+  static const Color inputFillLight = SediPalette.sageInput;
 
   /// Gate 2 — very light placeholder text
-  static const Color placeholderLight = Color(0xFFBDBDBD);
+  static const Color placeholderLight = SediPalette.sageLine;
 
   /// Gate 2 — selected language button fill
-  static const Color languageSelectedFill = Color(0xFFE8E8E8);
+  static const Color languageSelectedFill = SediPalette.sageFill;
 
   /// Gate 2 — disabled action button
-  static const Color buttonDisabled = Color(0xFFD6D6D6);
+  static const Color buttonDisabled = SediPalette.sageLine;
 
   // ===============================
   // Gate 2 Luxury Palette
   // ===============================
-  static const Color gate2WarmBackground = Color(0xFFFFFFFF);
-  /// A2 page canvas — pure white.
-  static const Color a2PageBackground = Color(0xFFFFFFFF);
-  static const Color gate2CardWhite = Color(0xFFFFFFFF);
-  static const Color gate2InputFill = Color(0xFFF4F4F2);
-  static const Color gate2ButtonActive = Color(0xFF050505);
-  /// Gate 2 primary CTA — calm olive green (not bright green).
-  static const Color gate2ButtonOlive = Color(0xFF6F7F3A);
-  static const Color gate2ButtonDisabled = Color(0xFFE3E3E0);
-  static const Color gate2TextDisabled = Color(0xFF8A8A86);
-  static const Color gate2Placeholder = Color(0xFFC8C8C4);
-  static const Color gate2TextPrimary = Color(0xFF080808);
-  static const Color gate2TextMuted = Color(0xFF8A8A86);
-  static const Color gate2BorderSubtle = Color(0xFFD8D8D4);
+  static const Color gate2WarmBackground = SediPalette.sagePage;
+
+  /// A2 page canvas — flat Soft Sage (D-085).
+  static const Color a2PageBackground = SediPalette.sagePage;
+  static const Color gate2CardWhite = SediPalette.sageSurface;
+  static const Color gate2InputFill = SediPalette.sageInput;
+  static const Color gate2ButtonActive = SediPalette.charcoal950;
+
+  /// Primary CTA: Pistachio 500 fill with Charcoal text (Palette v1, D-078).
+  static const Color ctaFill = SediPalette.pistachio500;
+  static const Color ctaText = SediPalette.charcoal950;
+
+  /// Gate 2 accent on light surfaces (icons, selected text) — Pistachio 700 (Palette v1).
+  static const Color gate2ButtonOlive = SediPalette.pistachio900;
+  static const Color gate2ButtonDisabled = SediPalette.sageFill;
+  static const Color gate2TextDisabled = SediPalette.charcoal500;
+  static const Color gate2Placeholder = SediPalette.charcoal700;
+  static const Color gate2TextPrimary = SediPalette.charcoal950;
+  static const Color gate2TextMuted = SediPalette.sageMuted;
+  static const Color gate2BorderSubtle = SediPalette.sageLine;
 
   // ===============================
   // Intro (A1) — Birth of Sedi
@@ -88,10 +96,10 @@ class AppTheme {
   static const Color introHorizonGlow = Color(0xFF3D5A40);
 
   /// Emergence accent aligned with brand olive CTA.
-  static const Color introEmergenceAccent = gate2ButtonOlive;
+  static const Color introEmergenceAccent = Color(0xFF6F7F3A);
 
   /// Logo / wordmark emphasis during final born state.
-  static const Color introLogoEmphasis = gate2ButtonOlive;
+  static const Color introLogoEmphasis = Color(0xFF6F7F3A);
 
   /// Subtle overlay while startup/session work finishes.
   static const Color introOverlaySubtle = Color(0x660A0E14);
@@ -117,28 +125,20 @@ class AppTheme {
   // Gate 3 Premium Palette
   // ===============================
   /// Gate 3 — soft pale olive-green background (premium, calm; avoid pure white).
-  static const Color gate3PaleOliveBackground = Color(0xFFF3F5EE);
+  static const Color gate3PaleOliveBackground = SediPalette.sageSurface;
 
   /// I9 STABLE / calm positive status (olive; not clinical “safe”).
-  static const Color statusStableOlive = Color(0xFF6F7F3A);
+  static const Color statusStableOlive = SediPalette.pistachio900;
 
   /// I9 UNSTABLE_OR_CHANGED — warning amber (never danger red).
   static const Color statusChangeAmber = Color(0xFFC49A3C);
 
   /// I9 INSUFFICIENT_DATA — neutral muted.
-  static const Color statusNeutralMuted = Color(0xFF8A8A86);
+  static const Color statusNeutralMuted = SediPalette.charcoal500;
 
   static const List<BoxShadow> gate2CardShadow = [
-    BoxShadow(
-      color: Color(0x0F000000),
-      blurRadius: 24,
-      offset: Offset(0, 8),
-    ),
-    BoxShadow(
-      color: Color(0x08000000),
-      blurRadius: 6,
-      offset: Offset(0, 2),
-    ),
+    BoxShadow(color: Color(0x0F000000), blurRadius: 24, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
   ];
 
   // ===============================

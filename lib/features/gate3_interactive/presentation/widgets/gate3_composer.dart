@@ -1,9 +1,14 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
+import 'gate3_attachment_flow.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
 
+/// Gate 3 composer. Hologram redesign: a floating glass capsule
+/// [+] [text field] [mic / send / stop]. Behaviour is unchanged.
 class Gate3Composer extends StatefulWidget {
   final ValueChanged<String> onSendText;
   final VoidCallback onStartRecording;
@@ -38,8 +43,11 @@ class Gate3Composer extends StatefulWidget {
 class _Gate3ComposerState extends State<Gate3Composer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
   static const double _maxTextHeight = 168;
+  static const double _minTextHeight = 44;
+  static const double _capsuleRadius = 29;
 
   @override
   void initState() {
@@ -111,7 +119,12 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   void _openAttachmentMenu() {
     _focusNode.unfocus();
-    Gate3AttachmentMenu.show(context, widget.lang);
+    Gate3AttachmentMenu.show(
+      context,
+      widget.lang,
+      flow: _attachmentFlow,
+      onTalk: widget.onSendText,
+    );
   }
 
   Widget _buildTextField({
@@ -120,7 +133,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   }) {
     return ConstrainedBox(
       constraints: const BoxConstraints(
-        minHeight: 40,
+        minHeight: _minTextHeight,
         maxHeight: _maxTextHeight,
       ),
       child: TextField(
@@ -133,22 +146,23 @@ class _Gate3ComposerState extends State<Gate3Composer> {
         textInputAction: TextInputAction.newline,
         textDirection: textDirection,
         textAlign: textAlign,
-        textAlignVertical: TextAlignVertical.top,
+        textAlignVertical: TextAlignVertical.center,
         scrollPhysics: const BouncingScrollPhysics(),
+        cursorColor: SediPalette.pistachio700,
         decoration: InputDecoration(
           isCollapsed: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 2),
+          contentPadding: const EdgeInsets.symmetric(vertical: 11),
           border: InputBorder.none,
           hintText: widget.placeholder,
-          hintStyle: const TextStyle(
-            color: AppTheme.textSecondary,
+          hintStyle: TextStyle(
+            color: SediPalette.sageMuted,
             fontSize: 12.8,
             height: 1.35,
           ),
           alignLabelWithHint: true,
         ),
         style: const TextStyle(
-          color: AppTheme.textPrimary,
+          color: SediPalette.charcoal950,
           fontSize: 16.2,
           height: 1.35,
         ),
@@ -158,25 +172,31 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   }
 
   Widget _buildRecordingBody() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _minTextHeight),
       child: Row(
         children: [
           Container(
             width: 10,
             height: 10,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppTheme.textPrimary,
+              color: SediPalette.skin700,
+              boxShadow: [
+                BoxShadow(
+                  color: SediPalette.skin700.withOpacity(0.45),
+                  blurRadius: 8,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
           Text(
             widget.recordingTime,
             style: const TextStyle(
-              color: AppTheme.textPrimary,
+              color: SediPalette.skin700,
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -184,43 +204,37 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     );
   }
 
-  Widget _buildToolbar(bool hasText) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
-      child: Row(
-        children: [
-          Gate3ComposerActionButton(
-            icon: Icons.add_rounded,
-            onTap: widget.isRecording ? null : _openAttachmentMenu,
-          ),
-          const Spacer(),
-          if (widget.isRecording)
-            Gate3ComposerActionButton(
-              icon: Icons.stop_rounded,
-              size: 40,
-              iconSize: 22,
-              backgroundColor: AppTheme.gate2ButtonOlive,
-              iconColor: Colors.white,
-              onTap: _handleMic,
-            )
-          else if (hasText)
-            Gate3ComposerActionButton(
-              icon: Icons.arrow_upward_rounded,
-              size: 40,
-              iconSize: 22,
-              backgroundColor: AppTheme.gate2ButtonOlive,
-              iconColor: Colors.white,
-              onTap: _send,
-            )
-          else
-            Gate3ComposerActionButton(
-              icon: Icons.mic_rounded,
-              size: 40,
-              iconSize: 24,
-              onTap: _handleMic,
-            ),
-        ],
-      ),
+  Widget _buildPrimaryAction(bool hasText) {
+    if (widget.isRecording) {
+      return Gate3ComposerActionButton(
+        icon: Icons.stop_rounded,
+        size: 44,
+        iconSize: 24,
+        backgroundColor: SediPalette.skin700,
+        iconColor: Colors.white,
+        glowColor: SediPalette.skin700,
+        onTap: _handleMic,
+      );
+    }
+    if (hasText) {
+      return Gate3ComposerActionButton(
+        icon: Icons.arrow_upward_rounded,
+        size: 44,
+        iconSize: 24,
+        backgroundColor: SediPalette.pistachio500,
+        iconColor: SediPalette.charcoal950,
+        glowColor: SediPalette.pistachio300,
+        onTap: _send,
+      );
+    }
+    return Gate3ComposerActionButton(
+      icon: Icons.mic_rounded,
+      size: 44,
+      iconSize: 24,
+      backgroundColor: SediPalette.pistachio500,
+      iconColor: SediPalette.charcoal950,
+      glowColor: SediPalette.pistachio300,
+      onTap: _handleMic,
     );
   }
 
@@ -230,38 +244,50 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     final textDirection =
         widget.isRtl ? TextDirection.rtl : TextDirection.ltr;
     final textAlign = widget.isRtl ? TextAlign.right : TextAlign.left;
+    const radius = BorderRadius.all(Radius.circular(_capsuleRadius));
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.88),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppTheme.borderInactive.withOpacity(0.18),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-            child: widget.isRecording
-                ? _buildRecordingBody()
-                : _buildTextField(
-                    textDirection: textDirection,
-                    textAlign: textAlign,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              color: SediPalette.sageSurface.withOpacity(0.96),
+              border: Border.all(
+                color: SediPalette.sageLine,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Gate3ComposerActionButton(
+                    icon: Icons.add_rounded,
+                    size: 44,
+                    iconSize: 22,
+                    onTap: widget.isRecording ? null : _openAttachmentMenu,
                   ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: widget.isRecording
+                          ? _buildRecordingBody()
+                          : _buildTextField(
+                              textDirection: textDirection,
+                              textAlign: textAlign,
+                            ),
+                    ),
+                  ),
+                  _buildPrimaryAction(hasText),
+                ],
+              ),
+            ),
           ),
-          _buildToolbar(hasText),
-        ],
+        ),
       ),
     );
   }

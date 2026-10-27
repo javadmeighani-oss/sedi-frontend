@@ -2,28 +2,26 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 /// Shared presentation surface for A3 destinations reused by Lifestyle,
 /// Gadgets, Notifications, and Profile. Pure UI — no API or authority.
 class A3DestinationSurface {
   A3DestinationSurface._();
 
-  static const Color canvas = Color(0xFFFFFFFF);
+  static const Color canvas = SediPalette.sagePage;
 
-  static const List<BoxShadow> cardShadow = [
-    BoxShadow(
-      color: Color(0x0F000000),
-      blurRadius: 16,
-      offset: Offset(0, 6),
-    ),
-  ];
+  /// Minimal look (D-078): flat cards, hairline border, no shadow.
+  static const List<BoxShadow> cardShadow = <BoxShadow>[];
+
+  static Color get hairline => AppTheme.gate2BorderSubtle;
 
   static BoxDecoration cardDecoration({Color? borderColor}) {
     return BoxDecoration(
       color: AppTheme.gate2CardWhite,
       borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       border: Border.all(
-        color: borderColor ?? AppTheme.gate2BorderSubtle,
+        color: borderColor ?? hairline,
         width: 0.8,
       ),
       boxShadow: cardShadow,
@@ -76,7 +74,7 @@ class A3DestinationCard extends StatelessWidget {
       color: bg,
       borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       border: Border.all(
-        color: borderColor ?? AppTheme.gate2BorderSubtle,
+        color: borderColor ?? A3DestinationSurface.hairline,
         width: 0.8,
       ),
       boxShadow: A3DestinationSurface.cardShadow,
@@ -125,7 +123,7 @@ class A3DestinationChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected
-          ? AppTheme.gate2ButtonOlive.withOpacity(0.14)
+          ? SediPalette.pistachio500.withOpacity(0.30)
           : AppTheme.gate2CardWhite,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
@@ -137,15 +135,15 @@ class A3DestinationChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected
-                  ? AppTheme.gate2ButtonOlive
-                  : AppTheme.gate2BorderSubtle,
+                  ? SediPalette.pistachio700.withOpacity(0.55)
+                  : A3DestinationSurface.hairline,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: selected
-                  ? AppTheme.gate2ButtonOlive
+                  ? SediPalette.pistachio900
                   : AppTheme.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 13,

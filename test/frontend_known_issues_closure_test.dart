@@ -60,7 +60,7 @@ void main() {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+    expect(page.contains('_beginEditUserMessage'), isTrue);
     expect(page.contains('updateMessage'), isFalse);
     expect(page.contains('patchMessage'), isFalse);
   });

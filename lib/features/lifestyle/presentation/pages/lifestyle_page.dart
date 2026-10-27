@@ -15,7 +15,7 @@ import 'lifestyle_schedule_page.dart';
 class LifestylePage extends StatelessWidget {
   const LifestylePage({super.key});
 
-  static const Color _canvas = Color(0xFFFFFFFF);
+  static const Color _canvas = Color(0xFFDCE0C0); // Soft Sage (= A3DestinationSurface.canvas)
 
   @override
   Widget build(BuildContext context) {
@@ -95,14 +95,10 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.gate2CardWhite,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-            border: Border.all(color: AppTheme.gate2BorderSubtle, width: 0.8),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
+            border: Border.all(
+              color: AppTheme.gate2BorderSubtle,
+              width: 0.8,
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),

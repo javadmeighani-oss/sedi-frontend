@@ -10,6 +10,22 @@ class LifestyleWeeklyPlanService {
   LifestyleWeeklyPlanService({ApiClient? apiClient})
       : _api = apiClient ?? ApiClient();
 
+  /// End-of-day/week review of one plan action: outcome done | skipped (+ bounded reason).
+  Future<ApiResponse<Map<String, dynamic>?>> reviewAction(
+    int actionId,
+    String outcome, {
+    String? reason,
+  }) {
+    return _api.post<Map<String, dynamic>?>(
+      '/lifestyle/actions/$actionId/review',
+      body: <String, dynamic>{
+        'outcome': outcome,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+      },
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
   Future<ApiResponse<LifestyleWeeklyPlanDto>> fetchWeeklyPlan() {
     return _api.get<LifestyleWeeklyPlanDto>(
       '/lifestyle/weekly-plan',

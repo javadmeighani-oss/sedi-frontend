@@ -93,7 +93,7 @@ class _Gate3MemoryPrivacyPageState extends State<Gate3MemoryPrivacyPage> {
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.gate2WarmBackground,
         appBar: A3PageAppBar(title: Text(l10n.memoryAndPrivacy)),
         body: _loading
             ? const Center(child: CircularProgressIndicator())

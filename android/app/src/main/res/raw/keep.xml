@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keep the notification small icon when resource shrinking is enabled (it is referenced by name at runtime). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_sedi,@raw/sedi_alarm" />

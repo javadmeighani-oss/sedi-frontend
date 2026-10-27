@@ -6,6 +6,7 @@ import 'core/locale/sedi_locale_registry.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/notifications/notification_bootstrap.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/sedi_palette.dart';
 import 'features/intro/presentation/pages/intro_page.dart';
 
 class SediApp extends StatefulWidget {
@@ -67,20 +68,47 @@ class _SediAppState extends State<SediApp> with WidgetsBindingObserver {
       // Theme (Single Source of Truth)
       // ===============================
       theme: ThemeData(
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: SediPalette.pistachio500,
+              brightness: Brightness.light,
+            ).copyWith(
+              primary: SediPalette.pistachio900,
+              onPrimary: SediPalette.shell100,
+              secondary: SediPalette.pistachio700,
+              onSecondary: SediPalette.shell100,
+              surface: SediPalette.sageSurface,
+              onSurface: SediPalette.charcoal950,
+              error: AppTheme.dangerRed,
+            ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: SediPalette.pistachio900,
+        ),
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: SediPalette.pistachio900,
+          selectionHandleColor: SediPalette.pistachio900,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: SediPalette.pistachio900,
+          contentTextStyle: const TextStyle(
+            color: SediPalette.shell100,
+            fontSize: 14,
+            height: 1.5,
+          ),
+          actionTextColor: SediPalette.pistachio300,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
         scaffoldBackgroundColor: AppTheme.background,
         fontFamily: 'default',
-        textTheme: const TextTheme(
-          bodyMedium: AppTheme.bodyPrimary,
-        ),
-        iconTheme: const IconThemeData(
-          color: AppTheme.iconInactive,
-        ),
+        textTheme: const TextTheme(bodyMedium: AppTheme.bodyPrimary),
+        iconTheme: const IconThemeData(color: AppTheme.iconInactive),
         appBarTheme: const AppBarTheme(
           backgroundColor: AppTheme.background,
           elevation: 0,
-          iconTheme: IconThemeData(
-            color: AppTheme.primary,
-          ),
+          iconTheme: IconThemeData(color: AppTheme.primary),
           titleTextStyle: AppTheme.titleMedium,
         ),
       ),

@@ -11,6 +11,8 @@ import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../gate3_localization.dart';
+import '../gate3_memory_l10n.dart';
+import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
@@ -138,7 +140,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       _phoneFlowSuccess = null;
     });
     final lang = SediLocaleController.instance.languageCode;
-    final res = await _otp.requestPhoneChangeOtp(newPhone: e164, language: lang);
+    final res =
+        await _otp.requestPhoneChangeOtp(newPhone: e164, language: lang);
     if (!mounted) return;
     setState(() {
       _phoneBusy = false;
@@ -193,8 +196,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
-    final textDir =
-        l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+    final textDir = l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
@@ -368,7 +370,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               decoration: const InputDecoration(
                 isDense: true,
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ),
@@ -455,8 +458,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       );
     }
     if (me.birthYear != null && me.birthMonth != null && me.birthDay != null) {
-      final iso =
-          '${me.birthYear!.toString().padLeft(4, '0')}-'
+      final iso = '${me.birthYear!.toString().padLeft(4, '0')}-'
           '${me.birthMonth!.toString().padLeft(2, '0')}-'
           '${me.birthDay!.toString().padLeft(2, '0')}';
       return CalendarDateMath.formatIsoForProfileDisplay(iso, lang);
@@ -501,22 +503,36 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
               height: 1.4,
             ),
           ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const Gate3MemoryPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.psychology_alt_outlined),
+              label: Text(l10n.memoryOpen),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Canonical user-facing summary prose from `/auth/me/profile-summary` data.
+/// Canonical user-facing summary from `/auth/me/profile-summary` data.
 ///
-/// The live contract is `{rows:[{key,status}]}` only. Those rows are
-/// capability and plan-status codes, not a human-readable user summary.
-/// This does not turn them into prose. An empty result means the profile
-/// card shows only the localized empty state.
+/// Contract: `{rows:[{key,status}], facts:[{key,value}], summary:String}`. `rows` are capability and plan-status codes
+/// (never shown as prose) and `facts` is structured data for editing UIs. The card shows ONLY `summary`: one short,
+/// human paragraph written by the backend about the user's overall status (R-020). An empty result shows the localized
+/// empty state.
 String canonicalProfileSummaryText(Object? data) {
   if (data is! Map) return '';
-  // Status rows are capability/plan codes. They are not summary prose.
-  final rows = data['rows'];
-  if (rows is List || rows == null) return '';
-  return '';
+  final summary = data['summary'];
+  if (summary is! String) return '';
+  return summary.trim();
 }

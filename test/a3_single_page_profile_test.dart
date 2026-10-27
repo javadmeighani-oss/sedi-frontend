@@ -104,6 +104,25 @@ void main() {
     expect(canonicalProfileSummaryText(payload), isEmpty);
     expect(canonicalProfileSummaryText(null), isEmpty);
     expect(canonicalProfileSummaryText(<String, Object>{}), isEmpty);
+    expect(
+      canonicalProfileSummaryText({
+        'rows': [],
+        'facts': [
+          {'key': 'health_concerns', 'value': 'دیابت'},
+        ],
+        'summary': '  جواد، تا اینجا این‌طور می‌شناسمت: وضعیت سلامتت: دیابت.  ',
+      }),
+      'جواد، تا اینجا این‌طور می‌شناسمت: وضعیت سلامتت: دیابت.',
+    );
+    // structured facts alone are never shown as the card text
+    expect(
+      canonicalProfileSummaryText({
+        'facts': [
+          {'key': 'interests', 'value': 'x'},
+        ],
+      }),
+      isEmpty,
+    );
 
     final src = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',

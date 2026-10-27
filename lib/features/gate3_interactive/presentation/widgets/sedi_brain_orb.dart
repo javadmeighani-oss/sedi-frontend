@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/brand_name.dart';
 import '../../models/gate3_interaction_state.dart';
+import 'sedi_hologram_orb.dart';
 import 'sedi_presence_tokens.dart';
 
-/// Reference-style Sedi presence circle — white fill, green outline, Latin brand.
+/// Sedi presence = the approved hologram holding the official Sedi wordmark.
+///
+/// The wordmark is language-invariant (Latin) — see `sediOrbBrandLatin` in
+/// `core/utils/brand_name.dart`. [lang] is kept for API stability.
 class SediBrainOrb extends StatelessWidget {
   final Gate3InteractionState state;
   final String lang;
   final double? diameter;
+
+  /// Dome/halo brightness 0..1 (the wordmark always stays crisp and opaque).
+  final double dim;
 
   static const double widthFactor = SediPresenceTokens.orbWidthFactor;
   static const double minDiameter = SediPresenceTokens.orbMinDiameter;
@@ -22,41 +28,12 @@ class SediBrainOrb extends StatelessWidget {
     required this.state,
     required this.lang,
     this.diameter,
+    this.dim = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
     final d = diameter ?? SediPresenceTokens.orbMinDiameter;
-    final brandFontSize = d * 0.34;
-
-    return SizedBox(
-      width: d,
-      height: d,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFFFFFFFF),
-          border: Border.all(
-            color: SediPresenceTokens.presenceGreen,
-            width: 2.2,
-          ),
-        ),
-        child: Center(
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(
-              sediOrbBrandLatin,
-              style: TextStyle(
-                fontSize: brandFontSize,
-                fontWeight: FontWeight.w800,
-                color: SediPresenceTokens.presenceGreen,
-                letterSpacing: -0.6,
-                height: 1.0,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return SediHologramOrb(state: state, diameter: d, dim: dim);
   }
 }

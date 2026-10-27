@@ -14,6 +14,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../data/repositories/notification_repository.dart';
 import '../auth/auth_service.dart';
+import 'pending_dislike_reasons.dart';
 import 'pending_notification_actions.dart';
 import 'tray_notification_snapshot_store.dart';
 
@@ -50,6 +51,15 @@ class BackgroundNotificationActionHandler {
         actionId: action,
         clientTs: clientTs,
       );
+
+      // P7: the tray Dislike has no UI - remember it so Sedi can ask WHY the next time the app is in the foreground.
+      if (action == 'dislike') {
+        try {
+          await PendingDislikeReasons.add(id);
+        } catch (e) {
+          debugPrint('[FCM-bg] pending dislike reason not stored: $e');
+        }
+      }
 
       // A4: dismiss tray immediately for like / dislike / open_chat.
       // Never restore on ACK/network failure.

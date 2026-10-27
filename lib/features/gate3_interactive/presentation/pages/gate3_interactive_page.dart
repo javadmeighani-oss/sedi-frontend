@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../core/notifications/pending_dislike_reasons.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
@@ -14,21 +18,27 @@ import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
+import '../../../notifications/presentation/notification_inbox_l10n.dart';
 import '../../../notifications/presentation/pages/notification_inbox_page.dart';
+import '../../../notifications/presentation/widgets/dislike_reason_sheet.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../gate3_assistant_starter_bus.dart';
 import '../gate3_composer_draft_bus.dart';
+import '../widgets/gate3_attachment_flow.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
-import '../widgets/sedi_orb_presence.dart';
+import '../widgets/sedi_living_echo.dart';
+import '../widgets/sedi_resonance_dock.dart';
+import '../widgets/sedi_scene_backdrop.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
+
   /// Composer-only seed text. Never auto-sends; never inserts into transcript.
   final String? initialDraft;
   final bool fromNotification;
@@ -57,7 +67,11 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   bool _composerListening = false;
   String? _composerDraftSeed;
+  final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
   int _composerDraftToken = 0;
+
+  /// localId of the user message being edited; null = normal compose.
+  String? _editingLocalId;
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
@@ -97,6 +111,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       _controller.insertPresentationAssistantMessage(text);
     });
     _refreshUnreadBadge();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
     _subjects.loadAccessibleSubjects().then((_) {
       _syncChatSubject();
       _controller.initialize(
@@ -139,6 +154,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _subjectGenSeen = _subjects.generation;
     // Invalidate chat transcript when subject switches — no stale leakage.
     _controller.messages.clear();
+    _editingLocalId = null;
     _syncChatSubject();
     setState(() {});
   }
@@ -147,6 +163,31 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshUnreadBadge();
+      _askPendingDislikeReason();
+    }
+  }
+
+  bool _askingDislikeReason = false;
+
+  /// P7: a tray "Dislike" carries no reason. The next time the chat is in front, Sedi asks why - once - so her
+  /// notifications can correct themselves (timing, wording, frequency). Dismissing the sheet is fine: no nagging.
+  Future<void> _askPendingDislikeReason() async {
+    if (_askingDislikeReason || !mounted) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    _askingDislikeReason = true;
+    try {
+      final id = await PendingDislikeReasons.takeNext();
+      if (id == null || !mounted) return;
+      final picked = await showDislikeReasonSheet(
+        context,
+        NotificationInboxL10n(SediLocaleController.instance.languageCode),
+      );
+      if (picked == null) return;
+      await _notificationsService.sendDislikeReason(id, picked);
+    } catch (_) {
+      // Fail-open: never break the chat because of a feedback question.
+    } finally {
+      _askingDislikeReason = false;
     }
   }
 
@@ -172,14 +213,40 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   Gate3Localization get _l10n =>
       Gate3Localization(SediLocaleController.instance.languageCode);
 
+  /// The chat always shows the latest texts (D-094): while [_stickToLatest] is
+  /// true every change of the transcript or of the list size (new message,
+  /// streamed words, typing indicator, keyboard, edit) keeps it at the end.
+  /// Only a drag by the user releases it; scrolling back to the end, the
+  /// "latest" button or sending a message re-attaches it.
+  bool _stickToLatest = true;
+
+  /// Re-attach to the latest messages and scroll there (button, send, edit).
+  void _attachToLatest() {
+    _stickToLatest = true;
+    _scheduleJumpToLatest();
+  }
+
   void _scrollToBottomOnNewMessage() {
+    if (_stickToLatest) _scheduleJumpToLatest();
+  }
+
+  void _scheduleJumpToLatest() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _scrollToBottom();
+      if (!mounted || !_stickToLatest) return;
+      _jumpToLatest();
     });
   }
 
+  void _jumpToLatest() {
+    final pos = gate3SingleReadyScrollPosition(_scrollController);
+    if (pos == null) return;
+    if (pos.maxScrollExtent - pos.pixels > 0.5) {
+      _scrollController.jumpTo(pos.maxScrollExtent);
+    }
+  }
+
   void _scrollToBottom() {
+    _stickToLatest = true;
     final pos = gate3SingleReadyScrollPosition(_scrollController);
     if (pos == null) return;
     _scrollController.animateTo(
@@ -187,6 +254,33 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  /// Touching the list releases the lock at once, so the user can always scroll
+  /// by hand, even while Sedi is still writing (D-097). The lock is taken
+  /// again when a scroll ends near the latest messages.
+  bool _onChatScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return false;
+    if (n is ScrollStartNotification && n.dragDetails != null) {
+      _stickToLatest = false;
+    } else if (n is ScrollEndNotification) {
+      final nearEnd = n.metrics.maxScrollExtent - n.metrics.pixels <= 48;
+      if (nearEnd) {
+        _stickToLatest = true;
+        _scheduleJumpToLatest();
+      }
+    }
+    return false;
+  }
+
+  /// Content or viewport size changed (streaming text, typing dots, keyboard).
+  bool _onChatMetrics(ScrollMetricsNotification n) {
+    if (n.metrics.axis == Axis.vertical &&
+        _stickToLatest &&
+        n.metrics.extentAfter > 0.5) {
+      _scheduleJumpToLatest();
+    }
+    return false;
   }
 
   bool _handleBackPress() {
@@ -215,16 +309,33 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _handleSendText(String text) {
+    _attachToLatest();
+    final editingId = _editingLocalId;
+    if (editingId != null) {
+      // Edit mode: the edited text REPLACES the original message (D-093).
+      setState(() => _editingLocalId = null);
+      _controller.replaceUserMessage(editingId, text);
+      return;
+    }
     _controller.sendUserMessage(text);
   }
 
-  /// Presentation-only: seed composer with historical user text.
-  /// Does not mutate transcript; Send creates a NEW user message.
-  void _editUserMessageAsNewDraft(String text) {
+  /// Start editing a sent user message: its text goes into the composer and
+  /// Send replaces that message (and re-asks) instead of adding a new one.
+  void _beginEditUserMessage(String localId, String text) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty || _controller.isBusy) return;
     setState(() {
+      _editingLocalId = localId;
       _composerDraftSeed = trimmed;
+      _composerDraftToken++;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingLocalId = null;
+      _composerDraftSeed = '';
       _composerDraftToken++;
     });
   }
@@ -250,6 +361,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     // When pushed (e.g. Lifestyle → Chat), allow one-route pop back.
     // Root A3 (no previous route) keeps the existing double-back exit policy.
     final routeCanPop = ModalRoute.of(context)?.canPop ?? false;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     final content = PopScope(
       canPop: routeCanPop,
@@ -257,163 +369,210 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         if (didPop) return;
         _handleBackPress();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Directionality(
-            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-            child: Column(
-              children: [
-                Gate3TopNavigationTray(
-                  expanded: _topTrayExpanded,
-                  onToggle: () {
-                    setState(() => _topTrayExpanded = !_topTrayExpanded);
-                  },
-                  expandLabel: l10n.expandDestinations,
-                  collapseLabel: l10n.collapseDestinations,
-                  child: Gate3MainIconRow(
-                    lang: presentationLang,
-                    unreadNotificationCount: _unreadNotificationCount,
-                    onLifestyle: () {
-                      if (!_subjects.isActiveSelf) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.lifestyleOtherUnavailable)),
-                        );
-                        return;
-                      }
-                      _goTo(const LifestylePage());
-                    },
-                    onGadgets: () => _goTo(const DevicesPage()),
-                    onNotifications: _openNotificationsInbox,
-                  ),
-                ),
-                Offstage(
-                  offstage: true,
-                  child: Gate3SubjectSelector(l10n: l10n),
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SediOrbPresence.horizontalInset,
-                  ),
-                  child: SediOrbPresence(
-                    state: _orbState(),
-                    lang: presentationLang,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: AppTheme.borderInactive.withOpacity(0.22),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x12000000),
-                            blurRadius: 18,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(26),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        10,
-                                        12,
-                                        10,
-                                        8,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          backgroundColor: SediPalette.sagePage,
+          resizeToAvoidBottomInset: true,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              const SediSceneBackdrop(),
+              SafeArea(
+                child: Directionality(
+                  textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+                  child: LayoutBuilder(
+                    builder: (context, box) {
+                      // Living Echo (D-127): a full-strength sphere in the empty chat; once the conversation runs
+                      // (or the keyboard is open) it moves up into a compact header, so no text is read over it.
+                      final compact =
+                          keyboardOpen || _controller.messages.length >= 2;
+                      final heroSize =
+                          math.min(300.0, box.maxHeight * 0.34).toDouble();
+                      const chatTopPad = 8.0;
+                      return Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Column(
+                              children: [
+                                SediLivingEcho(
+                                  state: _orbState(),
+                                  compact: compact,
+                                  heroSize: heroSize,
+                                ),
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: ShaderMask(
+                                          blendMode: BlendMode.dstIn,
+                                          shaderCallback: (rect) =>
+                                              const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0x00FFFFFF),
+                                              Color(0xFFFFFFFF),
+                                            ],
+                                            stops: [0.0, 0.16],
+                                          ).createShader(rect),
+                                          child: NotificationListener<
+                                              ScrollNotification>(
+                                            onNotification: _onChatScroll,
+                                            child: NotificationListener<
+                                                ScrollMetricsNotification>(
+                                              onNotification: _onChatMetrics,
+                                              child: _buildMessages(
+                                                  l10n, chatTopPad),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      child: _buildMessages(l10n),
-                                    ),
+                                      Positioned(
+                                        right: 12,
+                                        bottom: 12,
+                                        child: Gate3ReturnToLatestButton(
+                                          scrollController: _scrollController,
+                                          onTap: _scrollToBottom,
+                                          tooltip: l10n.returnToLatest,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Positioned(
-                                    right: 12,
-                                    bottom: 12,
-                                    child: Gate3ReturnToLatestButton(
-                                      scrollController: _scrollController,
-                                      onTap: _scrollToBottom,
-                                      tooltip: l10n.returnToLatest,
-                                    ),
+                                ),
+                                if (_editingLocalId != null)
+                                  _EditBanner(
+                                    label: l10n.editingMessage,
+                                    cancelLabel: l10n.cancelEdit,
+                                    onCancel: _cancelEdit,
                                   ),
-                                ],
-                              ),
+                                // Resonance docked just above the composer, about half the screen width (D-102).
+                                SediResonanceDock(state: _orbState()),
+                                Gate3Composer(
+                                  key: ValueKey(
+                                      'gate3-composer-$_composerDraftToken'),
+                                  placeholder: l10n.composerPlaceholder,
+                                  lang: presentationLang,
+                                  isRtl: isRtl,
+                                  initialText:
+                                      _composerDraftSeed ?? widget.initialDraft,
+                                  onListeningChanged: (listening) {
+                                    if (!mounted) return;
+                                    if (_composerListening == listening) {
+                                      return;
+                                    }
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (!mounted) return;
+                                      if (_composerListening == listening) {
+                                        return;
+                                      }
+                                      setState(
+                                          () => _composerListening = listening);
+                                    });
+                                  },
+                                  onSendText: _handleSendText,
+                                  onStartRecording: () {
+                                    _controller
+                                        .startVoiceRecording()
+                                        .then((ok) {
+                                      if (!mounted) return;
+                                      if (ok == false) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              l10n.microphonePermissionRequired,
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: const EdgeInsets.only(
+                                              bottom: 100,
+                                              left: 16,
+                                              right: 16,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        setState(
+                                            () => _composerListening = true);
+                                      }
+                                    });
+                                  },
+                                  onStopRecordingAndSend: () {
+                                    _controller
+                                        .stopVoiceRecording()
+                                        .then((path) async {
+                                      if (!mounted) return;
+                                      if (path != null && kDebugMode) {
+                                        debugPrint(
+                                            '[Audio] recorded file: $path');
+                                      }
+                                      setState(
+                                          () => _composerListening = false);
+                                      if (path == null) return;
+                                      // R-021 / M4: the recording becomes TEXT in the composer (never auto-sent).
+                                      final text =
+                                          await _attachmentFlow.transcribeVoice(
+                                              context, presentationLang, path);
+                                      if (!mounted || text == null) return;
+                                      setState(() {
+                                        _composerDraftSeed = text;
+                                        _composerDraftToken++;
+                                      });
+                                    });
+                                  },
+                                  isRecording: _controller.isRecording,
+                                  recordingTime:
+                                      _controller.recordingTimeFormatted,
+                                ),
+                              ],
                             ),
-                            Gate3Composer(
-                              key: ValueKey('gate3-composer-$_composerDraftToken'),
-                              placeholder: l10n.composerPlaceholder,
-                              lang: presentationLang,
-                              isRtl: isRtl,
-                              initialText:
-                                  _composerDraftSeed ?? widget.initialDraft,
-                              onListeningChanged: (listening) {
-                                if (!mounted) return;
-                                if (_composerListening == listening) return;
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (!mounted) return;
-                                  if (_composerListening == listening) return;
-                                  setState(
-                                      () => _composerListening = listening);
-                                });
+                          ),
+                          // Glass destinations tray (Profile | Lifestyle | Gadgets | Notifications).
+                          Positioned(
+                            top: 0,
+                            left: 12,
+                            right: 12,
+                            child: Gate3TopNavigationTray(
+                              expanded: _topTrayExpanded,
+                              onToggle: () {
+                                setState(
+                                    () => _topTrayExpanded = !_topTrayExpanded);
                               },
-                              onSendText: _handleSendText,
-                              onStartRecording: () {
-                                _controller.startVoiceRecording().then((ok) {
-                                  if (!mounted) return;
-                                  if (ok == false) {
+                              expandLabel: l10n.expandDestinations,
+                              collapseLabel: l10n.collapseDestinations,
+                              child: Gate3MainIconRow(
+                                lang: presentationLang,
+                                unreadNotificationCount:
+                                    _unreadNotificationCount,
+                                onLifestyle: () {
+                                  if (!_subjects.isActiveSelf) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          l10n.microphonePermissionRequired,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 100,
-                                          left: 16,
-                                          right: 16,
-                                        ),
+                                            l10n.lifestyleOtherUnavailable),
                                       ),
                                     );
-                                  } else {
-                                    setState(() => _composerListening = true);
+                                    return;
                                   }
-                                });
-                              },
-                              onStopRecordingAndSend: () {
-                                _controller.stopVoiceRecording().then((path) {
-                                  if (!mounted) return;
-                                  if (path != null && kDebugMode) {
-                                    debugPrint(
-                                        '[Audio] recorded file: $path');
-                                  }
-                                  setState(() => _composerListening = false);
-                                });
-                              },
-                              isRecording: _controller.isRecording,
-                              recordingTime:
-                                  _controller.recordingTimeFormatted,
+                                  _goTo(const LifestylePage());
+                                },
+                                onGadgets: () => _goTo(const DevicesPage()),
+                                onNotifications: _openNotificationsInbox,
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                          Offstage(
+                            offstage: true,
+                            child: Gate3SubjectSelector(l10n: l10n),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -422,21 +581,21 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     return content;
   }
 
-  Widget _buildMessages(Gate3Localization l10n) {
+  Widget _buildMessages(Gate3Localization l10n, double topPad) {
     if (_controller.messages.isEmpty &&
         _controller.conversationState == ConversationState.initializing) {
       return const ColoredBox(
-        color: Color(0xFFFFFFFF),
+        color: Color(0x00000000),
         child: SizedBox.expand(),
       );
     }
 
     if (_controller.messages.isEmpty) {
-      // Non-transcript empty presentation — top-aligned, no artificial gap.
+      // Non-transcript empty presentation — below the hologram, no artificial gap.
       return ListView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: EdgeInsets.fromLTRB(12, topPad, 12, 12),
         children: [
           Text(
             l10n.emptyConversationHint,
@@ -444,7 +603,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             style: TextStyle(
               fontSize: 14,
               height: 1.35,
-              color: AppTheme.textSecondary.withOpacity(0.85),
+              color: SediPalette.sageMuted,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -452,21 +611,38 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       );
     }
 
+    // Entries: DateTime = day separator, int >= 0 = message index, -1 = typing.
+    final entries = <Object>[];
+    DateTime? lastDay;
+    for (var i = 0; i < _controller.messages.length; i++) {
+      final t = _controller.messages[i].createdAt.toLocal();
+      final day = DateTime(t.year, t.month, t.day);
+      if (lastDay == null || day != lastDay) {
+        entries.add(day);
+        lastDay = day;
+      }
+      entries.add(i);
+    }
+    if (_controller.isThinking) entries.add(-1);
+
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4, bottom: 8),
-      itemCount: _controller.messages.length + (_controller.isThinking ? 1 : 0),
+      padding: EdgeInsets.fromLTRB(10, topPad, 10, 8),
+      itemCount: entries.length,
       itemBuilder: (context, index) {
-        if (_controller.isThinking &&
-            index == _controller.messages.length) {
+        final entry = entries[index];
+        if (entry is DateTime) {
+          return _DayChip(label: _dayLabel(entry, l10n));
+        }
+        if (entry == -1) {
           return const MessageBubble(
             message: '...',
             isSedi: true,
             showTyping: true,
           );
         }
-        final msg = _controller.messages[index];
+        final msg = _controller.messages[entry as int];
         return MessageBubble(
           key: ValueKey(msg.localId),
           message: msg.text,
@@ -476,11 +652,115 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
               ? () => _controller.retryFailedMessage(msg.localId)
               : null,
           onEdit: msg.isUser && msg.text.trim().isNotEmpty
-              ? () => _editUserMessageAsNewDraft(msg.text)
+              ? () => _beginEditUserMessage(msg.localId, msg.text)
               : null,
           editLabel: l10n.editMessage,
+          readMoreLabel: l10n.readMore,
+          readLessLabel: l10n.readLess,
+          retryLabel: l10n.tapToRetry,
         );
       },
+    );
+  }
+
+  /// Today / Yesterday, otherwise the calendar date in the app language.
+  String _dayLabel(DateTime day, Gate3Localization l10n) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return l10n.dayToday;
+    if (diff == 1) return l10n.dayYesterday;
+    final iso = '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+    return CalendarDateMath.formatIsoForLanguage(iso, l10n.lang);
+  }
+}
+
+/// "Editing your message" strip above the composer, with a cancel button.
+class _EditBanner extends StatelessWidget {
+  final String label;
+  final String cancelLabel;
+  final VoidCallback onCancel;
+
+  const _EditBanner({
+    required this.label,
+    required this.cancelLabel,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Container(
+        padding: const EdgeInsetsDirectional.only(start: 12, end: 4),
+        decoration: BoxDecoration(
+          color: SediPalette.sageFill,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SediPalette.sageLine),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: SediPalette.pistachio900,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: SediPalette.charcoal950,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: cancelLabel,
+              onPressed: onCancel,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: SediPalette.pistachio900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small rose-tinted day separator in the transparent chat.
+class _DayChip extends StatelessWidget {
+  final String label;
+
+  const _DayChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: SediPalette.sageFill,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: SediPalette.pistachio900,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

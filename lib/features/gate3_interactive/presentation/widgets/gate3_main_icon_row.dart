@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../gate3_localization.dart';
 import '../pages/gate3_profile_page.dart';
 import 'gate3_main_icon_button.dart';
@@ -32,14 +32,14 @@ class Gate3MainIconRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: const BoxDecoration(
-        color: AppTheme.primaryBlack,
+        color: SediPalette.skin700,
         shape: BoxShape.circle,
       ),
       constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
       child: Text(
         count > 99 ? '99+' : '$count',
         style: const TextStyle(
-          color: AppTheme.backgroundWhite,
+          color: Color(0xFFFFFFFF),
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),

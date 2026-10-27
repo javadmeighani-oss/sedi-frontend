@@ -1,3 +1,4 @@
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_service.dart';
@@ -82,6 +83,12 @@ class ChatService {
     final body = <String, dynamic>{};
     if (sourceNotificationId != null) {
       body['source_notification_id'] = sourceNotificationId;
+    }
+    try {
+      final tz = await FlutterTimezone.getLocalTimezone();
+      if (tz.isNotEmpty) body['timezone'] = tz;
+    } catch (_) {
+      // Optional: the backend falls back to its own timezone resolution.
     }
     return _apiClient.post<ChatSendResponse>(
       '/interact/session/open',

@@ -138,6 +138,9 @@ jobs:
       - name: Targeted A3 phone-change tests
         run: flutter test test/a3_phone_change_otp_test.dart
 
+      - name: Targeted memory / attachments tests (R-021 M4)
+        run: flutter test test/m4_memory_attachments_test.dart test/a3_single_page_profile_test.dart
+
       - name: Targeted A3 SELF/OTHER subject authority tests
         run: flutter test test/a3_self_other_subject_authority_test.dart
 
@@ -231,7 +234,11 @@ jobs:
             test/gate2_otp_paste_and_slot_edit_test.dart \
             test/gate2_post_otp_auth_me_runtime_test.dart \
             test/gate2_post_otp_profile_load_test.dart \
-            test/gate2_post_otp_router_test.dart
+            test/gate2_post_otp_router_test.dart \
+            test/r026_schedule_notifications_test.dart \
+            test/d102_logo_align_resonance_dock_test.dart \
+            test/d127_living_echo_and_style_test.dart \
+            test/d128_tray_dislike_reason_and_repeat_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:

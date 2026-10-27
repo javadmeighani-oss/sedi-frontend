@@ -1,8 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 /// Presentation-only collapsible tray around the A3 destination icon row.
+/// Hologram redesign: a glass tray that floats over the scene (same API).
 class Gate3TopNavigationTray extends StatefulWidget {
   final bool expanded;
   final VoidCallback onToggle;
@@ -34,13 +37,14 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
   @override
   void initState() {
     super.initState();
-    _size = AnimationController(
-      vsync: this,
-      duration: Gate3TopNavigationTray.toggleDuration,
-      value: widget.expanded ? 1 : 0,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _size =
+        AnimationController(
+          vsync: this,
+          duration: Gate3TopNavigationTray.toggleDuration,
+          value: widget.expanded ? 1 : 0,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
   }
 
   @override
@@ -63,57 +67,62 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
   @override
   Widget build(BuildContext context) {
     final showIcons = widget.expanded || _size.value > 0.001;
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(
-          bottom: BorderSide(color: AppTheme.gate2BorderSubtle, width: 0.8),
-        ),
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(18),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onToggle,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                heightFactor: _size.value,
-                child: showIcons
-                    ? Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                        child: widget.child,
-                      )
-                    : const SizedBox(width: double.infinity, height: 0),
-              ),
+    const radius = BorderRadius.vertical(bottom: Radius.circular(22));
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: SediPalette.sageSurface.withOpacity(0.96),
+            border: const Border(
+              bottom: BorderSide(color: SediPalette.sageLine, width: 0.8),
             ),
+            borderRadius: radius,
           ),
-          Semantics(
-            key: const ValueKey('a3-top-tray-semantics'),
-            button: true,
-            label: widget.expanded
-                ? widget.collapseLabel
-                : widget.expandLabel,
-            child: Material(
-              color: const Color(0x00000000),
-              child: InkWell(
-                key: const ValueKey('a3-top-tray-toggle'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: widget.onToggle,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: Gate3TopNavigationTray.handleHeight,
-                  child: Center(
-                    child: _TrayChevron(expanded: widget.expanded),
+                child: ClipRect(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    heightFactor: _size.value,
+                    child: showIcons
+                        ? Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                            child: widget.child,
+                          )
+                        : const SizedBox(width: double.infinity, height: 0),
                   ),
                 ),
               ),
-            ),
+              Semantics(
+                key: const ValueKey('a3-top-tray-semantics'),
+                button: true,
+                label: widget.expanded
+                    ? widget.collapseLabel
+                    : widget.expandLabel,
+                child: Material(
+                  color: const Color(0x00000000),
+                  child: InkWell(
+                    key: const ValueKey('a3-top-tray-toggle'),
+                    onTap: widget.onToggle,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: Gate3TopNavigationTray.handleHeight,
+                      child: Center(
+                        child: _TrayChevron(expanded: widget.expanded),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -121,8 +130,8 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
 
 /// Visible chevron only. Handle tap target stays [Gate3TopNavigationTray.handleHeight].
 class _TrayChevron extends StatelessWidget {
-  static const double visualSize = 18 * 1.30;
-  static const double strokeWidth = 1.5 * 1.10;
+  static const double visualSize = 18 * 1.56; // +20 % (D-095)
+  static const double strokeWidth = 2.6; // bolder, clearly visible (D-095)
 
   final bool expanded;
 
@@ -134,7 +143,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: AppTheme.textSecondary,
+        color: SediPalette.pistachio900,
         strokeWidth: strokeWidth,
       ),
     );
@@ -162,9 +171,9 @@ class _TrayChevronPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
 
-    final insetX = size.width * 0.28;
-    final top = size.height * 0.38;
-    final bottom = size.height * 0.58;
+    final insetX = size.width * 0.22;
+    final top = size.height * 0.35;
+    final bottom = size.height * 0.62;
     final midX = size.width / 2;
     final apexY = pointingUp ? top : bottom;
     final wingY = pointingUp ? bottom : top;

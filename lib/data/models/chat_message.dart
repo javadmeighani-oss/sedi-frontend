@@ -40,12 +40,14 @@ class ChatMessage {
     required String text,
     String? localId,
     ChatMessageStatus status = ChatMessageStatus.sending,
+    DateTime? createdAt,
   }) {
     return ChatMessage(
       localId: localId,
       text: text,
       role: ChatRole.user,
       status: status,
+      createdAt: createdAt,
     );
   }
 

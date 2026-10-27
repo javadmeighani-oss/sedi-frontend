@@ -176,9 +176,9 @@ class _DevicesPageState extends State<DevicesPage> {
                 child: FilledButton(
                   onPressed: _connecting ? null : () => _onConnectPressed(l10n),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.gate2ButtonOlive,
+                    backgroundColor: AppTheme.ctaFill,
                     disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-                    foregroundColor: AppTheme.backgroundWhite,
+                    foregroundColor: AppTheme.ctaText,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     ),
@@ -424,8 +424,8 @@ class _DevicesPageState extends State<DevicesPage> {
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.gate2ButtonOlive,
-                  foregroundColor: AppTheme.backgroundWhite,
+                  backgroundColor: AppTheme.ctaFill,
+                  foregroundColor: AppTheme.ctaText,
                 ),
                 child: Text(l10n.save),
               ),
@@ -538,8 +538,8 @@ class _DevicesPageState extends State<DevicesPage> {
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.gate2ButtonOlive,
-                    foregroundColor: AppTheme.backgroundWhite,
+                    backgroundColor: AppTheme.ctaFill,
+                    foregroundColor: AppTheme.ctaText,
                   ),
                   child: Text(l10n.save),
                 ),

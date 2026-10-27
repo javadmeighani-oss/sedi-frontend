@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/auth/auth_service.dart';
@@ -38,8 +39,16 @@ class ChatStreamClient {
       headers['Accept-Language'] = language.trim();
     }
 
+    String? deviceTimezone;
+    try {
+      deviceTimezone = await FlutterTimezone.getLocalTimezone();
+    } catch (_) {
+      deviceTimezone = null; // the backend falls back to its own resolution
+    }
+
     final body = jsonEncode(ChatSendRequest(
       message: message,
+      timezone: deviceTimezone,
       sourceNotificationId: sourceNotificationId,
       conversationId: conversationId,
       healthSubjectId: healthSubjectId,
@@ -51,8 +60,8 @@ class ChatStreamClient {
       ..body = body;
 
     final streamed = await _client!.send(request).timeout(
-      const Duration(seconds: 90),
-    );
+          const Duration(seconds: 90),
+        );
 
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
       if (kDebugMode) {

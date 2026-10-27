@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 
 /// Single attached [ScrollPosition] only after content dimensions exist.
 ///
@@ -79,19 +79,15 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: _pressed
-                ? AppTheme.metalGrey
-                : AppTheme.gate2ButtonOlive,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
+                ? SediPalette.sageFill
+                : SediPalette.sageSurface,
+            border: Border.all(
+              color: SediPalette.sageLine,
+            ),
           ),
           child: const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: AppTheme.backgroundWhite,
+            color: SediPalette.pistachio900,
             size: 24,
           ),
         ),

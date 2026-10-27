@@ -106,6 +106,10 @@ void main() {
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
     expect(page.contains('_scrollToBottom'), isTrue);
+    // D-094: the chat always follows the latest text until the user drags away.
+    expect(page.contains('_stickToLatest'), isTrue);
+    expect(page.contains('ScrollMetricsNotification'), isTrue);
+    expect(page.contains('dragDetails'), isTrue);
     expect(page.contains('Gate3ReturnToLatestButton'), isTrue);
     expect(page.contains('Gate3Composer'), isTrue);
     expect(page.contains('ScrollController'), isTrue);
@@ -209,7 +213,8 @@ void main() {
     await pumpDir(TextDirection.ltr, 'Hello');
     await tester.pump();
     final ltrHost = tester.getRect(find.byType(MessageBubble));
-    final ltrAlign = tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
+    final ltrAlign =
+        tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
     expect(ltrAlign.alignment, Alignment.centerRight);
     final ltrDec = tester.getRect(_decoratedUserBubble());
     expect(_isPhysicalRight(ltrHost, ltrDec), isTrue);
@@ -227,7 +232,8 @@ void main() {
     await pumpDir(TextDirection.rtl, 'Hello');
     await tester.pump();
     final rtlHost = tester.getRect(find.byType(MessageBubble));
-    final rtlAlign = tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
+    final rtlAlign =
+        tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
     expect(rtlAlign.alignment, Alignment.centerRight);
     final rtlDec = tester.getRect(_decoratedUserBubble());
     expect(_isPhysicalRight(rtlHost, rtlDec), isTrue);
@@ -266,7 +272,8 @@ void main() {
     expect(userText.textDirection, TextDirection.rtl);
     expect(userText.textAlign, TextAlign.right);
 
-    final faAlign = tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
+    final faAlign =
+        tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
     expect(faAlign.alignment, Alignment.centerRight);
     final hit = tester.getRect(
       _editHitTarget(find.byIcon(Icons.edit_outlined)),
@@ -291,7 +298,8 @@ void main() {
     final userText = tester.widget<Text>(find.text('سلام دنیا'));
     expect(userText.textDirection, TextDirection.rtl);
     expect(userText.textAlign, TextAlign.right);
-    final align = tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
+    final align =
+        tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
     expect(align.alignment, Alignment.centerRight);
     final host = tester.getRect(find.byType(MessageBubble));
     final dec = tester.getRect(_decoratedUserBubble());

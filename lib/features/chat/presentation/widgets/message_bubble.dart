@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 
 class MessageBubble extends StatefulWidget {
   final String message;
@@ -9,6 +13,32 @@ class MessageBubble extends StatefulWidget {
   final VoidCallback? onEdit;
   final String? editLabel;
   final bool showTyping;
+
+  /// Localized labels (EN defaults keep older call sites unchanged).
+  final String? readMoreLabel;
+  final String? readLessLabel;
+  final String? retryLabel;
+
+  /// Soft halo so assistant text stays readable over the background hologram.
+  static const List<Shadow> _sediTextShadows = [
+    Shadow(color: Color(0xF2DCE0C0), blurRadius: 12),
+    Shadow(color: Color(0xCCDCE0C0), blurRadius: 3),
+  ];
+
+  /// User bubble (D-127): the same pistachio glass as Sedi's sphere, with deep-olive ink (contrast >= 8:1).
+  static const Color userTextColor = Color(0xFF1B2208);
+  static const List<Color> userBubbleGradient = [
+    SediPalette.pistachio300,
+    SediPalette.pistachio500,
+  ];
+
+  /// Sedi's logo sphere diameter and the text metrics of a message line. The first line of text is centred on the
+  /// logo's centre (D-102) so the logo, the text and the typing dots share one visual line.
+  static const double sediLogoDiameter = 34;
+  static const double _fontSize = 15;
+  static const double _lineHeight = 1.45;
+  static const double sediTextTopInset =
+      (sediLogoDiameter - _fontSize * _lineHeight) / 2;
 
   /// First-strong-character direction for bidi-safe user text.
   static TextDirection resolveTextDirection(String text) {
@@ -39,6 +69,9 @@ class MessageBubble extends StatefulWidget {
     this.onEdit,
     this.editLabel,
     this.showTyping = false,
+    this.readMoreLabel,
+    this.readLessLabel,
+    this.retryLabel,
   });
 
   @override
@@ -59,7 +92,11 @@ class _MessageBubbleState extends State<MessageBubble> {
     final alignment =
         widget.isSedi ? Alignment.centerLeft : Alignment.centerRight;
     final shouldCollapse = _canCollapseUserMessage && !_expanded;
-    final textDirection = MessageBubble.resolveTextDirection(widget.message);
+    // Sedi replies follow the app language (fa/ar are right-to-left even when a line starts with Latin text);
+    // the user's own text keeps first-strong-character direction.
+    final textDirection = widget.isSedi && SediLocaleController.instance.isRtl
+        ? TextDirection.rtl
+        : MessageBubble.resolveTextDirection(widget.message);
     final textAlign =
         textDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left;
 
@@ -71,17 +108,21 @@ class _MessageBubbleState extends State<MessageBubble> {
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
             textDirection: textDirection,
             textAlign: textAlign,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-              height: 1.45,
+            style: TextStyle(
+              color: widget.isSedi
+                  ? SediPalette.charcoal950
+                  : MessageBubble.userTextColor,
+              fontSize: MessageBubble._fontSize,
+              height: MessageBubble._lineHeight,
+              // D-127: about 15 % heavier than w500 (Javad's phone test) - the nearest weight step is w600.
+              fontWeight: FontWeight.w600,
+              shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
             ),
           );
 
     final column = Column(
-      crossAxisAlignment: widget.isSedi
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.stretch,
+      crossAxisAlignment:
+          widget.isSedi ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         text,
@@ -90,11 +131,13 @@ class _MessageBubbleState extends State<MessageBubble> {
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Text(
-              _expanded ? 'Read less' : 'Read more',
+              _expanded
+                  ? (widget.readLessLabel ?? 'Read less')
+                  : (widget.readMoreLabel ?? 'Read more'),
               style: const TextStyle(
-                color: AppTheme.textSecondary,
+                color: SediPalette.pistachio900,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -103,12 +146,12 @@ class _MessageBubbleState extends State<MessageBubble> {
           const SizedBox(height: 6),
           GestureDetector(
             onTap: widget.onRetry,
-            child: const Text(
-              'Tap to retry',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
+            child: Text(
+              widget.retryLabel ?? 'Tap to retry',
+              style: const TextStyle(
+                color: SediPalette.skin700,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -142,7 +185,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               child: Icon(
                 Icons.edit_outlined,
                 size: 16,
-                color: AppTheme.textSecondary.withOpacity(0.9),
+                color: SediPalette.sageMuted,
               ),
             ),
           ),
@@ -158,7 +201,35 @@ class _MessageBubbleState extends State<MessageBubble> {
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 320),
-            child: body,
+            // Every Sedi message starts with her small hologram sphere (D-097).
+            // The typing dots sit on the SAME line as her icon (D-101).
+            child: Row(
+              crossAxisAlignment: widget.showTyping
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: const SediHologramOrb(
+                    state: Gate3InteractionState.idle,
+                    diameter: MessageBubble.sediLogoDiameter,
+                    showRings: false,
+                    animate: false,
+                    keyedLogo: false,
+                  ),
+                ),
+                Flexible(
+                  child: widget.showTyping
+                      ? body
+                      : Padding(
+                          padding: const EdgeInsets.only(
+                            top: MessageBubble.sediTextTopInset,
+                          ),
+                          child: body,
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -175,9 +246,8 @@ class _MessageBubbleState extends State<MessageBubble> {
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final available = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : 300.0;
+            final available =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : 300.0;
             final bubbleMax = available.clamp(0.0, 300.0).toDouble();
 
             final bubble = ConstrainedBox(
@@ -189,7 +259,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.metalGrey.withOpacity(0.15),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: MessageBubble.userBubbleGradient,
+                    ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppTheme.radiusLarge),
                       topRight: Radius.circular(AppTheme.radiusLarge),
@@ -197,10 +271,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                       bottomRight: Radius.circular(AppTheme.radiusSmall),
                     ),
                     border: Border.all(
-                      color: AppTheme.metalGrey.withOpacity(0.35),
+                      color: SediPalette.pistachio700.withOpacity(0.45),
                       width: 1,
                     ),
-                    boxShadow: AppTheme.softShadow,
                   ),
                   child: body,
                 ),
@@ -283,7 +356,7 @@ class _TypingDotsState extends State<_TypingDots>
         width: 6,
         height: 6,
         decoration: const BoxDecoration(
-          color: AppTheme.iconInactive,
+          color: SediPalette.pistachio900,
           shape: BoxShape.circle,
         ),
       ),

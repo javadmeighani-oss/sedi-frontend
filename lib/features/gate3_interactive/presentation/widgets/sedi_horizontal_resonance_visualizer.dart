@@ -2,13 +2,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/sedi_palette.dart';
 import '../../models/gate3_interaction_state.dart';
 import 'sedi_presence_tokens.dart';
 
-/// Horizontal anti-aliased bar-column resonance visualizer.
+/// Horizontal resonance (D-101): a neat sound spectrum of thin vertical lines on a
+/// regular grid (reference: a voice waveform), tallest at the centre under the
+/// hologram and tapering to dots at the screen edges.
 ///
-/// Deterministic audio/voice resonance — no per-frame random noise,
-/// no scribble path, and no ECG/medical grammar. Visual-only; not I9,
+/// Four states, four motions (state authority = [Gate3InteractionState]):
+///  - idle      = Sedi SEES / watches: nearly flat, tiny breathing ticks;
+///  - listening = Sedi HEARS: sound swells arrive from both edges to the centre;
+///  - thinking  = Sedi THINKS: a short packet of raised lines scans left and right;
+///  - speaking  = Sedi SPEAKS: syllable-like bursts flow out from the centre.
+/// States cross-fade smoothly. Deterministic — no per-frame random noise, no
+/// scribble path, and no ECG/medical grammar. Visual-only; not I9,
 /// microphone amplitude, or physiology.
 /// State authority is [Gate3InteractionState] (same as circular ring).
 ///
@@ -22,6 +30,9 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
 
   /// Bars drawn in this segment. Defaults to [barCount].
   final int? segmentBarCount;
+
+  /// Painted height; defaults to [height]. The docked strip above the composer (D-102) is a little shorter.
+  final double? heightOverride;
 
   /// Global bar index of the first bar in this segment (keeps envelope continuous).
   final int globalBarOffset;
@@ -68,8 +79,7 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     final p = phase01 - phase01.floorToDouble();
     // 0 at the orb/centerline, 1 at either outer edge.
     final centerDistance = (x - 0.5).abs() * 2.0;
-    final travel =
-        (centerDistance - p) - (centerDistance - p).floorToDouble();
+    final travel = (centerDistance - p) - (centerDistance - p).floorToDouble();
 
     // Integer cycles in radial distance so wrap stays continuous.
     final humpA = 0.5 + 0.5 * math.sin(travel * math.pi * 4.0);
@@ -100,6 +110,7 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     this.segmentBarCount,
     this.globalBarOffset = 0,
     this.globalBarTotal,
+    this.heightOverride,
   });
 
   @override
@@ -111,33 +122,39 @@ class _SediHorizontalResonanceVisualizerState
     extends State<SediHorizontalResonanceVisualizer>
     with SingleTickerProviderStateMixin {
   AnimationController? _ownedController;
-  double _energy =
-      SediHorizontalResonanceVisualizer.targetEnergy(Gate3InteractionState.idle);
+  double _energy = SediHorizontalResonanceVisualizer.targetEnergy(
+      Gate3InteractionState.idle);
 
-  Animation<double> get _phase =>
-      widget.phaseListenable ?? _ownedController!;
+  /// Cross-fade weights per state: idle, listening, thinking, speaking.
+  final List<double> _weights = [1.0, 0.0, 0.0, 0.0];
 
-  static double _density(Gate3InteractionState state) {
+  Animation<double> get _phase => widget.phaseListenable ?? _ownedController!;
+
+  static int _index(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.25;
+        return 0;
       case Gate3InteractionState.listening:
-        return 0.45;
+        return 1;
       case Gate3InteractionState.thinking:
-        return 0.70;
+        return 2;
       case Gate3InteractionState.speaking:
-        return 1.0;
+        return 3;
     }
   }
 
   @override
   void initState() {
     super.initState();
+    for (var i = 0; i < _weights.length; i++) {
+      _weights[i] = i == _index(widget.state) ? 1.0 : 0.0;
+    }
     if (widget.phaseListenable == null) {
       _ownedController = AnimationController(
         vsync: this,
         duration: const Duration(seconds: 10),
-      )..addListener(_tick)
+      )
+        ..addListener(_tick)
         ..repeat();
     } else {
       widget.phaseListenable!.addListener(_tick);
@@ -153,7 +170,8 @@ class _SediHorizontalResonanceVisualizerState
         _ownedController = AnimationController(
           vsync: this,
           duration: const Duration(seconds: 10),
-        )..addListener(_tick)
+        )
+          ..addListener(_tick)
           ..repeat();
       } else if (widget.phaseListenable != null) {
         _ownedController?.removeListener(_tick);
@@ -168,13 +186,16 @@ class _SediHorizontalResonanceVisualizerState
   }
 
   void _tick() {
+    if (!mounted) return;
     final target = SediHorizontalResonanceVisualizer.targetEnergy(widget.state);
-    final next = _energy + (target - _energy) * 0.12;
-    if ((next - _energy).abs() > 0.0005) {
-      setState(() => _energy = next);
-    } else if (mounted) {
-      setState(() {});
-    }
+    final active = _index(widget.state);
+    setState(() {
+      _energy = _energy + (target - _energy) * 0.12;
+      for (var i = 0; i < _weights.length; i++) {
+        final goal = i == active ? 1.0 : 0.0;
+        _weights[i] += (goal - _weights[i]) * 0.10;
+      }
+    });
   }
 
   @override
@@ -191,105 +212,206 @@ class _SediHorizontalResonanceVisualizerState
         widget.segmentBarCount ?? SediHorizontalResonanceVisualizer.barCount;
     return SizedBox(
       width: double.infinity,
-      height: SediHorizontalResonanceVisualizer.height,
+      height: widget.heightOverride ?? SediHorizontalResonanceVisualizer.height,
       child: CustomPaint(
-        painter: _HorizontalResonancePainter(
+        painter: _ResonanceLinePainter(
           phase: _phase.value,
           energy: _energy,
-          density: _density(widget.state),
-          state: widget.state,
-          segmentBarCount: count,
+          wIdle: _weights[0],
+          wListen: _weights[1],
+          wThink: _weights[2],
+          wSpeak: _weights[3],
+          samples: math.max(48, count * 2),
           globalBarOffset: widget.globalBarOffset,
-          globalBarTotal:
-              widget.globalBarTotal ?? SediHorizontalResonanceVisualizer.barCount,
+          globalBarTotal: widget.globalBarTotal ??
+              SediHorizontalResonanceVisualizer.barCount,
         ),
       ),
     );
   }
 }
 
-class _HorizontalResonancePainter extends CustomPainter {
+/// Draws the resonance as a neat SOUND SPECTRUM (D-101, reference: a voice waveform): thin vertical lines on a
+/// regular grid, tallest at the centre and tapering to dots at the edges, a faint centre axis and a few glowing
+/// tips. The four states change how the sound behaves:
+///  - idle      (sees)   : nearly flat - small breathing ticks along the axis;
+///  - listening (hears)  : swells arrive from both edges towards the centre;
+///  - thinking           : a short packet of lines rises and scans left and right;
+///  - speaking           : syllable-like bursts flow outward from the centre.
+///
+/// Every line has its own fixed "character" (deterministic, not random per frame) and every temporal frequency is an
+/// integer number of cycles per 10 s loop, so the motion wraps without a jump.
+class _ResonanceLinePainter extends CustomPainter {
   final double phase;
   final double energy;
-  final double density;
-  final Gate3InteractionState state;
-  final int segmentBarCount;
+  final double wIdle;
+  final double wListen;
+  final double wThink;
+  final double wSpeak;
+  final int samples;
   final int globalBarOffset;
   final int globalBarTotal;
 
   static const _presence = SediPresenceTokens.presenceGreen;
+  static const double _tau = 2 * math.pi;
 
-  const _HorizontalResonancePainter({
+  /// Distance between two lines (dp).
+  static const double _pitch = 5.0;
+
+  const _ResonanceLinePainter({
     required this.phase,
     required this.energy,
-    required this.density,
-    required this.state,
-    required this.segmentBarCount,
+    required this.wIdle,
+    required this.wListen,
+    required this.wThink,
+    required this.wSpeak,
+    required this.samples,
     required this.globalBarOffset,
     required this.globalBarTotal,
   });
 
+  /// Stable pseudo-random value 0..1 for line [i] and channel [k] (no per-frame noise).
+  static double _hash(int i, int k) {
+    final v = math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+    return v - v.floorToDouble();
+  }
+
+  double _globalX(double x) => globalBarTotal <= 1
+      ? 0.5
+      : (globalBarOffset + x * (globalBarTotal - 1)) / (globalBarTotal - 1);
+
+  /// Height 0..1 of line [i] at relative position [x] (0..1) for the current state mix.
+  double _level(int i, double x) {
+    final d = ((x - 0.5).abs() * 2.0).clamp(0.0, 1.0).toDouble();
+    // Bell envelope with a small floor so the edges taper to dots, not to nothing.
+    final env = 0.05 + 0.95 * math.exp(-math.pow(d / 0.58, 2)).toDouble();
+    final p = phase;
+
+    // Each line has its own fixed character and a slow personal flutter.
+    final base = 0.30 + 0.70 * _hash(i, 1);
+    final k = 1 + (_hash(i, 2) * 4).floor(); // 1..4 cycles per loop
+    final flutter = 0.72 + 0.28 * math.sin(_tau * (k * p + _hash(i, 3)));
+
+    // Sees: a calm resting spectrum (D-102): every line keeps its own height, a slow breath moves them. Same
+    // grammar as the active states, only quieter, so the dock never looks like an empty dotted line.
+    final idle = (0.30 + 0.10 * math.sin(_tau * (p + _hash(i, 4)))) *
+        (0.40 + 0.60 * _hash(i, 1));
+
+    // Hears: swells travel in from the edges to the centre.
+    final s1 = math.sin(_tau * (1.6 * d + 3 * p));
+    final listen = 0.22 + 0.78 * s1 * s1;
+
+    // Thinks: a packet of raised lines scans left and right.
+    final c = 0.5 + 0.38 * math.sin(_tau * 2 * p);
+    final packet = math.exp(-math.pow((x - c) / 0.13, 2)).toDouble();
+    final think = 0.08 + 0.92 * packet;
+
+    // Speaks: syllable bursts flowing outward from the centre.
+    final s2 = math.sin(_tau * (5 * p - 1.2 * d));
+    final speak = (0.30 + 0.70 * s2 * s2) *
+        (0.80 +
+            0.20 *
+                SediHorizontalResonanceVisualizer.audioResonanceShape(
+                  x,
+                  p,
+                  0.8,
+                ));
+
+    // Idle keeps its own tiny ticks; the active states are shaped by each line's own character.
+    final active = wListen * listen + wThink * think + wSpeak * speak;
+    final shaped = wIdle * idle + active * base * flutter;
+    return (env * shaped).clamp(0.0, 1.0).toDouble();
+  }
+
+  Shader _fade(Size size, Color color, double alpha) => LinearGradient(
+        colors: [
+          color.withOpacity(0.0),
+          color.withOpacity(alpha),
+          color.withOpacity(alpha),
+          color.withOpacity(0.0),
+        ],
+        stops: const [0.0, 0.10, 0.90, 1.0],
+      ).createShader(Offset.zero & size);
+
   @override
   void paint(Canvas canvas, Size size) {
-    if (segmentBarCount <= 0 || size.width <= 0) return;
-
-    final count = segmentBarCount;
-    final pitch = size.width / count;
-    final barWidth = (pitch * 0.38).clamp(1.0, 1.8).toDouble();
+    if (size.width <= 0) return;
     final midY = size.height / 2;
-    final maxHalf = size.height * 0.50;
-    final cycle =
-        (phase * SediHorizontalResonanceVisualizer.phaseSpeed) % 1.0;
-    final total = math.max(globalBarTotal, 1);
+    final maxHalf =
+        midY * 0.92 * (SediHorizontalResonanceVisualizer.amplitudeScale / 0.8);
+    final n = math.max(8, (size.width / _pitch).floor());
+    final pitch = size.width / n;
+    final mainAlpha =
+        (0.70 * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0).toDouble();
 
-    final paint = Paint()
-      ..isAntiAlias = true
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = barWidth;
+    // Faint centre axis.
+    canvas.drawLine(
+      Offset(0, midY),
+      Offset(size.width, midY),
+      Paint()
+        ..strokeWidth = 0.8
+        ..shader = _fade(size, _presence, 0.32),
+    );
 
-    for (var i = 0; i < count; i++) {
-      final globalIndex = globalBarOffset + i;
-      final relativeX = total <= 1 ? 0.5 : globalIndex / (total - 1);
-      // Radial audio-resonance; left/right at equal |x-0.5| match.
-      final shape = SediHorizontalResonanceVisualizer.audioResonanceShape(
-        relativeX,
-        cycle,
-        density,
-      );
+    final lines = Path();
+    final tips = <Offset>[];
+    final glow = <Offset>[];
+    for (var i = 0; i <= n; i++) {
+      final x = pitch * i;
+      final rel = i / n;
+      final level = _level(i, _globalX(rel));
+      final half = math.max(1.0, level * maxHalf);
+      lines.moveTo(x, midY - half);
+      lines.lineTo(x, midY + half);
+      // A few tall lines carry a glowing tip, like sparks on the waveform.
+      if (level > 0.30 && _hash(i, 5) > 0.74) {
+        tips.add(Offset(x, midY - half));
+        glow.add(Offset(x, midY + half));
+      }
+    }
 
-      // Idle stays near-flat; speaking is strongest but hard-capped.
-      final heightFactor = SediHorizontalResonanceVisualizer.heightFactorFor(
-        energy: energy,
-        envelope: shape,
-        density: density,
-      );
-      final half = maxHalf *
-          heightFactor *
-          SediHorizontalResonanceVisualizer.amplitudeScale;
+    canvas.drawPath(
+      lines,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.7
+        ..shader = _fade(size, SediPalette.pistachio500, 0.30)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2),
+    );
+    canvas.drawPath(
+      lines,
+      Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.1
+        ..shader = _fade(size, _presence, mainAlpha),
+    );
 
-      final x = pitch * (i + 0.5);
-      final baseOpacity =
-          (0.18 + energy * 0.55 + shape * 0.2).clamp(0.12, 0.92).toDouble();
-      final finalOpacity =
-          (baseOpacity * SediPresenceTokens.barOpacityScale).clamp(0.0, 1.0);
-      paint.color = _presence.withOpacity(finalOpacity);
-
-      canvas.drawLine(
-        Offset(x, midY - half),
-        Offset(x, midY + half),
-        paint,
-      );
+    final spark = Paint()..color = SediPalette.pistachio500.withOpacity(0.85);
+    final sparkGlow = Paint()
+      ..color = SediPalette.pistachio500.withOpacity(0.45)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    for (final o in tips) {
+      canvas.drawCircle(o, 3.2, sparkGlow);
+      canvas.drawCircle(o, 1.5, spark);
+    }
+    for (final o in glow) {
+      canvas.drawCircle(o, 1.2, spark);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _HorizontalResonancePainter oldDelegate) =>
+  bool shouldRepaint(covariant _ResonanceLinePainter oldDelegate) =>
       oldDelegate.phase != phase ||
       oldDelegate.energy != energy ||
-      oldDelegate.density != density ||
-      oldDelegate.state != state ||
-      oldDelegate.segmentBarCount != segmentBarCount ||
+      oldDelegate.wIdle != wIdle ||
+      oldDelegate.wListen != wListen ||
+      oldDelegate.wThink != wThink ||
+      oldDelegate.wSpeak != wSpeak ||
+      oldDelegate.samples != samples ||
       oldDelegate.globalBarOffset != globalBarOffset ||
       oldDelegate.globalBarTotal != globalBarTotal;
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/theme/sedi_palette.dart';
 import 'package:sedi_app/core/utils/brand_name.dart';
 import 'package:sedi_app/data/dto/auth/otp_request.dart';
 import 'package:sedi_app/data/dto/auth/otp_verify.dart';
@@ -12,6 +13,7 @@ import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_sta
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_horizontal_resonance_visualizer.dart';
 
@@ -48,7 +50,9 @@ void main() {
     );
   });
 
-  test('A3 source keeps white shell, four domains, and hidden subject selector', () {
+  test(
+      'A3 source keeps the light pistachio shell, four domains, and hidden subject selector',
+      () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
@@ -56,7 +60,7 @@ void main() {
       'lib/features/gate3_interactive/presentation/widgets/gate3_main_icon_row.dart',
     );
 
-    expect(page.contains('backgroundColor: Colors.white'), isTrue);
+    expect(page.contains('backgroundColor: SediPalette.sagePage'), isTrue);
     expect(page.contains('Offstage('), isTrue);
     expect(page.contains('Gate3SubjectSelector'), isTrue);
     expect(row.contains('profileTitle'), isTrue);
@@ -66,7 +70,8 @@ void main() {
     expect(row.contains('healthCare'), isFalse);
   });
 
-  testWidgets('A3 orb always renders Latin Sedi. in RTL locale', (tester) async {
+  testWidgets('A3 hologram always renders the Latin wordmark in RTL locale',
+      (tester) async {
     expect(sediOrbBrandLatin, 'Sedi.');
     await tester.pumpWidget(
       const Directionality(
@@ -74,7 +79,7 @@ void main() {
         child: SediBrainOrb(state: Gate3InteractionState.speaking, lang: 'fa'),
       ),
     );
-    expect(find.text('Sedi.'), findsOneWidget);
+    expect(find.byKey(SediHologramOrb.logoKey), findsOneWidget);
     expect(find.text('صدی'), findsNothing);
     expect(SediHorizontalResonanceVisualizer.phaseSpeed, 0.85);
     expect(SediHorizontalResonanceVisualizer.amplitudeScale, 0.80);
@@ -90,12 +95,11 @@ void main() {
         isTrue);
   });
 
-  test('A3 orb presence integrates resonance; lifestyle uses starter bus',
-      () {
+  test('A3 orb presence integrates resonance; lifestyle uses starter bus', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
-    expect(page.contains('SediOrbPresence'), isTrue);
+    expect(page.contains('SediLivingEcho'), isTrue);
     expect(page.contains('Gate3ComposerDraftBus'), isTrue);
     expect(page.contains('Gate3AssistantStarterBus'), isTrue);
     final lifestyle = _read(
@@ -110,22 +114,28 @@ void main() {
   test('ChatController speaking lifecycle is SSE-delta only', () {
     final src = _read('lib/features/chat/state/chat_controller.dart');
     expect(src.contains('bool isSpeaking = false'), isTrue);
-    expect(src.contains('isThinking = true;\n    isSpeaking = false;'), isTrue);
-    expect(src.contains('isSpeaking = true;\n            messages.add'), isTrue);
+    // Whitespace-insensitive: dart format may re-indent these blocks.
+    final flat = src.replaceAll(RegExp(r'\s+'), ' ');
+    expect(flat.contains('isThinking = true; isSpeaking = false;'), isTrue);
+    expect(flat.contains('isSpeaking = true; messages.add'), isTrue);
     expect(src.contains('isSpeaking = false'), isTrue);
     expect(src.contains('initialize({String? initialMessage'), isTrue);
     expect(src.contains('onDelta:'), isTrue);
     expect(src.contains('messages[idx].text + delta'), isTrue);
   });
 
-  test('user edit-as-new-message uses composer seed without transcript mutation', () {
+  test('user edit replaces the original message (D-093), not a new one', () {
     final page = _read(
       'lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart',
     );
     final bubble = _read(
       'lib/features/chat/presentation/widgets/message_bubble.dart',
     );
-    expect(page.contains('_editUserMessageAsNewDraft'), isTrue);
+    final controller = _read('lib/features/chat/state/chat_controller.dart');
+    expect(page.contains('_beginEditUserMessage'), isTrue);
+    expect(page.contains('_editingLocalId'), isTrue);
+    expect(page.contains('replaceUserMessage'), isTrue);
+    expect(controller.contains('replaceUserMessage'), isTrue);
     expect(page.contains('onEdit:'), isTrue);
     expect(bubble.contains('onEdit'), isTrue);
     expect(bubble.contains('Icons.edit_outlined'), isTrue);
@@ -188,9 +198,10 @@ void main() {
     expect(profile.contains('logoutSection'), isFalse);
     expect(profile.contains('TextDirection.ltr'), isTrue);
     expect(profile.contains('A3DestinationSurface.canvas'), isTrue);
-    expect(A3DestinationSurface.canvas, const Color(0xFFFFFFFF));
+    expect(A3DestinationSurface.canvas, SediPalette.sagePage);
 
-    final notifications = _read('lib/services/notifications/notifications_service.dart');
+    final notifications =
+        _read('lib/services/notifications/notifications_service.dart');
     expect(notifications.contains("'/notifications/'"), isTrue);
     expect(notifications.contains('/notifications/unread'), isTrue);
     expect(notifications.contains('/notifications/inbox/hide'), isTrue);

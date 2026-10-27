@@ -1,3 +1,5 @@
+import '../../../core/utils/brand_name.dart';
+
 /// Gate 2 localized strings and month names.
 class OtpLoginLocalization {
   final String lang;
@@ -63,6 +65,28 @@ class OtpLoginLocalization {
   }
 
   String get confirm => _t(en: 'Confirm', fa: 'تأیید', ar: 'تأكيد');
+
+  /// First-page welcome copy (hologram redesign). Brand spelling via [sediBrandName].
+  String get welcomeHeadline => _t(
+        en: "Hi, I'm ${sediBrandName('en')}",
+        fa: 'سلام، من ${sediBrandName('fa')}‌ام',
+        ar: 'مرحباً، أنا ${sediBrandName('ar')}',
+      );
+
+  String get welcomeTagline => _t(
+        en: 'Your always-there friend — remembers what you say and looks out for how you are doing.',
+        fa: 'دوستِ همیشه‌همراهت؛ حرف‌هات رو یادش می‌مونه و حواسش به حال و روزت هست.',
+        ar: 'صديقك الدائم؛ يتذكّر ما تقوله ويهتمّ بحالك.',
+      );
+
+  String get welcomePromiseListen =>
+      _t(en: 'I listen', fa: 'گوش می‌دم', ar: 'أستمع');
+
+  String get welcomePromiseRemember =>
+      _t(en: 'I remember', fa: 'یادم می‌مونه', ar: 'أتذكّر');
+
+  String get welcomePromiseCare =>
+      _t(en: 'I care', fa: 'مراقبتم', ar: 'أهتمّ بك');
 
   String get enterSediTitle => _t(
         en: 'Enter Sedi',

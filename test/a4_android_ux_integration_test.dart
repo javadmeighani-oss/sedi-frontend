@@ -316,6 +316,17 @@ void main() {
       expect(local.contains('dismiss tray immediately on action tap'), isTrue);
     });
 
+    test('AndroidManifest registers ActionBroadcastReceiver exported=false', () {
+      final manifest = _read('android/app/src/main/AndroidManifest.xml');
+      expect(
+        manifest.contains(
+          'com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver',
+        ),
+        isTrue,
+      );
+      expect(manifest.contains('android:exported="false"'), isTrue);
+    });
+
     test('pending survives failed ACK; failure does not restore tray; retry clears pending', () async {
       final coord =
           _read('lib/core/notifications/notification_action_coordinator.dart');
@@ -388,7 +399,7 @@ void main() {
       expect(inbox.contains('filterDelete'), isTrue);
       expect(inbox.contains('selectionGutterWidth'), isTrue);
       expect(inbox.contains('selectionGutterWidth = 48'), isTrue);
-      expect(inbox.contains('Color(0xFFEEF0E8)'), isTrue);
+      expect(inbox.contains('SediPalette.pistachio100'), isTrue);
       expect(inbox.contains('hasUserResponse: true'), isTrue);
       expect(inbox.contains('displayAttention'), isTrue);
       // Card tap must NOT mark read — detail open only.

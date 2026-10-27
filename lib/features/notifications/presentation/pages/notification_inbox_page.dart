@@ -6,6 +6,7 @@ import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/notifications/notification_action_coordinator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
@@ -13,9 +14,12 @@ import '../../../../data/models/notification_item.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import '../notification_inbox_l10n.dart';
+import '../widgets/dislike_reason_sheet.dart';
 
 enum InboxFilter { all, unread }
 
@@ -276,17 +280,31 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     });
     InboxRefreshBus.instance.triggerDebounced();
     await _reload(soft: true);
+    if (actionId == 'dislike' && mounted) {
+      await _askDislikeReason(item);
+    }
+  }
+
+  /// After a dislike, ask why (bounded reasons) so the smart notifications can adapt.
+  Future<void> _askDislikeReason(NotificationItem item) async {
+    final l10n = _l10n;
+    final picked = await showDislikeReasonSheet(context, l10n);
+    if (picked == null || !mounted) return;
+    await _service.sendDislikeReason(item.id, picked);
   }
 
   Future<void> _openDetails(
-      NotificationItem item, NotificationInboxL10n l10n) async {
+    NotificationItem item,
+    NotificationInboxL10n l10n,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppTheme.backgroundWhite,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusLarge),
+        ),
       ),
       builder: (context) {
         final media = MediaQuery.of(context);
@@ -376,8 +394,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                                 await _runDetailAction(item, 'open_chat');
                               },
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.gate2ButtonOlive,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppTheme.ctaFill,
+                          foregroundColor: AppTheme.ctaText,
                         ),
                         child: Text(l10n.talkToSedi),
                       ),
@@ -445,10 +463,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppTheme.primaryBlack,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppTheme.primaryBlack),
     );
   }
 
@@ -480,9 +495,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       }
       groups[label]!.add(item);
     }
-    return [
-      for (final label in order) (label: label, items: groups[label]!),
-    ];
+    return [for (final label in order) (label: label, items: groups[label]!)];
   }
 
   @override
@@ -557,9 +570,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                 ),
               ),
             ),
-          Expanded(
-            child: _buildBody(l10n),
-          ),
+          Expanded(child: _buildBody(l10n)),
         ],
       ),
     );
@@ -581,19 +592,19 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppTheme.gate2ButtonOlive.withOpacity(0.14)
+              ? SediPalette.pistachio500.withOpacity(0.24)
               : AppTheme.gate2CardWhite,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? AppTheme.gate2ButtonOlive
-                : AppTheme.gate2BorderSubtle,
+                ? SediPalette.pistachio700.withOpacity(0.55)
+                : A3DestinationSurface.hairline,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppTheme.gate2ButtonOlive : AppTheme.textPrimary,
+            color: selected ? SediPalette.pistachio900 : AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -615,10 +626,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         child: ListView(
           children: [
             const SizedBox(height: 160),
-            AppEmptyState(
-              title: l10n.emptyTitle,
-              subtitle: l10n.emptySubtitle,
-            ),
+            AppEmptyState(title: l10n.emptyTitle, subtitle: l10n.emptySubtitle),
           ],
         ),
       );
@@ -672,8 +680,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
 
   Widget _buildItemCard(NotificationItem item, NotificationInboxL10n l10n) {
     // Attention = unread OR missing explicit user response (READ alone insufficient).
-    final effectiveRead =
-        item.isRead || _pendingReadIds.contains(item.id);
+    final effectiveRead = item.isRead || _pendingReadIds.contains(item.id);
     final displayAttention = !effectiveRead || !item.hasUserResponse;
     final selected = _selectedIds.contains(item.id);
     // Dedicated selection gutter (>=48dp) — LTR physical left / RTL physical right
@@ -683,10 +690,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: A3DestinationCard(
         backgroundColor: displayAttention
-            ? const Color(0xFFEEF0E8)
-            : AppTheme.gate2CardWhite,
+            ? SediPalette.pistachio100
+            : SediPalette.sageInput,
         borderColor: displayAttention
-            ? AppTheme.gate2ButtonOlive.withOpacity(0.35)
+            ? SediPalette.pistachio900.withOpacity(0.55)
             : AppTheme.gate2BorderSubtle,
         onTap: () async {
           if (_selectionMode) {
@@ -729,6 +736,16 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                 ),
               ),
+            // Hologram avatar (static frame — no Ticker per list row).
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12),
+              child: SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 40,
+                showRings: false,
+                animate: false,
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,7 +759,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           width: 10,
                           height: 10,
                           decoration: const BoxDecoration(
-                            color: AppTheme.gate2ButtonOlive,
+                            color: SediPalette.skin500,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -756,8 +773,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 16,
-                      fontWeight:
-                          displayAttention ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: displayAttention
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -771,8 +789,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           : AppTheme.textSecondary.withOpacity(0.92),
                       fontSize: 14,
                       height: 1.4,
-                      fontWeight:
-                          displayAttention ? FontWeight.w500 : FontWeight.w400,
+                      fontWeight: displayAttention
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 10),

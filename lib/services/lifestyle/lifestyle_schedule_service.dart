@@ -1,3 +1,5 @@
+import 'package:flutter_timezone/flutter_timezone.dart';
+
 import '../../core/network/api_client.dart';
 import '../../core/network/api_response.dart';
 
@@ -11,6 +13,12 @@ class LifestyleUserEventDto {
   final bool reminderEnabled;
   final List<int> reminderOffsets;
 
+  /// 'manual' | 'conversation' | 'system' | 'caregiver' (conversation = created by Sedi from chat).
+  final String? source;
+
+  /// 'FREQ=DAILY' | 'FREQ=WEEKLY;BYDAY=MO' - a repeating reminder asked for in chat (DEBT-044); null = one-off.
+  final String? recurrenceRule;
+
   const LifestyleUserEventDto({
     required this.id,
     required this.title,
@@ -20,6 +28,8 @@ class LifestyleUserEventDto {
     this.startsAt,
     this.reminderEnabled = false,
     this.reminderOffsets = const [],
+    this.source,
+    this.recurrenceRule,
   });
 
   factory LifestyleUserEventDto.fromJson(Map<String, dynamic> json) {
@@ -40,8 +50,15 @@ class LifestyleUserEventDto {
       startsAt: json['starts_at']?.toString(),
       reminderEnabled: json['reminder_enabled'] == true,
       reminderOffsets: offsets,
+      source: json['source']?.toString(),
+      recurrenceRule: _cleanRule(json['recurrence_rule']),
     );
   }
+}
+
+String? _cleanRule(dynamic raw) {
+  final v = raw?.toString().trim() ?? '';
+  return v.startsWith('FREQ=') ? v : null;
 }
 
 class LifestyleI8ActionDto {
@@ -76,7 +93,8 @@ class LifestyleScheduleService {
         if (raw is! List) return <LifestyleUserEventDto>[];
         return raw
             .whereType<Map>()
-            .map((e) => LifestyleUserEventDto.fromJson(Map<String, dynamic>.from(e)))
+            .map((e) =>
+                LifestyleUserEventDto.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       },
     );
@@ -97,6 +115,43 @@ class LifestyleScheduleService {
     );
   }
 
+  /// Creates a manual reminder event (same UserEvent authority Sedi uses for chat reminders).
+  Future<ApiResponse<void>> createReminder({
+    required String title,
+    required DateTime startsAt,
+    required int offsetMinutes,
+  }) async {
+    String? tz;
+    try {
+      tz = await FlutterTimezone.getLocalTimezone();
+    } catch (_) {
+      tz = null;
+    }
+    final local = DateTime(startsAt.year, startsAt.month, startsAt.day,
+        startsAt.hour, startsAt.minute);
+    return _api.post<void>(
+      '/user/events',
+      body: {
+        'title': title,
+        'event_domain': 'lifestyle',
+        'event_type': 'other',
+        'starts_at': local.toIso8601String(),
+        if (tz != null && tz.isNotEmpty) 'timezone': tz,
+        'reminder_enabled': true,
+        'reminder_offsets': [offsetMinutes],
+        'source': 'manual',
+      },
+      parser: (_) => null,
+    );
+  }
+
+  Future<ApiResponse<void>> deleteEvent(int eventId) {
+    return _api.delete<void>(
+      '/user/events/$eventId',
+      parser: (_) => null,
+    );
+  }
+
   Future<ApiResponse<List<LifestyleI8ActionDto>>> listI8Actions() {
     return _api.get<List<LifestyleI8ActionDto>>(
       '/lifestyle/schedule-actions',
@@ -106,7 +161,8 @@ class LifestyleScheduleService {
         if (raw is! List) return <LifestyleI8ActionDto>[];
         return raw
             .whereType<Map>()
-            .map((e) => LifestyleI8ActionDto.fromJson(Map<String, dynamic>.from(e)))
+            .map((e) =>
+                LifestyleI8ActionDto.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       },
     );

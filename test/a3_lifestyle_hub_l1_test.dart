@@ -9,7 +9,7 @@ import 'package:sedi_app/features/lifestyle/presentation/pages/lifestyle_page.da
 String _read(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('Lifestyle hub is a white 5-card destination with subtitles', () {
+  test('Lifestyle hub is a Shell-canvas 5-card destination with subtitles', () {
     final page = _read(
       'lib/features/lifestyle/presentation/pages/lifestyle_page.dart',
     );
@@ -17,7 +17,7 @@ void main() {
       'lib/features/lifestyle/presentation/lifestyle_l10n.dart',
     );
 
-    expect(page.contains('Color(0xFFFFFFFF)'), isTrue);
+    expect(page.contains('Color(0xFFDCE0C0)'), isTrue);
     expect(page.contains('gate3PaleOliveBackground'), isFalse);
     expect(page.contains('A3PageAppBar'), isTrue);
     expect(page.contains('LifestyleHealthPage'), isTrue);
@@ -104,13 +104,13 @@ void main() {
     expect(hub.contains('popUntil((route) => route.isFirst)'), isTrue);
   });
 
-  testWidgets('hub renders five tappable cards on a white canvas',
+  testWidgets('hub renders five tappable cards on the Shell canvas',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LifestylePage()));
     await tester.pump();
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-    expect(scaffold.backgroundColor, const Color(0xFFFFFFFF));
+    expect(scaffold.backgroundColor, const Color(0xFFDCE0C0));
     expect(scaffold.backgroundColor, isNot(AppTheme.gate3PaleOliveBackground));
 
     final l10n = LifestyleL10n('en');
