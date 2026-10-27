@@ -61,6 +61,47 @@ String? _cleanRule(dynamic raw) {
   return v.startsWith('FREQ=') ? v : null;
 }
 
+/// A medication of the user with its daily dose times (backend `GET /user/medications`).
+class LifestyleMedicationDto {
+  final int id;
+  final String name;
+  final List<String> reminderTimes;
+  final bool reminderEnabled;
+
+  const LifestyleMedicationDto({
+    required this.id,
+    required this.name,
+    this.reminderTimes = const [],
+    this.reminderEnabled = true,
+  });
+
+  factory LifestyleMedicationDto.fromJson(Map<String, dynamic> json) {
+    final times = <String>[];
+    final raw = json['reminder_times'];
+    if (raw is List) {
+      for (final t in raw) {
+        final s = '$t'.trim();
+        if (s.isNotEmpty) times.add(s);
+      }
+    }
+    return LifestyleMedicationDto(
+      id: int.tryParse('${json['id']}') ?? 0,
+      name: json['name']?.toString() ?? '',
+      reminderTimes: times,
+      reminderEnabled: json['reminder_enabled'] != false,
+    );
+  }
+}
+
+/// Result of marking an occurrence done (R-031).
+class ScheduleDoneResult {
+  final bool done;
+
+  /// true when the user's memory consent lets Sedi keep it (it is shown to the user).
+  final bool inMemory;
+  const ScheduleDoneResult({required this.done, required this.inMemory});
+}
+
 class LifestyleI8ActionDto {
   final String title;
   final String status;
@@ -120,6 +161,8 @@ class LifestyleScheduleService {
     required String title,
     required DateTime startsAt,
     required int offsetMinutes,
+    String eventDomain = 'lifestyle',
+    String eventType = 'other',
   }) async {
     String? tz;
     try {
@@ -133,8 +176,8 @@ class LifestyleScheduleService {
       '/user/events',
       body: {
         'title': title,
-        'event_domain': 'lifestyle',
-        'event_type': 'other',
+        'event_domain': eventDomain,
+        'event_type': eventType,
         'starts_at': local.toIso8601String(),
         if (tz != null && tz.isNotEmpty) 'timezone': tz,
         'reminder_enabled': true,
@@ -142,6 +185,91 @@ class LifestyleScheduleService {
         'source': 'manual',
       },
       parser: (_) => null,
+    );
+  }
+
+  Future<ApiResponse<List<LifestyleMedicationDto>>> listMedications() {
+    return _api.get<List<LifestyleMedicationDto>>(
+      '/user/medications',
+      parser: (data) {
+        if (data is! Map) return <LifestyleMedicationDto>[];
+        final raw = data['medications'];
+        if (raw is! List) return <LifestyleMedicationDto>[];
+        return raw
+            .whereType<Map>()
+            .map((e) => LifestyleMedicationDto.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      },
+    );
+  }
+
+  Future<ApiResponse<void>> createMedication({
+    required String name,
+    required List<String> times,
+  }) async {
+    String? tz;
+    try {
+      tz = await FlutterTimezone.getLocalTimezone();
+    } catch (_) {
+      tz = null;
+    }
+    return _api.post<void>(
+      '/user/medications',
+      body: {
+        'name': name,
+        'reminder_enabled': true,
+        'reminder_times': times,
+        if (tz != null && tz.isNotEmpty) 'timezone': tz,
+      },
+      parser: (_) => null,
+    );
+  }
+
+  Future<ApiResponse<void>> deleteMedication(int id) {
+    return _api.delete<void>('/user/medications/$id', parser: (_) => null);
+  }
+
+  /// Marks one occurrence done (or undoes it). The backend records it through its owner and in Sedi's memory (I7).
+  Future<ApiResponse<ScheduleDoneResult>> markDone({
+    required String kind,
+    required int id,
+    required String day,
+    String? time,
+    bool done = true,
+  }) {
+    return _api.post<ScheduleDoneResult>(
+      '/user/schedule/done',
+      body: {
+        'kind': kind,
+        'id': id,
+        'day': day,
+        if (time != null) 'time': time,
+        'done': done,
+      },
+      parser: (data) {
+        final m = data is Map ? data : const {};
+        return ScheduleDoneResult(
+          done: m['done'] != false,
+          inMemory: m['in_memory'] == true,
+        );
+      },
+    );
+  }
+
+  /// Occurrence ids already done on [day] (`yyyy-MM-dd`).
+  Future<ApiResponse<Set<String>>> listDone(String day) {
+    return _api.get<Set<String>>(
+      '/user/schedule/done?day=$day',
+      parser: (data) {
+        if (data is! Map) return <String>{};
+        final raw = data['items'];
+        if (raw is! List) return <String>{};
+        return raw
+            .whereType<Map>()
+            .map((e) => '${e['id']}')
+            .where((s) => s.isNotEmpty && s != 'null')
+            .toSet();
+      },
     );
   }
 

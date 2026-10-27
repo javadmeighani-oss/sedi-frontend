@@ -182,6 +182,143 @@ class LifestyleL10n {
   String get deleteItem => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
   String get fromChat => _t(en: 'From chat', fa: 'از چت', ar: 'من المحادثة');
 
+  // ---- R-031: My Schedule redesign (categories, done, add by type, notification wording)
+  String get healthAlertAlwaysOn => _t(
+        en: 'Stays on for emergencies, always.',
+        fa: 'برای موارد اضطراری همیشه روشن می‌مونه.',
+        ar: 'يبقى مفعّلاً للطوارئ دائماً.',
+      );
+  String get notifLearningLine => _t(
+        en: 'If you dislike a message, I change my timing and wording myself; I do not stop.',
+        fa: 'اگه یه پیام رو نپسندی، خودم زمان و جمله‌هام رو عوض می‌کنم؛ قطع نمی‌کنم.',
+        ar: 'إذا لم تعجبك رسالة، أغيّر وقتها وصياغتها بنفسي؛ ولا أتوقف.',
+      );
+  String get nextUp => _t(en: 'Next', fa: 'بعدی', ar: 'التالي');
+  String get nothingToday => _t(
+        en: 'Nothing planned for today.',
+        fa: 'امروز برنامه‌ای نداری.',
+        ar: 'لا شيء مخطط لليوم.',
+      );
+  String get allDoneToday => _t(
+        en: 'Everything for today is done.',
+        fa: 'کارهای امروز همه انجام شد.',
+        ar: 'تم كل شيء لليوم.',
+      );
+  String catAll(int n) =>
+      _t(en: 'All · $n', fa: 'همه · ${_n(n)}', ar: 'الكل · ${_n(n)}');
+  String get catMedication => _t(en: 'Medication', fa: 'دارو', ar: 'الدواء');
+  String get catAppointment =>
+      _t(en: 'Appointments', fa: 'نوبت و دکتر', ar: 'المواعيد');
+  String get catMeeting =>
+      _t(en: 'Meetings & work', fa: 'جلسه و کار', ar: 'اجتماعات وعمل');
+  String get catOther => _t(en: 'Other', fa: 'دیگر', ar: 'أخرى');
+  String get markDone => _t(en: 'Mark as done', fa: 'انجام شد', ar: 'تم');
+  String get undoDone => _t(en: 'Undo', fa: 'برگردان', ar: 'تراجع');
+  String get doneLabel => _t(en: 'Done', fa: 'انجام شد', ar: 'تم');
+  String get rememberedBySedi => _t(
+        en: "Saved in Sedi's memory",
+        fa: 'در حافظه‌ی صدی ثبت شد',
+        ar: 'حُفظ في ذاكرة صدی',
+      );
+  String get doneSaved => _t(en: 'Saved', fa: 'ثبت شد', ar: 'تم الحفظ');
+  String get addToSchedule => _t(
+        en: 'Add to my schedule',
+        fa: 'افزودن به برنامه‌ام',
+        ar: 'أضف إلى جدولي',
+      );
+  String get addWhatTitle =>
+      _t(en: 'What shall we add?', fa: 'چی اضافه کنیم؟', ar: 'ماذا نضيف؟');
+  String get typeMedication => _t(en: 'Medication', fa: 'دارو', ar: 'دواء');
+  String get typeAppointment =>
+      _t(en: 'Doctor visit', fa: 'نوبت دکتر', ar: 'موعد طبيب');
+  String get typeMeeting => _t(en: 'Meeting', fa: 'جلسه', ar: 'اجتماع');
+  String get typeFree => _t(en: 'Other', fa: 'آزاد', ar: 'حر');
+  String get medName =>
+      _t(en: 'Medication name', fa: 'اسم دارو', ar: 'اسم الدواء');
+  String get medTimes =>
+      _t(en: 'At what times?', fa: 'چه ساعت‌هایی؟', ar: 'في أي أوقات؟');
+  String get addTime => _t(en: '+ time', fa: '+ ساعت', ar: '+ وقت');
+  String get medSave =>
+      _t(en: 'Save medication', fa: 'ثبت دارو', ar: 'حفظ الدواء');
+  String get medNeedName => _t(
+        en: 'Please write the medication name.',
+        fa: 'اسم دارو رو بنویس.',
+        ar: 'اكتب اسم الدواء.',
+      );
+  String get medNeedTime => _t(
+        en: 'Add at least one time.',
+        fa: 'حداقل یه ساعت اضافه کن.',
+        ar: 'أضف وقتاً واحداً على الأقل.',
+      );
+  String get medHint => _t(
+        en: 'I will tell you on time and ask "did you take it?". Your answer stays in my memory so I can look after you.',
+        fa: 'سر وقت بهت خبر می‌دم و می‌پرسم «خوردی؟». جوابت توی حافظه‌ی من می‌مونه که بتونم حواسم بهت باشه.',
+        ar: 'سأنبّهك في الوقت وأسأل «هل أخذته؟». يبقى جوابك في ذاكرتي لأعتني بك.',
+      );
+  String get notifRowTitle =>
+      _t(en: 'Notifications', fa: 'اعلان‌ها', ar: 'الإشعارات');
+  String get upcoming => _t(en: 'Coming up', fa: 'بعداً', ar: 'قادم');
+  String get medsEmptyHint => _t(
+        en: 'Tell Sedi in chat or add your medication here.',
+        fa: 'توی چت به صدی بگو یا دارویت رو همین‌جا اضافه کن.',
+        ar: 'قل لصدی في المحادثة أو أضف دواءك هنا.',
+      );
+  String hubToday(int total, int done) => total == 0
+      ? nothingToday
+      : _t(
+          en: '$total for today · $done done',
+          fa: '${_n(total)} کار داری · ${_n(done)} تا انجام شد',
+          ar: '${_n(total)} مهام اليوم · أنجزت ${_n(done)}',
+        );
+  String hubNext(String title, String hhmm) => _t(
+        en: 'Next: $title · $hhmm',
+        fa: 'بعدی: $title · $hhmm',
+        ar: 'التالي: $title · $hhmm',
+      );
+  String hubScheduleLine(int open) => open == 0
+      ? _t(
+          en: 'All clear for today',
+          fa: 'امروز همه‌چیز انجام شده',
+          ar: 'كل شيء منجز اليوم',
+        )
+      : _t(
+          en: '$open left today',
+          fa: '${_n(open)} کار مونده',
+          ar: 'بقي ${_n(open)} اليوم',
+        );
+
+  /// Eastern digits for fa/ar.
+  String _n(Object v) {
+    final s = '$v';
+    if (lang != 'fa' && lang != 'ar') return s;
+    const latin = '0123456789';
+    const eastern = '۰۱۲۳۴۵۶۷۸۹';
+    final b = StringBuffer();
+    for (final ch in s.split('')) {
+      final i = latin.indexOf(ch);
+      b.write(i < 0 ? ch : eastern[i]);
+    }
+    return b.toString();
+  }
+
+  String timeText(DateTime t) => _n(
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+
+  /// "in 2 h" / «۲ ساعت دیگه» / "now".
+  String relativeIn(Duration d) {
+    final mins = d.inMinutes;
+    if (mins <= 0) return _t(en: 'now', fa: 'الان', ar: 'الآن');
+    if (mins < 60) {
+      return _t(
+        en: 'in $mins min',
+        fa: '${_n(mins)} دقیقه دیگه',
+        ar: 'بعد ${_n(mins)} دقيقة',
+      );
+    }
+    final h = (mins / 60).round();
+    return _t(en: 'in $h h', fa: '${_n(h)} ساعت دیگه', ar: 'بعد ${_n(h)} ساعة');
+  }
+
   // ---- DEBT-044: repeating reminders asked for in chat
   /// «هر روز · 08:00» / «Every Monday · 08:00» for a stored rule (`FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO`); null = one-off.
   String? repeatLabel(String? rule, String? startsAtIso) {
@@ -250,52 +387,52 @@ class LifestyleL10n {
         ar: 'تعذّر الحفظ. حاول مجدداً.',
       );
   String get notifSettingsTitle => _t(
-        en: 'Notification settings',
-        fa: 'تنظیمات اعلان‌ها',
-        ar: 'إعدادات الإشعارات',
+        en: 'When and what should Sedi tell you?',
+        fa: 'صدی کِی و چی بهت خبر بده؟',
+        ar: 'متى وبماذا يخبرك صدی؟',
       );
   String get notifSettingsSubtitle => _t(
-        en: 'What Sedi may send you, and when',
-        fa: 'چی بفرستم و کِی',
-        ar: 'ما الذي يرسله صدی ومتى',
+        en: 'Turn off anything you do not like',
+        fa: 'هر چیزی که دوست نداری، خودت خاموشش کن',
+        ar: 'أوقف أي شيء لا يعجبك',
       );
   String get chCompanion => _t(
-        en: 'Sedi check-ins',
-        fa: 'احوال‌پرسی و همراهی صدی',
-        ar: 'اطمئنان صدی ومرافقته',
+        en: 'Check-ins from Sedi',
+        fa: 'احوال‌پرسی و همراهی',
+        ar: 'اطمئنان ومرافقة',
       );
   String get chAppointment => _t(
-        en: 'Appointment & event reminders',
-        fa: 'یادآور نوبت و رویدادها',
-        ar: 'تذكير المواعيد والأحداث',
+        en: 'Appointments and meetings',
+        fa: 'نوبت‌ها و جلسه‌ها',
+        ar: 'المواعيد والاجتماعات',
       );
   String get chMedication =>
-      _t(en: 'Medication reminders', fa: 'یادآور دارو', ar: 'تذكير الدواء');
+      _t(en: 'Medication', fa: 'دارو', ar: 'الدواء');
   String get chSystem =>
       _t(en: 'System reminders', fa: 'یادآورهای سیستم', ar: 'تذكيرات النظام');
   String get chHealthAlert =>
       _t(en: 'Health alerts', fa: 'هشدارهای سلامت', ar: 'تنبيهات الصحة');
   String get quietHours =>
-      _t(en: 'Quiet hours', fa: 'ساعت سکوت', ar: 'ساعات الهدوء');
+      _t(en: 'Quiet hours', fa: 'ساعت آرامش', ar: 'ساعات الهدوء');
   String get quietHoursHint => _t(
-        en: 'No notifications in this window (except emergencies).',
-        fa: 'در این بازه نوتیفی نمی‌فرستم (به جز اورژانس).',
-        ar: 'لا إشعارات في هذه الفترة (عدا الطوارئ).',
+        en: 'No messages in this window, except emergencies.',
+        fa: 'در این بازه پیام نمی‌فرستم، مگر اورژانس.',
+        ar: 'لا رسائل في هذه الفترة، إلا الطوارئ.',
       );
   String get quietFrom => _t(en: 'From', fa: 'از', ar: 'من');
   String get quietTo => _t(en: 'To', fa: 'تا', ar: 'إلى');
   String get engagementTitle => _t(
-        en: 'How often Sedi writes',
-        fa: 'هر چند وقت صدی بنویسه',
-        ar: 'كم مرة يكتب صدی',
+        en: 'How much should I write?',
+        fa: 'چقدر برات بنویسم؟',
+        ar: 'كم أكتب لك؟',
       );
   String get engagementLow => _t(en: 'Less', fa: 'کمتر', ar: 'أقل');
-  String get engagementNormal => _t(en: 'Normal', fa: 'متوسط', ar: 'متوسط');
+  String get engagementNormal => _t(en: 'Normal', fa: 'معمولی', ar: 'عادي');
   String get engagementHigh => _t(en: 'More', fa: 'بیشتر', ar: 'أكثر');
   String get appointmentOffWarning => _t(
-        en: 'Appointment & event reminders are off, so these items will not notify you.',
-        fa: 'یادآور نوبت و رویدادها خاموشه؛ برای این برنامه‌ها نوتیف نمی‌رسه.',
-        ar: 'تذكير المواعيد متوقف، لذلك لن تصلك إشعارات لهذه العناصر.',
+        en: 'Appointment and meeting reminders are off, so these will not notify you.',
+        fa: 'یادآور نوبت‌ها و جلسه‌ها خاموشه؛ برای این برنامه‌ها خبرت نمی‌کنم.',
+        ar: 'تذكير المواعيد والاجتماعات متوقف، لذلك لن أنبّهك لهذه العناصر.',
       );
 
   /// Localized label for the stored event type; null for "other"/unknown (no chip).
