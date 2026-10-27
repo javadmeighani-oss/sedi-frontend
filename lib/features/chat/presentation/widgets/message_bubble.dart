@@ -25,6 +25,14 @@ class MessageBubble extends StatefulWidget {
     Shadow(color: Color(0xCCDCE0C0), blurRadius: 3),
   ];
 
+  /// Sedi's logo sphere diameter and the text metrics of a message line. The first line of text is centred on the
+  /// logo's centre (D-102) so the logo, the text and the typing dots share one visual line.
+  static const double sediLogoDiameter = 34;
+  static const double _fontSize = 15;
+  static const double _lineHeight = 1.45;
+  static const double sediTextTopInset =
+      (sediLogoDiameter - _fontSize * _lineHeight) / 2;
+
   /// First-strong-character direction for bidi-safe user text.
   static TextDirection resolveTextDirection(String text) {
     for (final rune in text.runes) {
@@ -97,8 +105,8 @@ class _MessageBubbleState extends State<MessageBubble> {
               color: widget.isSedi
                   ? SediPalette.charcoal950
                   : SediPalette.shell100,
-              fontSize: 15,
-              height: 1.45,
+              fontSize: MessageBubble._fontSize,
+              height: MessageBubble._lineHeight,
               // ~20 % heavier strokes than before (D-097) for easier reading.
               fontWeight: FontWeight.w500,
               shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
@@ -194,19 +202,25 @@ class _MessageBubbleState extends State<MessageBubble> {
                   : CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsetsDirectional.only(
-                    top: widget.showTyping ? 0 : 1,
-                    end: 8,
-                  ),
+                  padding: const EdgeInsetsDirectional.only(end: 8),
                   child: const SediHologramOrb(
                     state: Gate3InteractionState.idle,
-                    diameter: 34,
+                    diameter: MessageBubble.sediLogoDiameter,
                     showRings: false,
                     animate: false,
                     keyedLogo: false,
                   ),
                 ),
-                Flexible(child: body),
+                Flexible(
+                  child: widget.showTyping
+                      ? body
+                      : Padding(
+                          padding: const EdgeInsets.only(
+                            top: MessageBubble.sediTextTopInset,
+                          ),
+                          child: body,
+                        ),
+                ),
               ],
             ),
           ),

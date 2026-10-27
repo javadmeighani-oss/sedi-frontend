@@ -31,6 +31,9 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
   /// Bars drawn in this segment. Defaults to [barCount].
   final int? segmentBarCount;
 
+  /// Painted height; defaults to [height]. The docked strip above the composer (D-102) is a little shorter.
+  final double? heightOverride;
+
   /// Global bar index of the first bar in this segment (keeps envelope continuous).
   final int globalBarOffset;
 
@@ -107,6 +110,7 @@ class SediHorizontalResonanceVisualizer extends StatefulWidget {
     this.segmentBarCount,
     this.globalBarOffset = 0,
     this.globalBarTotal,
+    this.heightOverride,
   });
 
   @override
@@ -208,7 +212,7 @@ class _SediHorizontalResonanceVisualizerState
         widget.segmentBarCount ?? SediHorizontalResonanceVisualizer.barCount;
     return SizedBox(
       width: double.infinity,
-      height: SediHorizontalResonanceVisualizer.height,
+      height: widget.heightOverride ?? SediHorizontalResonanceVisualizer.height,
       child: CustomPaint(
         painter: _ResonanceLinePainter(
           phase: _phase.value,
@@ -288,8 +292,10 @@ class _ResonanceLinePainter extends CustomPainter {
     final k = 1 + (_hash(i, 2) * 4).floor(); // 1..4 cycles per loop
     final flutter = 0.72 + 0.28 * math.sin(_tau * (k * p + _hash(i, 3)));
 
-    // Sees: tiny breathing ticks.
-    final idle = 0.10 * (0.7 + 0.3 * math.sin(_tau * (p + _hash(i, 4))));
+    // Sees: a calm resting spectrum (D-102): every line keeps its own height, a slow breath moves them. Same
+    // grammar as the active states, only quieter, so the dock never looks like an empty dotted line.
+    final idle = (0.30 + 0.10 * math.sin(_tau * (p + _hash(i, 4)))) *
+        (0.40 + 0.60 * _hash(i, 1));
 
     // Hears: swells travel in from the edges to the centre.
     final s1 = math.sin(_tau * (1.6 * d + 3 * p));
@@ -358,7 +364,7 @@ class _ResonanceLinePainter extends CustomPainter {
       lines.moveTo(x, midY - half);
       lines.lineTo(x, midY + half);
       // A few tall lines carry a glowing tip, like sparks on the waveform.
-      if (level > 0.62 && _hash(i, 5) > 0.72) {
+      if (level > 0.30 && _hash(i, 5) > 0.74) {
         tips.add(Offset(x, midY - half));
         glow.add(Offset(x, midY + half));
       }

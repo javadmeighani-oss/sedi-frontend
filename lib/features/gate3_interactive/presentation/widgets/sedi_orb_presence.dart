@@ -19,6 +19,9 @@ class SediOrbPresence extends StatefulWidget {
   /// Vertical gap between the hologram and the resonance line.
   final double gap;
 
+  /// false = hologram only (D-102): the A3 page docks the resonance above the composer instead.
+  final bool withResonance;
+
   /// Hologram opacity in the A3 background on an empty chat: 40 % transparent
   /// (Javad, D-091).
   static const double hologramOpacity = 0.36;
@@ -47,6 +50,7 @@ class SediOrbPresence extends StatefulWidget {
     required this.lang,
     this.ambient = hologramOpacity,
     this.gap = 72,
+    this.withResonance = true,
   });
 
   @override
@@ -83,7 +87,9 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
             maxW.clamp(SediPresenceTokens.orbMinDiameter, maxW).toDouble();
         final orbD = SediBrainOrb.diameterFor(usable);
         final bars = SediPresenceTokens.barCountFor(usable);
-        final height = SediOrbPresence.heightFor(usable, widget.gap);
+        final height = widget.withResonance
+            ? SediOrbPresence.heightFor(usable, widget.gap)
+            : orbD;
         // Only the keyboard-open state (very faint hologram) dims the line.
         final barsOpacity = widget.ambient < 0.2 ? 0.35 : 1.0;
 
@@ -108,18 +114,20 @@ class _SediOrbPresenceState extends State<SediOrbPresence>
                   ),
                 ),
               ),
-              SizedBox(height: widget.gap),
-              AnimatedOpacity(
-                opacity: barsOpacity,
-                duration: const Duration(milliseconds: 400),
-                child: SediHorizontalResonanceVisualizer(
-                  state: widget.state,
-                  phaseListenable: _phase,
-                  segmentBarCount: bars,
-                  globalBarOffset: 0,
-                  globalBarTotal: bars,
+              if (widget.withResonance) ...[
+                SizedBox(height: widget.gap),
+                AnimatedOpacity(
+                  opacity: barsOpacity,
+                  duration: const Duration(milliseconds: 400),
+                  child: SediHorizontalResonanceVisualizer(
+                    state: widget.state,
+                    phaseListenable: _phase,
+                    segmentBarCount: bars,
+                    globalBarOffset: 0,
+                    globalBarTotal: bars,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );

@@ -31,6 +31,7 @@ import '../widgets/gate3_subject_selector.dart';
 import '../widgets/gate3_top_navigation_tray.dart';
 import '../widgets/sedi_brain_orb.dart';
 import '../widgets/sedi_orb_presence.dart';
+import '../widgets/sedi_resonance_dock.dart';
 import '../widgets/sedi_scene_backdrop.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -375,8 +376,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                           .clamp(260.0, 460.0)
                           .toDouble();
                       final presenceTop = math.max(56.0, barsTop - gap - orbD);
-                      final presenceBottom =
-                          presenceTop + SediOrbPresence.heightFor(usableW, gap);
+                      // The hologram alone lives in the background; the resonance is docked above the composer (D-102).
+                      final presenceBottom = presenceTop + orbD;
                       final chatTopPad =
                           keyboardOpen ? 56.0 : presenceBottom + 10;
                       return Stack(
@@ -396,6 +397,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                 ambient:
                                     _orbAmbient(keyboardOpen: keyboardOpen),
                                 gap: gap,
+                                withResonance: false,
                               ),
                             ),
                           ),
@@ -449,6 +451,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                     cancelLabel: l10n.cancelEdit,
                                     onCancel: _cancelEdit,
                                   ),
+                                // Resonance docked just above the composer, about half the screen width (D-102).
+                                SediResonanceDock(state: _orbState()),
                                 Gate3Composer(
                                   key: ValueKey(
                                       'gate3-composer-$_composerDraftToken'),
