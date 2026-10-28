@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../data/dto/lifestyle/lifestyle_weekly_plan_dto.dart';
 import '../../../../services/lifestyle/lifestyle_weekly_plan_service.dart';
+import '../../../gate3_interactive/presentation/gate3_user_message_bus.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import '../pages/lifestyle_page.dart';
+import '../../../../data/dto/lifestyle/plan_alternative.dart';
+import 'lifestyle_plan_sheets.dart';
 
 enum LifestyleWeeklyDomain { nutrition, exercise }
 
@@ -106,6 +110,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
           title: Text(title),
           backgroundColor: A3DestinationSurface.canvas,
         ),
+        bottomNavigationBar: _loading ? null : _bottomBar(l10n, starter, isNutrition),
         body: RefreshIndicator(
           color: AppTheme.gate2ButtonOlive,
           onRefresh: _load,
@@ -127,8 +132,10 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                   const SizedBox(height: 12),
                   _adherenceCard(l10n),
                 ],
-                const SizedBox(height: 16),
-                _talkToSediCard(l10n, starter),
+                if (_ctaProminent) ...[
+                  const SizedBox(height: 16),
+                  _talkToSediCard(l10n, starter),
+                ],
                 if (_effectiveState == 'active' ||
                     _effectiveState == 'review_due') ...[
                   const SizedBox(height: 20),
@@ -140,6 +147,141 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         ),
       ),
     );
+  }
+
+  /// Set up or change the plan here (the sheet's answers go to the canonical chat as the user's own message), or just
+  /// talk to Sedi. Always visible so the plan can be changed without hunting for it.
+  Widget _bottomBar(LifestyleL10n l10n, String starter, bool isNutrition) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  backgroundColor: AppTheme.ctaFill,
+                  foregroundColor: AppTheme.ctaText,
+                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                onPressed: () => _openSetup(l10n, isNutrition),
+                child: Text(l10n.planSetupButton),
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconButton.outlined(
+              tooltip: l10n.openChat,
+              constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              onPressed: () => openLifestyleChat(context, starterMessage: starter),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Facts Sedi already remembers about the user (read-only chips, fail-open: no chips when memory is off).
+  Future<List<String>> _knownFacts() async {
+    try {
+      final res = await ApiClient().getRaw('/memory/overview');
+      final body = res.ok ? res.data : null;
+      final facts = body == null ? null : body['facts'];
+      if (facts is! List) return const [];
+      return [
+        for (final f in facts)
+          if (f is Map && '${f['value'] ?? ''}'.trim().isNotEmpty) '${f['value']}'.trim(),
+      ].take(4).toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _openSetup(LifestyleL10n l10n, bool isNutrition) async {
+    final facts = await _knownFacts();
+    if (!mounted) return;
+    final message = await showPlanSetupSheet(
+      context,
+      l10n: l10n,
+      nutrition: isNutrition,
+      knownFacts: facts,
+    );
+    if (message == null || !mounted) return;
+    _sendToChat(message);
+  }
+
+  void _sendToChat(String message) {
+    Gate3UserMessageBus.instance.publish(message);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _openItem(LifestyleWeeklyActionDto a, LifestyleL10n l10n, bool reviewable) async {
+    final id = a.id;
+    if (id == null) return;
+    final title = (a.title ?? a.activityTitle ?? '').trim();
+    final choice = await showPlanItemSheet(
+      context,
+      l10n: l10n,
+      title: title,
+      time: a.localTime,
+      canSkip: reviewable,
+      loadAlternatives: () async {
+        final res = await _svc.fetchAlternatives(id);
+        return res.ok ? (res.data ?? const <PlanAlternative>[]) : const <PlanAlternative>[];
+      },
+    );
+    if (choice == null || !mounted) return;
+    switch (choice.kind) {
+      case 'chat':
+        _sendToChat(l10n.alternativeMessage(title));
+        return;
+      case 'skip':
+        await _review(a, 'skipped', reason: choice.value);
+        return;
+      case 'replace':
+        await _edit(_svc.replaceAction(id, choice.value ?? ''), l10n);
+        return;
+      case 'move':
+        await _edit(_svc.moveAction(id, choice.value ?? ''), l10n);
+        return;
+      case 'remove':
+        await _edit(_svc.removeAction(id), l10n);
+        return;
+      case 'edit':
+        final edited = await showPlanItemEditSheet(
+          context,
+          l10n: l10n,
+          title: title,
+          note: a.detail ?? '',
+          durationMinutes: a.durationMinutes,
+          isExercise: widget.domain == LifestyleWeeklyDomain.exercise,
+        );
+        if (edited == null || !mounted) return;
+        await _edit(
+          _svc.editAction(
+            id,
+            title: edited.title,
+            note: edited.note,
+            durationMinutes: edited.durationMinutes,
+          ),
+          l10n,
+        );
+        return;
+    }
+  }
+
+  Future<void> _edit(Future<dynamic> call, LifestyleL10n l10n) async {
+    final res = await call;
+    if (!mounted) return;
+    if (res.ok == true) {
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.planChangedSnack)));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saveFailed)));
+    }
   }
 
   Widget _talkToSediCard(LifestyleL10n l10n, String starter) {
@@ -236,8 +378,13 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
 
   List<Widget> _buildDays(LifestyleL10n l10n) {
     final days = _plan?.days ?? const <LifestyleWeeklyDayDto>[];
-    // Backend provides exact 7-day order — do not reorder or invent days.
-    return days.map((day) {
+    // Backend provides the 7 days in order and never invents any; only the display puts today's card first.
+    final todayKey = _plan?.todayLocal;
+    final ordered = [
+      ...days.where((d) => todayKey != null && d.localDate == todayKey),
+      ...days.where((d) => todayKey == null || d.localDate != todayKey),
+    ];
+    return ordered.map((day) {
       final weekday = CalendarDateMath.weekdayFromIso(day.localDate);
       final weekdayLabel =
           weekday == null ? '' : l10n.weekdayShort(weekday);
@@ -250,15 +397,17 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
           today.isNotEmpty &&
           day.localDate.isNotEmpty &&
           day.localDate.compareTo(today) <= 0;
+      final isToday = todayKey != null && day.localDate == todayKey;
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: A3DestinationCard(
+          borderColor: isToday ? AppTheme.gate2ButtonOlive : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (weekdayLabel.isNotEmpty)
                 Text(
-                  weekdayLabel,
+                  isToday ? '$weekdayLabel · ${l10n.todayLabel}' : weekdayLabel,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppTheme.textPrimary,
@@ -348,13 +497,44 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     }
     final reviewRow = _reviewRow(a, l10n, reviewable);
     if (reviewRow != null) rows.add(reviewRow);
+    final status = (a.status ?? '').toUpperCase();
+    final canTick = a.id != null && status == 'ACTIVE' && reviewable && a.reviewOutcome != 'skipped';
+    final canEdit = a.id != null && status == 'ACTIVE';
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: rows,
+        children: [
+          if (status == 'COMPLETED')
+            const Padding(
+              padding: EdgeInsets.fromLTRB(0, 2, 10, 0),
+              child: Icon(Icons.check_circle_rounded, size: 28, color: AppTheme.gate2ButtonOlive),
+            )
+          else if (canTick)
+            IconButton(
+              tooltip: l10n.markDone,
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.radio_button_unchecked_rounded, size: 30, color: AppTheme.gate2ButtonOlive),
+              onPressed: _reviewing.contains(a.id) ? null : () => _review(a, 'done'),
+            ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: rows,
+            ),
+          ),
+          if (canEdit)
+            IconButton(
+              tooltip: l10n.editItem,
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              icon: const Icon(Icons.more_horiz_rounded, color: AppTheme.gate2ButtonOlive),
+              onPressed: () => _openItem(a, l10n, reviewable),
+            ),
+        ],
       ),
     );
+
   }
 
   Widget _adherenceCard(LifestyleL10n l10n) {
@@ -395,28 +575,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         '${l10n.markSkipped}: ${l10n.skipReasonLabel(a.reviewReason ?? 'other')}',
       );
     }
-    if (status != 'ACTIVE' || !reviewable) return null;
-    final busy = _reviewing.contains(a.id);
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Wrap(
-        spacing: 8,
-        children: [
-          FilledButton(
-            onPressed: busy ? null : () => _review(a, 'done'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.ctaFill,
-              foregroundColor: AppTheme.ctaText,
-            ),
-            child: Text(l10n.markDone),
-          ),
-          OutlinedButton(
-            onPressed: busy ? null : () => _askReasonAndSkip(a, l10n),
-            child: Text(l10n.markSkipped),
-          ),
-        ],
-      ),
-    );
+    return null;
   }
 
   Future<void> _review(
@@ -431,66 +590,6 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     if (!mounted) return;
     setState(() => _reviewing.remove(id));
     if (res.ok) await _load();
-  }
-
-  Future<void> _askReasonAndSkip(
-    LifestyleWeeklyActionDto a,
-    LifestyleL10n l10n,
-  ) async {
-    const reasons = <String>[
-      'no_time',
-      'too_hard',
-      'not_feeling_well',
-      'dont_like',
-      'forgot',
-      'other',
-    ];
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: AppTheme.backgroundWhite,
-      builder: (ctx) => Directionality(
-        textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.whySkippedTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.whySkippedHint,
-                  style: const TextStyle(color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: reasons
-                      .map(
-                        (r) => ActionChip(
-                          label: Text(l10n.skipReasonLabel(r)),
-                          onPressed: () => Navigator.of(ctx).pop(r),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (picked == null || !mounted) return;
-    await _review(a, 'skipped', reason: picked);
   }
 
   Widget _titleLine(String text) => Text(

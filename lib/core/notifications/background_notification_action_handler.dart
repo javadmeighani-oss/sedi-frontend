@@ -35,6 +35,15 @@ class BackgroundNotificationActionHandler {
     'irrelevant',
   ];
 
+  /// P8: "did you do it?" plan follow-up. Not done asks WHY inside a fresh notification (3 buttons), like Dislike.
+  static const String planNotDoneAction = 'plan_not_done';
+  static const String planReasonPrefix = 'planreason:';
+  static const List<String> planNotDoneReasons = <String>[
+    'no_time',
+    'dont_like',
+    'not_feeling_well',
+  ];
+
   /// Isolate-local in-flight lock (dedupeKey) — reject duplicate taps.
   static final Set<String> _inFlightKeys = <String>{};
 
@@ -53,6 +62,11 @@ class BackgroundNotificationActionHandler {
     // The user answered the in-notification "why?" question: send the reason, close the prompt. No app screen.
     if (action.startsWith(reasonActionPrefix)) {
       await _handleReasonAnswer(id, action.substring(reasonActionPrefix.length));
+      return;
+    }
+
+    if (action.startsWith(planReasonPrefix)) {
+      await _handlePlanReasonAnswer(id, action.substring(planReasonPrefix.length));
       return;
     }
 
@@ -78,7 +92,8 @@ class BackgroundNotificationActionHandler {
       await TrayNotificationSnapshotStore.remove(id);
 
       // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
-      if (action != 'like' && action != 'dislike') {
+      final isPlanAnswer = NotificationRepository.planFollowUpActions.contains(action);
+      if (action != 'like' && action != 'dislike' && !isPlanAnswer) {
         debugPrint('[FCM-bg] open_chat enqueue+dismiss; foreground drain owns ACK');
         return;
       }
@@ -94,6 +109,9 @@ class BackgroundNotificationActionHandler {
       }
       // The reason is asked inside a fresh notification (3 buttons); only when it cannot be shown does the chat page
       // ask later (fallback).
+      if (action == planNotDoneAction) {
+        await _showPlanReasonPrompt(notificationId: id, payload: payload);
+      }
       if (action == 'dislike') {
         final shown = await _showReasonPrompt(notificationId: id, payload: payload);
         if (!shown) {
@@ -214,6 +232,82 @@ class BackgroundNotificationActionHandler {
       debugPrint('[FCM-bg] reason prompt not shown: $e');
       return false;
     }
+  }
+
+  /// «اشکالی نداره. چی شد؟» + three reason buttons; the answer updates the skipped review with its reason.
+  static Future<void> _showPlanReasonPrompt({
+    required int notificationId,
+    required Map<String, dynamic> payload,
+  }) async {
+    try {
+      final lang = _lang(payload);
+      final l10n = NotificationInboxL10n(lang);
+      final plugin = FlutterLocalNotificationsPlugin();
+      await plugin.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings(androidBrandSmallIcon),
+        ),
+        onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+      );
+      final channelRaw = (payload['channel'] ?? 'engagement').toString();
+      final channelId = resolveAndroidChannelId(channelRaw);
+      await plugin.show(
+        _notificationIdToInt(notificationId),
+        l10n.planNotDoneTitle,
+        l10n.planNotDoneHint,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            channelId,
+            LocalNotificationsService.channelDisplayName(channelId),
+            icon: androidBrandSmallIcon,
+            color: SediPalette.pistachio900,
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+            playSound: false,
+            enableVibration: false,
+            onlyAlertOnce: true,
+            autoCancel: true,
+            timeoutAfter: 90000,
+            actions: <AndroidNotificationAction>[
+              for (final r in planNotDoneReasons)
+                AndroidNotificationAction(
+                  '$planReasonPrefix$r',
+                  l10n.planReasonLabel(r),
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                ),
+            ],
+          ),
+        ),
+        payload: jsonEncode({
+          'notification_id': '$notificationId',
+          'source_notification_id': '$notificationId',
+          'channel': channelRaw,
+          'language': lang,
+          'reason_prompt': true,
+        }),
+      );
+    } catch (e) {
+      debugPrint('[FCM-bg] plan reason prompt not shown: $e');
+    }
+  }
+
+  static Future<void> _handlePlanReasonAnswer(int id, String reason) async {
+    if (!planNotDoneReasons.contains(reason)) return;
+    try {
+      if (await AuthService.hasToken()) {
+        await NotificationRepository().sendFeedback(
+          notificationId: id,
+          action: planNotDoneAction,
+          reason: reason,
+          clientTs: DateTime.now().toUtc().toIso8601String(),
+          recoverSessionOn401: false,
+        );
+      }
+    } catch (e) {
+      debugPrint('[FCM-bg] plan reason feedback failed (best effort): $e');
+    }
+    await _dismissTrayIsolated(id);
   }
 
   static Future<void> _handleReasonAnswer(int id, String reason) async {
