@@ -79,6 +79,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   StreamSubscription<String>? _draftSub;
   StreamSubscription<String>? _starterSub;
   StreamSubscription<String>? _userMessageSub;
+  bool _earlierTodayExpanded = false;
 
   /// Backend canonical unread SENT-history count; null = not loaded yet.
   int? _unreadNotificationCount;
@@ -621,7 +622,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     // Entries: DateTime = day separator, int >= 0 = message index, -1 = typing.
     final entries = <Object>[];
     DateTime? lastDay;
+    final hideEarlier = _controller.earlierTodayCollapsed && !_earlierTodayExpanded;
+    if (_controller.earlierTodayCollapsed && _controller.restoredTodayCount > 0) {
+      // P9: today's earlier chats sit behind one card; Sedi's recap opener follows it.
+      entries.add(_earlierTodayEntry);
+    }
     for (var i = 0; i < _controller.messages.length; i++) {
+      if (hideEarlier && i < _controller.restoredTodayCount) continue;
       final t = _controller.messages[i].createdAt.toLocal();
       final day = DateTime(t.year, t.month, t.day);
       if (lastDay == null || day != lastDay) {
@@ -641,6 +648,14 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         final entry = entries[index];
         if (entry is DateTime) {
           return _DayChip(label: _dayLabel(entry, l10n));
+        }
+        if (entry == _earlierTodayEntry) {
+          return _EarlierTodayCard(
+            label: l10n.earlierToday(_controller.restoredTodayCount),
+            hideLabel: l10n.earlierTodayHide,
+            expanded: _earlierTodayExpanded,
+            onTap: () => setState(() => _earlierTodayExpanded = !_earlierTodayExpanded),
+          );
         }
         if (entry == -1) {
           return const MessageBubble(
@@ -744,6 +759,67 @@ class _EditBanner extends StatelessWidget {
 }
 
 /// Small rose-tinted day separator in the transparent chat.
+/// Marker entry for the P9 «earlier today» card in the message list.
+const String _earlierTodayEntry = 'earlier_today';
+
+/// One tappable card standing in for today's earlier chats (expand to read them and continue from there).
+class _EarlierTodayCard extends StatelessWidget {
+  final String label;
+  final String hideLabel;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _EarlierTodayCard({
+    required this.label,
+    required this.hideLabel,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Material(
+        color: SediPalette.sageFill,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: SediPalette.sageLine),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.history_rounded, size: 20, color: SediPalette.pistachio900),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    expanded ? '$label · $hideLabel' : label,
+                    style: const TextStyle(
+                      color: SediPalette.charcoal950,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(
+                  expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  color: SediPalette.pistachio900,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DayChip extends StatelessWidget {
   final String label;
 

@@ -110,6 +110,11 @@ class ChatController extends ChangeNotifier {
   final LifestyleRepository _lifestyleRepo = LifestyleRepository();
   final AudioRecorderService _audioRecorder = AudioRecorderService();
   bool _initialized = false;
+
+  /// P9: how many of [messages] are today's earlier chats restored from history, and whether the chat shows them
+  /// collapsed behind a card because Sedi opened with a recap of them (the user can expand and keep going from there).
+  int restoredTodayCount = 0;
+  bool earlierTodayCollapsed = false;
   int? sourceNotificationId;
   int? activeHealthSubjectId;
 
@@ -206,6 +211,8 @@ class ChatController extends ChangeNotifier {
             : (data.proactiveOpener ?? '').trim();
         if (text.isNotEmpty) {
           _addSediMessage(text);
+          // The recap opener replaces the long transcript at the top of the window.
+          earlierTodayCollapsed = restoredTodayCount > 0;
         }
       }
     } catch (e) {
@@ -234,6 +241,7 @@ class ChatController extends ChangeNotifier {
       final restored = currentDayMessagesFromHistory(hist);
       if (restored.isEmpty) return;
       messages.addAll(restored);
+      restoredTodayCount = restored.length;
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {

@@ -368,6 +368,15 @@ class Gate3Localization {
 
   String get dayYesterday => _t(en: 'Yesterday', fa: 'دیروز', ar: 'أمس');
 
+  /// P9: the card that holds today's earlier chats once Sedi has summarised them.
+  String earlierToday(int n) => _t(
+        en: n == 1 ? 'Earlier today · 1 message' : 'Earlier today · $n messages',
+        fa: n == 1 ? 'گفتگوهای قبلی امروز · ۱ پیام' : 'گفتگوهای قبلی امروز · $n پیام',
+        ar: n == 1 ? 'محادثات سابقة اليوم · رسالة واحدة' : 'محادثات سابقة اليوم · $n رسائل',
+      );
+
+  String get earlierTodayHide => _t(en: 'Hide', fa: 'بستن', ar: 'إخفاء');
+
   String get readMore => _t(en: 'Read more', fa: 'بیشتر', ar: 'المزيد');
 
   String get readLess => _t(en: 'Read less', fa: 'کمتر', ar: 'أقل');
