@@ -561,13 +561,22 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
-                  // Single Delete-selected action; soft-hide only.
-                  onPressed: (_hiding || _selectedIds.isEmpty)
-                      ? null
-                      : _deleteSelected,
-                  child: Text(l10n.deleteSelected),
-                ),
+                // Single Delete-selected action; soft-hide only. Javad 2026-10-28: once something is selected the button
+                // turns solid (deep wine) so the user feels the action is ready; with nothing selected it stays outlined.
+                child: (_hiding || _selectedIds.isEmpty)
+                    ? OutlinedButton(
+                        onPressed: null,
+                        child: Text(l10n.deleteSelected),
+                      )
+                    : FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: SediPalette.skin700,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                        onPressed: _deleteSelected,
+                        child: Text(l10n.deleteSelected),
+                      ),
               ),
             ),
           Expanded(child: _buildBody(l10n)),

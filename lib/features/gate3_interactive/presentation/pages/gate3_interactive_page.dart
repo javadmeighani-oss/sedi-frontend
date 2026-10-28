@@ -403,6 +403,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                           Positioned.fill(
                             child: Column(
                               children: [
+                                // The expanded top tray (about 84dp of icons) used to cover the sphere: it now moves down with it.
+                                AnimatedContainer(
+                                  duration: Gate3TopNavigationTray.toggleDuration,
+                                  curve: Gate3TopNavigationTray.toggleCurve,
+                                  height: _topTrayExpanded ? 84 : 0,
+                                ),
                                 SediLivingEcho(
                                   state: _orbState(),
                                   compact: compact,
@@ -629,6 +635,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     }
     for (var i = 0; i < _controller.messages.length; i++) {
       if (hideEarlier && i < _controller.restoredTodayCount) continue;
+      // Opened the earlier chats = the user wants to continue that very topic: Sedi's recap steps aside.
+      if (_controller.earlierTodayCollapsed &&
+          _earlierTodayExpanded &&
+          i == _controller.restoredTodayCount) {
+        continue;
+      }
       final t = _controller.messages[i].createdAt.toLocal();
       final day = DateTime(t.year, t.month, t.day);
       if (lastDay == null || day != lastDay) {

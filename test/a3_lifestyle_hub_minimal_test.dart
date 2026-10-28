@@ -74,7 +74,6 @@ void main() {
     expect(src.contains('LifestyleHealthService'), isTrue);
     expect(src.contains("'7d'"), isTrue);
     expect(src.contains("'30d'"), isTrue);
-    expect(src.contains("'3m'"), isTrue);
     expect(src.contains("'1y'"), isTrue);
     expect(src.contains('latest_value') || src.contains('latestValue'), isTrue);
   });

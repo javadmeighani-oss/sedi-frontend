@@ -195,6 +195,13 @@ class LifestyleL10n {
         ar: 'إذا لم تعجبك رسالة، أغيّر وقتها وصياغتها بنفسي؛ ولا أتوقف.',
       );
   String get nextUp => _t(en: 'Next', fa: 'بعدی', ar: 'التالي');
+  String get scheduleEmptyTitle =>
+      _t(en: 'Nothing on your schedule yet', fa: 'هنوز برنامه‌ای نداری', ar: 'لا يوجد شيء في جدولك بعد');
+  String get scheduleEmptyHint => _t(
+        en: 'Add your medication, a doctor appointment, a meeting or anything you want to remember; Sedi will remind you on time.',
+        fa: 'دارو، نوبت دکتر، جلسه یا هر چیزی که می‌خوای یادت بمونه رو اضافه کن؛ صدی سر وقت بهت خبر می‌ده.',
+        ar: 'أضف دواءك أو موعد الطبيب أو اجتماعاً أو أي شيء تريد تذكره؛ وستذكّرك صدی في وقته.',
+      );
   String get nothingToday => _t(
         en: 'Nothing planned for today.',
         fa: 'امروز برنامه‌ای نداری.',
@@ -387,19 +394,19 @@ class LifestyleL10n {
         ar: 'تعذّر الحفظ. حاول مجدداً.',
       );
   String get notifSettingsTitle => _t(
-        en: 'When and what should Sedi tell you?',
-        fa: 'صدی کِی و چی بهت خبر بده؟',
-        ar: 'متى وبماذا يخبرك صدی؟',
+        en: 'Sedi notifications',
+        fa: 'اعلان‌های صدی',
+        ar: 'إشعارات صدی',
       );
   String get notifSettingsSubtitle => _t(
-        en: 'Turn off anything you do not like',
-        fa: 'هر چیزی که دوست نداری، خودت خاموشش کن',
-        ar: 'أوقف أي شيء لا يعجبك',
+        en: 'Choose which ones you get',
+        fa: 'انتخاب کن کدوم اعلان‌ها برات بیاد',
+        ar: 'اختر أي الإشعارات تصلك',
       );
   String get chCompanion => _t(
-        en: 'Check-ins from Sedi',
-        fa: 'احوال‌پرسی و همراهی',
-        ar: 'اطمئنان ومرافقة',
+        en: 'Sedi asking how you are',
+        fa: 'احوال‌پرسی صدی',
+        ar: 'سؤال صدی عن حالك',
       );
   String get chAppointment => _t(
         en: 'Appointments and meetings',
@@ -415,16 +422,16 @@ class LifestyleL10n {
   String get quietHours =>
       _t(en: 'Quiet hours', fa: 'ساعت آرامش', ar: 'ساعات الهدوء');
   String get quietHoursHint => _t(
-        en: 'No messages in this window, except emergencies.',
-        fa: 'در این بازه پیام نمی‌فرستم، مگر اورژانس.',
-        ar: 'لا رسائل في هذه الفترة، إلا الطوارئ.',
+        en: 'No notifications in this window, except emergencies.',
+        fa: 'در این بازه اعلان نمی‌فرستم، مگر اورژانس.',
+        ar: 'لا إشعارات في هذه الفترة، إلا الطوارئ.',
       );
   String get quietFrom => _t(en: 'From', fa: 'از', ar: 'من');
   String get quietTo => _t(en: 'To', fa: 'تا', ar: 'إلى');
   String get engagementTitle => _t(
-        en: 'How much should I write?',
-        fa: 'چقدر برات بنویسم؟',
-        ar: 'كم أكتب لك؟',
+        en: 'How many notifications a day?',
+        fa: 'روزی چند اعلان بیاد؟',
+        ar: 'كم إشعاراً في اليوم؟',
       );
   String get engagementLow => _t(en: 'Less', fa: 'کمتر', ar: 'أقل');
   String get engagementNormal => _t(en: 'Normal', fa: 'معمولی', ar: 'عادي');
@@ -990,4 +997,10 @@ class LifestyleL10n {
         fa: 'ثبت شد؛ صدی هم می‌دونه.',
         ar: 'تم الحفظ، وصدی تعرف ذلك أيضاً.',
       );
+
+  // ---- Health: the simple three-line average (Javad 2026-10-28) ----
+  String get avgHeartRateTitle => _t(en: 'Average heart rate', fa: 'میانگین ضربان قلب', ar: 'متوسط نبض القلب');
+  String get avgLastWeek => _t(en: 'Last week', fa: 'هفته‌ی اخیر', ar: 'الأسبوع الأخير');
+  String get avgLastMonth => _t(en: 'Last month', fa: 'ماه اخیر', ar: 'الشهر الأخير');
+  String get avgLastYear => _t(en: 'Last year', fa: 'سال اخیر', ar: 'السنة الأخيرة');
 }
