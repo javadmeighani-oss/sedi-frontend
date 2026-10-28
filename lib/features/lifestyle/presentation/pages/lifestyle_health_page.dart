@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/lifestyle/lifestyle_health_service.dart';
@@ -16,7 +17,9 @@ class LifestyleHealthPage extends StatefulWidget {
 
 class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
   final _svc = LifestyleHealthService();
-  String _range = '7d';
+  /// Javad 2026-10-28: no history list - just the average heart rate over the last week, month and year.
+  static const List<String> _averageRanges = ['7d', '30d', '1y'];
+  final Map<String, int?> _averages = <String, int?>{};
   LifestyleHealthHrDto? _data;
   bool _loading = true;
   String? _error;
@@ -35,17 +38,39 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
       _loading = true;
       _error = null;
     });
-    final res = await _svc.fetchHr(rangeKey: _range);
+    final results = await Future.wait(
+      _averageRanges.map((r) => _svc.fetchHr(rangeKey: r)),
+    );
     if (!mounted) return;
     setState(() {
       _loading = false;
-      if (res.ok && res.data != null) {
-        _data = res.data;
+      final first = results.first;
+      if (first.ok && first.data != null) {
+        _data = first.data; // latest value + the gadget's own status come with every range
+        for (var i = 0; i < _averageRanges.length; i++) {
+          _averages[_averageRanges[i]] =
+              results[i].ok ? _averageOf(results[i].data) : null;
+        }
       } else {
-        _error = res.errorMessage;
+        _error = first.errorMessage;
         _data = null;
       }
     });
+  }
+
+  /// Plain average of the range's daily/weekly averages (weighted by sample count when the backend sends it).
+  int? _averageOf(LifestyleHealthHrDto? dto) {
+    var sum = 0.0;
+    var weight = 0.0;
+    for (final p in dto?.history ?? const <Map<String, dynamic>>[]) {
+      final avg = p['avg'];
+      if (avg is! num) continue;
+      final c = p['count'];
+      final w = (c is num && c > 0) ? c.toDouble() : 1.0;
+      sum += avg.toDouble() * w;
+      weight += w;
+    }
+    return weight == 0 ? null : (sum / weight).round();
   }
 
   Color _statusColor(String code) {
@@ -102,9 +127,7 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
                   _statusBlock(l10n),
                 ],
                 const SizedBox(height: 16),
-                _rangeCard(l10n),
-                const SizedBox(height: 16),
-                _historyCard(l10n),
+                _averagesCard(l10n),
               ],
             ],
           ),
@@ -207,107 +230,60 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
     );
   }
 
-  Widget _rangeCard(LifestyleL10n l10n) {
+  Widget _averagesCard(LifestyleL10n l10n) {
+    final rows = <(String, String)>[
+      ('7d', l10n.avgLastWeek),
+      ('30d', l10n.avgLastMonth),
+      ('1y', l10n.avgLastYear),
+    ];
     return A3DestinationCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.historyRange,
+            l10n.avgHeartRateTitle,
             style: const TextStyle(
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
-              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _rangeChip('7d', l10n.range7d),
-              _rangeChip('30d', l10n.range30d),
-              _rangeChip('3m', l10n.range3m),
-              _rangeChip('1y', l10n.range1y),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _historyCard(LifestyleL10n l10n) {
-    final history = _data?.history ?? const [];
-    return A3DestinationCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_data?.availableFrom != null || _data?.availableTo != null) ...[
-            if (_data?.availableFrom != null)
-              Text(
-                '${l10n.availableFrom}: ${_formatTs(_data?.availableFrom)}',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            if (_data?.availableTo != null)
-              Text(
-                '${l10n.availableTo}: ${_formatTs(_data?.availableTo)}',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            const SizedBox(height: 12),
-          ],
-          if (history.isEmpty)
-            Text(
-              l10n.noHrData,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            )
-          else
-            ...history.map((p) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _formatTs(p['bucket_start']?.toString()),
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      p['avg'] != null
-                          ? '${(p['avg'] as num).round()} bpm'
-                          : '—',
+          const SizedBox(height: 6),
+          for (final r in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      r.$2,
                       style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textPrimary,
                       ),
                     ),
-                  ],
-                ),
-              );
-            }),
+                  ),
+                  Text(
+                    _averages[r.$1] == null
+                        ? '—'
+                        : CalendarDateMath.localizeDigitsForLanguage(
+                            '${_averages[r.$1]} bpm',
+                            l10n.lang,
+                          ),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: _averages[r.$1] == null
+                          ? AppTheme.textSecondary
+                          : AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
-    );
-  }
-
-  Widget _rangeChip(String key, String label) {
-    return A3DestinationChip(
-      label: label,
-      selected: _range == key,
-      onTap: () {
-        if (_range == key) return;
-        setState(() => _range = key);
-        _load();
-      },
     );
   }
 }

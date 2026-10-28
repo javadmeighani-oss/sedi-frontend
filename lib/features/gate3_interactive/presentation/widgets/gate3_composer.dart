@@ -161,11 +161,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           ),
           alignLabelWithHint: true,
         ),
-        style: const TextStyle(
-          color: SediPalette.charcoal950,
-          fontSize: 16.2,
-          height: 1.35,
-        ),
+        style: _fieldStyle,
         onSubmitted: (_) => _send(),
       ),
     );
@@ -262,33 +258,84 @@ class _Gate3ComposerState extends State<Gate3Composer> {
             ),
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Gate3ComposerActionButton(
-                    icon: Icons.add_rounded,
-                    size: 44,
-                    iconSize: 22,
-                    onTap: widget.isRecording ? null : _openAttachmentMenu,
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: widget.isRecording
-                          ? _buildRecordingBody()
-                          : _buildTextField(
-                              textDirection: textDirection,
-                              textAlign: textAlign,
+              child: LayoutBuilder(
+                builder: (context, box) {
+                  final field = widget.isRecording
+                      ? _buildRecordingBody()
+                      : _buildTextField(
+                          textDirection: textDirection,
+                          textAlign: textAlign,
+                        );
+                  // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
+                  // instead of the text wrapping early between two buttons (Javad 2026-10-28).
+                  if (!widget.isRecording && _needsWideField(box.maxWidth, textDirection)) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: field,
+                        ),
+                        Row(
+                          children: [
+                            Gate3ComposerActionButton(
+                              icon: Icons.add_rounded,
+                              size: 44,
+                              iconSize: 22,
+                              onTap: _openAttachmentMenu,
                             ),
-                    ),
-                  ),
-                  _buildPrimaryAction(hasText),
-                ],
+                            const Spacer(),
+                            _buildPrimaryAction(hasText),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Gate3ComposerActionButton(
+                        icon: Icons.add_rounded,
+                        size: 44,
+                        iconSize: 22,
+                        onTap: widget.isRecording ? null : _openAttachmentMenu,
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: field,
+                        ),
+                      ),
+                      _buildPrimaryAction(hasText),
+                    ],
+                  );
+                },
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  static const TextStyle _fieldStyle = TextStyle(
+    color: SediPalette.charcoal950,
+    fontSize: 16.2,
+    height: 1.35,
+  );
+
+  /// True when the current text does not fit one line between the two buttons (or has a line break).
+  bool _needsWideField(double rowWidth, TextDirection direction) {
+    final text = _controller.text;
+    if (text.trim().isEmpty) return false;
+    if (text.contains('\n')) return true;
+    final narrow = rowWidth - 88 - 20; // two 44dp buttons + the field's horizontal padding
+    if (narrow <= 0) return false;
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: _fieldStyle),
+      textDirection: direction,
+    )..layout(maxWidth: narrow);
+    return painter.computeLineMetrics().length > 1;
   }
 }

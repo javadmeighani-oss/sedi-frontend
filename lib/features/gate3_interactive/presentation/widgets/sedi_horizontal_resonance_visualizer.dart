@@ -285,18 +285,21 @@ class _ResonanceLinePainter extends CustomPainter {
   double _level(int i, double x) {
     final d = ((x - 0.5).abs() * 2.0).clamp(0.0, 1.0).toDouble();
     // Bell envelope with a small floor so the edges taper to dots, not to nothing.
-    final env = 0.05 + 0.95 * math.exp(-math.pow(d / 0.58, 2)).toDouble();
+    // D-146 (Javad): the TALLEST line is the centre only, and the lines shorten steadily toward the sides, so the envelope
+    // is narrower than before and the per-line character fades out towards the centre (spread = 0 at the centre).
+    final env = 0.04 + 0.96 * math.exp(-math.pow(d / 0.46, 2)).toDouble();
+    final spread = (d * 2.0).clamp(0.0, 1.0).toDouble();
     final p = phase;
 
     // Each line has its own fixed character and a slow personal flutter.
-    final base = 0.30 + 0.70 * _hash(i, 1);
+    final base = 1.0 - 0.30 * spread * _hash(i, 1);
     final k = 1 + (_hash(i, 2) * 4).floor(); // 1..4 cycles per loop
-    final flutter = 0.72 + 0.28 * math.sin(_tau * (k * p + _hash(i, 3)));
+    final flutter = 1.0 - 0.18 * spread * (0.5 + 0.5 * math.sin(_tau * (k * p + _hash(i, 3))));
 
     // Sees: a calm resting spectrum (D-102). D-130: even at rest the soft swells travel from the CENTRE outwards, like a
     // voice leaving the mouth - never from the edges to the middle.
     final idle = (0.30 + 0.10 * math.sin(_tau * (2 * p - 1.1 * d + 0.25 * _hash(i, 4)))) *
-        (0.40 + 0.60 * _hash(i, 1));
+        (1.0 - 0.45 * spread * _hash(i, 1));
 
     // Hears: swells now also radiate from the centre outwards (D-130, Javad: the resonance goes from the centre to the
     // sides like a mouth); listening differs from speaking by slower, wider swells.

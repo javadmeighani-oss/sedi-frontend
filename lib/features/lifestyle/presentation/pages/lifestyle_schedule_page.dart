@@ -226,6 +226,9 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     final shownToday = all.where(_passes).toList();
     final upcoming = buildUpcoming(events: _events, today: now).where(_passes).toList();
     final next = nextUp(all, now);
+    // Javad 2026-10-28: with nothing planned there is ONE clear thing to do - add. No empty boxes, no filter chips.
+    final hasAny = all.isNotEmpty || upcoming.isNotEmpty;
+    final categories = all.map((i) => i.category).toSet().length;
 
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
@@ -235,21 +238,23 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
           title: Text(l10n.mySchedule),
           backgroundColor: A3DestinationSurface.canvas,
         ),
-        bottomNavigationBar: SafeArea(
-          minimum: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-          child: FilledButton.icon(
-            onPressed: _add,
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l10n.addToSchedule),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.ctaFill,
-              foregroundColor: AppTheme.ctaText,
-              minimumSize: const Size.fromHeight(56),
-              textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            ),
-          ),
-        ),
+        bottomNavigationBar: hasAny
+            ? SafeArea(
+                minimum: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: FilledButton.icon(
+                  onPressed: _add,
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(l10n.addToSchedule),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.ctaFill,
+                    foregroundColor: AppTheme.ctaText,
+                    minimumSize: const Size.fromHeight(56),
+                    textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  ),
+                ),
+              )
+            : null,
         body: RefreshIndicator(
           color: AppTheme.gate2ButtonOlive,
           onRefresh: _load,
@@ -263,10 +268,19 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                   children: [
-                    _nextCard(next, all, l10n, now),
-                    const SizedBox(height: 12),
-                    _chips(all, l10n),
-                    const SizedBox(height: 14),
+                    if (!hasAny) ...[
+                      _emptyAddCard(l10n),
+                      const SizedBox(height: 14),
+                    ] else ...[
+                      if (all.isNotEmpty) ...[
+                        _nextCard(next, all, l10n, now),
+                        const SizedBox(height: 12),
+                      ],
+                      if (categories >= 2) ...[
+                        _chips(all, l10n),
+                        const SizedBox(height: 14),
+                      ],
+                    ],
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -277,11 +291,13 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                           ),
                         ),
                       ),
-                    _sectionTitle(l10n.today),
-                    if (shownToday.isEmpty)
-                      _emptyCard(all.isEmpty ? l10n.nothingToday : l10n.allDoneToday, hint: all.isEmpty && _meds.isEmpty ? l10n.medsEmptyHint : null)
-                    else
-                      ...shownToday.map((i) => _itemCard(i, l10n)),
+                    if (all.isNotEmpty) ...[
+                      _sectionTitle(l10n.today),
+                      if (shownToday.isEmpty)
+                        _emptyCard(l10n.allDoneToday)
+                      else
+                        ...shownToday.map((i) => _itemCard(i, l10n)),
+                    ],
                     if (upcoming.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _sectionTitle(l10n.upcoming),
@@ -304,6 +320,42 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       ),
     );
   }
+
+  /// The one empty state: what this page is for and a big Add button (replaces the empty "nothing today" boxes).
+  Widget _emptyAddCard(LifestyleL10n l10n) => A3DestinationCard(
+        padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.event_available_rounded, size: 40, color: AppTheme.gate2ButtonOlive),
+            const SizedBox(height: 12),
+            Text(
+              l10n.scheduleEmptyTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              l10n.scheduleEmptyHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, height: 1.7, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: _add,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.addToSchedule),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.ctaFill,
+                foregroundColor: AppTheme.ctaText,
+                minimumSize: const Size.fromHeight(56),
+                textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _sectionTitle(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
