@@ -148,7 +148,7 @@ void main() {
     expect(fa.relativeIn(const Duration(minutes: 25)), '۲۵ دقیقه دیگه');
     expect(fa.timeText(DateTime(2026, 1, 1, 8, 5)), '۰۸:۰۵');
     expect(LifestyleL10n('en').hubToday(3, 1), '3 for today · 1 done');
-    expect(fa.notifSettingsTitle, 'صدی کِی و چی بهت خبر بده؟');
+    expect(fa.notifSettingsTitle, 'اعلان‌های صدی'); // simplified 2026-10-28 (was «صدی کِی و چی بهت خبر بده؟»)
   });
 
   test('the page wires done, add-by-type, medication and the compact notification card', () {
