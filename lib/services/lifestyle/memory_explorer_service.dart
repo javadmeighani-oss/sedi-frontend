@@ -193,7 +193,8 @@ class MemoryExplorerService {
   Future<Set<String>> daysWithMemory({required String from, required String to}) async {
     final res = await _api.getRaw('/memory/calendar', queryParams: {'from': from, 'to': to});
     final out = <String>{};
-    final days = res.ok ? res.data?['days'] : null;
+    final body = res.ok ? res.data : null;
+    final days = body == null ? null : body['days'];
     if (days is List) {
       for (final d in days) {
         if (d is Map && d['date'] != null) out.add('${d['date']}');
@@ -216,7 +217,8 @@ class MemoryExplorerService {
       if (from != null) 'from': from,
       if (to != null) 'to': to,
     });
-    final raw = res.ok ? res.data?['results'] : null;
+    final body = res.ok ? res.data : null;
+    final raw = body == null ? null : body['results'];
     if (raw is! List) return const [];
     return raw
         .whereType<Map>()
