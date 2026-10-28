@@ -101,9 +101,9 @@ class LifestyleL10n {
   String get sediSummaries =>
       _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدی');
   String get historyExplain => _t(
-        en: 'This is a read-only archive of conversations from the last 30 days and Sedi summaries.',
-        fa: 'این بایگانی فقط‌خواندنی گفتگوهای ۳۰ روز گذشته و خلاصه‌های صدی است.',
-        ar: 'هذا أرشيف للقراءة فقط لمحادثات الثلاثين يوماً الماضية وملخصات صدی.',
+        en: 'Search Sedi memory or pick a day. Conversations from the last 30 days can be read and corrected; older days show what Sedi remembers, not the chat text.',
+        fa: 'در حافظه‌ی صدی جست‌وجو کن یا یک روز را انتخاب کن. گفتگوهای ۳۰ روز گذشته قابل خواندن و اصلاح است؛ روزهای قدیمی‌تر فقط آنچه صدی یادش مانده را نشان می‌دهد.',
+        ar: 'ابحث في ذاكرة صدی أو اختر يوماً. يمكن قراءة وتصحيح محادثات الثلاثين يوماً الماضية؛ أما الأيام الأقدم فتعرض ما تتذكره صدی فقط.',
       );
   String get conversationsLast30Days => _t(
         en: 'Conversations from the last 30 days',
@@ -681,6 +681,149 @@ class LifestyleL10n {
         return _t(en: 'Cancelled', fa: 'لغو شد', ar: 'ملغى');
       default:
         return _t(en: 'Upcoming', fa: 'پیش‌رو', ar: 'قادم');
+    }
+  }
+
+  // ---- H1: memory explorer (search, calendar, day view) ----
+  String get searchMemoryHint => _t(
+        en: 'Search Sedi memory',
+        fa: 'جست‌وجو در حافظه‌ی صدی',
+        ar: 'ابحث في ذاكرة صدی',
+      );
+  String get memoryDotLegend => _t(
+        en: 'Days Sedi remembers something about',
+        fa: 'روزی که صدی چیزی ازش یادش مونده',
+        ar: 'أيام تتذكر صدی شيئاً عنها',
+      );
+  String get recentDays => _t(en: 'Recent days', fa: 'آخرین روزها', ar: 'الأيام الأخيرة');
+  String get noteForDay => _t(en: 'Note for a day', fa: 'یادداشت برای یک روز', ar: 'ملاحظة ليوم');
+  String get prevMonth => _t(en: 'Previous month', fa: 'ماه قبل', ar: 'الشهر السابق');
+  String get nextMonth => _t(en: 'Next month', fa: 'ماه بعد', ar: 'الشهر التالي');
+  String get dayConversations => _t(en: 'Conversations', fa: 'گفتگوها', ar: 'المحادثات');
+  String get youLabel => _t(en: 'You', fa: 'تو', ar: 'أنت');
+  String get sediLabel => _t(en: 'Sedi', fa: 'صدی', ar: 'صدی');
+  String get todayLabel => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
+  String daysAgoLabel(int n) => n <= 0
+      ? todayLabel
+      : _t(en: '$n days ago', fa: '$n روز پیش', ar: 'قبل $n يوماً');
+  String get sediDaySummary => _t(
+        en: 'Sedi summary of this day',
+        fa: 'خلاصه‌ی صدی از این روز',
+        ar: 'ملخص صدی لهذا اليوم',
+      );
+  String get eventsAndNotes =>
+      _t(en: 'Events and notes', fa: 'رویدادها و یادداشت‌ها', ar: 'الأحداث والملاحظات');
+  String get learnedThatDay => _t(
+        en: 'What Sedi learned that day',
+        fa: 'چیزهایی که صدی همان روز یاد گرفت',
+        ar: 'ما تعلمته صدی في ذلك اليوم',
+      );
+  String get addItem => _t(en: '+ Add', fa: '+ افزودن', ar: '+ إضافة');
+  String get editItem => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
+  String get oldDayBanner => _t(
+        en: 'Chat text older than 30 days is not shown, but Sedi remembers. Here is what she kept about this day.',
+        fa: 'متن گفتگوهای بیشتر از ۳۰ روز نمایش داده نمی‌شود، ولی صدی یادش هست. خلاصه‌ی اون روز رو اینجا می‌بینی.',
+        ar: 'لا يُعرض نص المحادثات الأقدم من 30 يوماً، لكن صدی تتذكرها. هذا ما احتفظت به عن هذا اليوم.',
+      );
+  String get fixSummary => _t(
+        en: 'This summary is not right? Correct it',
+        fa: 'این خلاصه درست نیست؟ اصلاحش کن',
+        ar: 'هذا الملخص غير صحيح؟ صححه',
+      );
+  String get correctionsTitle => _t(
+        en: 'Your corrections and notes',
+        fa: 'اصلاحیه‌ها و یادداشت‌های تو',
+        ar: 'تصحيحاتك وملاحظاتك',
+      );
+  String get correctionExplain => _t(
+        en: 'The original summary stays as it is; your correction is saved beside it and Sedi considers both.',
+        fa: 'خلاصه‌ی اصلی دست نمی‌خوره؛ اصلاحیه‌ی تو کنارش ثبت می‌شه و صدی هر دو رو در نظر می‌گیره.',
+        ar: 'يبقى الملخص الأصلي كما هو؛ يُحفظ تصحيحك بجانبه وتأخذ صدی الاثنين في الاعتبار.',
+      );
+  String get correctionLabel => _t(en: 'Correction', fa: 'اصلاحیه', ar: 'تصحيح');
+  String get noteLabel => _t(en: 'Note', fa: 'یادداشت', ar: 'ملاحظة');
+  String get correctionHint => _t(
+        en: 'What should Sedi remember instead?',
+        fa: 'صدی به‌جاش چی باید یادش بمونه؟',
+        ar: 'ماذا يجب أن تتذكر صدی بدلاً من ذلك؟',
+      );
+  String get noteHint =>
+      _t(en: 'Write a note for this day', fa: 'برای این روز یادداشت بنویس', ar: 'اكتب ملاحظة لهذا اليوم');
+  String get editMessageTitle =>
+      _t(en: 'Edit message', fa: 'ویرایش پیام', ar: 'تعديل الرسالة');
+  String get deleteMessageQuestion => _t(
+        en: 'Delete this message from Sedi memory?',
+        fa: 'این پیام از حافظه‌ی صدی پاک شود؟',
+        ar: 'حذف هذه الرسالة من ذاكرة صدی؟',
+      );
+  String get deleteItemQuestion => _t(
+        en: 'Delete this item?',
+        fa: 'این مورد پاک شود؟',
+        ar: 'حذف هذا العنصر؟',
+      );
+  String get emptyDay => _t(
+        en: 'Nothing is recorded for this day yet.',
+        fa: 'برای این روز هنوز چیزی ثبت نشده.',
+        ar: 'لا شيء مسجل لهذا اليوم بعد.',
+      );
+  String get memoryConsentOff => _t(
+        en: 'Sedi memory is turned off, so there is nothing to show.',
+        fa: 'حافظه‌ی صدی خاموش است، برای همین چیزی برای نمایش نیست.',
+        ar: 'ذاكرة صدی متوقفة، لذلك لا يوجد ما يُعرض.',
+      );
+  String get memoryLoadFailed => _t(
+        en: 'Could not load this right now.',
+        fa: 'الان نشد بارگذاری کنم.',
+        ar: 'تعذر التحميل الآن.',
+      );
+  String get searchResultsTitle => _t(en: 'Search results', fa: 'نتایج جست‌وجو', ar: 'نتائج البحث');
+  String searchResultCount(int n) => _t(en: '$n results', fa: '$n نتیجه', ar: '$n نتيجة');
+  String get noSearchResults =>
+      _t(en: 'Nothing found.', fa: 'چیزی پیدا نشد.', ar: 'لم يتم العثور على شيء.');
+  String get searchOldDaysNote => _t(
+        en: 'For days older than 30, search covers summaries, events and what Sedi knows, not the chat text.',
+        fa: 'برای روزهای بیشتر از ۳۰ روز پیش، جست‌وجو روی خلاصه‌ها، رویدادها و چیزهایی که صدی می‌دونه انجام می‌شه، نه متن خام گفتگو.',
+        ar: 'للأيام الأقدم من 30 يوماً يشمل البحث الملخصات والأحداث وما تعرفه صدی، لا نص المحادثة.',
+      );
+  String get rangeAll => _t(en: 'All time', fa: 'همه‌ی زمان‌ها', ar: 'كل الأوقات');
+  String get rangeThreeMonths => _t(en: '3 months', fa: '۳ ماه', ar: '3 أشهر');
+  String get rangeOneMonth => _t(en: '1 month', fa: '۱ ماه', ar: 'شهر');
+  String hitType(String type) {
+    switch (type) {
+      case 'summary':
+        return _t(en: 'Day summary', fa: 'خلاصه‌ی روز', ar: 'ملخص اليوم');
+      case 'event':
+        return _t(en: 'Event', fa: 'رویداد', ar: 'حدث');
+      case 'note':
+        return _t(en: 'Note', fa: 'یادداشت', ar: 'ملاحظة');
+      case 'fact':
+        return _t(en: 'What Sedi knows', fa: 'چیزی که صدی می‌دونه', ar: 'ما تعرفه صدی');
+      default:
+        return _t(en: 'Conversation', fa: 'گفتگو', ar: 'محادثة');
+    }
+  }
+
+  String monthName(String calendar, int month) {
+    const jalali = [
+      'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+      'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+    ];
+    const hijri = [
+      'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة',
+      'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+    ];
+    const gregorian = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    final i = (month - 1).clamp(0, 11).toInt();
+    switch (calendar) {
+      case 'jalali':
+        return jalali[i];
+      case 'hijri':
+        return hijri[i];
+      default:
+        return gregorian[i];
     }
   }
 }
