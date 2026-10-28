@@ -5,7 +5,10 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../services/lifestyle/lifestyle_health_service.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../../core/locale/calendar_date_math.dart';
 import '../lifestyle_l10n.dart';
+import '../widgets/hr_chart.dart';
+import 'lifestyle_hr_status_page.dart';
 
 class LifestyleHealthPage extends StatefulWidget {
   const LifestyleHealthPage({super.key});
@@ -101,6 +104,8 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
                   const SizedBox(height: 16),
                   _statusBlock(l10n),
                 ],
+                const SizedBox(height: 12),
+                _dataStatusCard(l10n),
                 const SizedBox(height: 16),
                 _rangeCard(l10n),
                 const SizedBox(height: 16),
@@ -236,68 +241,145 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
     );
   }
 
-  Widget _historyCard(LifestyleL10n l10n) {
-    final history = _data?.history ?? const [];
+  /// Exact gadget data state, one tap away from the full status page.
+  Widget _dataStatusCard(LifestyleL10n l10n) {
+    final st = _data?.dataStatus ?? const HrDataStatus();
+    final active = st.state == 'receiving';
+    final color = active ? AppTheme.statusStableOlive : AppTheme.statusNeutralMuted;
     return A3DestinationCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => LifestyleHrStatusPage(status: st)),
+      ),
+      child: Row(
         children: [
-          if (_data?.availableFrom != null || _data?.availableTo != null) ...[
-            if (_data?.availableFrom != null)
-              Text(
-                '${l10n.availableFrom}: ${_formatTs(_data?.availableFrom)}',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.hrStateTitle(st.state),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
-              ),
-            if (_data?.availableTo != null)
-              Text(
-                '${l10n.availableTo}: ${_formatTs(_data?.availableTo)}',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            const SizedBox(height: 12),
-          ],
-          if (history.isEmpty)
-            Text(
-              l10n.noHrData,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            )
-          else
-            ...history.map((p) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _formatTs(p['bucket_start']?.toString()),
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
+                if (st.state != 'never')
+                  Text(
+                    CalendarDateMath.localizeDigitsForLanguage(
+                      '${l10n.hrReadingsReceived}: ${st.todayCount}',
+                      l10n.lang,
                     ),
-                    Text(
-                      p['avg'] != null
-                          ? '${(p['avg'] as num).round()} bpm'
-                          : '—',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+          Icon(
+            l10n.isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+            color: AppTheme.textSecondary,
+          ),
         ],
       ),
     );
   }
+
+  List<HrChartPoint> _chartPoints() {
+    final out = <HrChartPoint>[];
+    for (final p in _data?.history ?? const <Map<String, dynamic>>[]) {
+      final day = CalendarDateMath.parseIsoLocalDate(
+        (p['bucket_start']?.toString() ?? '').split('T').first,
+      );
+      final avg = p['avg'];
+      if (day == null || avg is! num) continue;
+      out.add(HrChartPoint(day: day, avg: avg.toDouble()));
+    }
+    return out;
+  }
+
+  Widget _historyCard(LifestyleL10n l10n) {
+    final points = _chartPoints();
+    final weekly = _range == '1y';
+    final summary = _data?.summary;
+    String digits(Object v) => CalendarDateMath.localizeDigitsForLanguage('$v', l10n.lang);
+    String date(DateTime d) => CalendarDateMath.formatIsoForProfileDisplay(
+          '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+          l10n.lang,
+        );
+    return A3DestinationCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            weekly ? l10n.hrChartTitleWeekly : l10n.hrChartTitleDaily,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (points.isEmpty)
+            Text(l10n.noHrData, style: const TextStyle(color: AppTheme.textSecondary))
+          else ...[
+            HrChart(points: points, bars: weekly, semanticsLabel: l10n.hrChartLabel),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(34, 4, 6, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(date(points.first.day),
+                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  Text(date(points.last.day),
+                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+            if (summary != null) ...[
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _summaryItem(l10n.hrSummaryAvg, digits(summary.avg)),
+                  _summaryItem(l10n.hrSummaryMin, digits(summary.min)),
+                  _summaryItem(l10n.hrSummaryMax, digits(summary.max)),
+                ],
+              ),
+            ],
+            if (l10n.hrTrendNote(_data?.trend ?? '').isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                l10n.hrTrendNote(_data!.trend),
+                style: const TextStyle(fontSize: 13.5, height: 1.7, color: AppTheme.textSecondary),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.hrMemoryNote,
+              style: const TextStyle(fontSize: 13, height: 1.7, color: AppTheme.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryItem(String label, String value) => Column(
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        ],
+      );
 
   Widget _rangeChip(String key, String label) {
     return A3DestinationChip(

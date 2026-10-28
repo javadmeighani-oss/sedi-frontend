@@ -356,6 +356,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
   Widget _summaryCard(LifestyleL10n l10n, MemoryDayDto day) {
     final chips = <String>[
       ...day.chips.topics,
+      if (day.chips.hrAvg > 0) l10n.hrAvgChip(day.chips.hrAvg),
       if (day.chips.userDone > 0)
         CalendarDateMath.localizeDigitsForLanguage(
             l10n.lang == 'en' ? '${day.chips.userDone} done' : '${day.chips.userDone} ✓', l10n.lang),

@@ -93,6 +93,7 @@ class MemorySummaryChips {
   final int planDone;
   final int planTotal;
   final int userDone;
+  final int hrAvg;
 
   const MemorySummaryChips({
     this.topics = const [],
@@ -100,10 +101,11 @@ class MemorySummaryChips {
     this.planDone = 0,
     this.planTotal = 0,
     this.userDone = 0,
+    this.hrAvg = 0,
   });
 
   bool get isEmpty =>
-      topics.isEmpty && wellbeing.isEmpty && planTotal == 0 && userDone == 0;
+      topics.isEmpty && wellbeing.isEmpty && planTotal == 0 && userDone == 0 && hrAvg == 0;
 
   factory MemorySummaryChips.fromJson(Object? raw) {
     if (raw is! Map) return const MemorySummaryChips();
@@ -115,6 +117,7 @@ class MemorySummaryChips {
       planDone: _int(raw['plan_done']),
       planTotal: _int(raw['plan_total']),
       userDone: _int(raw['user_done']),
+      hrAvg: _int(raw['hr_avg']),
     );
   }
 }

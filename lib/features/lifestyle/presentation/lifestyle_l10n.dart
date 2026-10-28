@@ -990,4 +990,97 @@ class LifestyleL10n {
         fa: 'ثبت شد؛ صدی هم می‌دونه.',
         ar: 'تم الحفظ، وصدی تعرف ذلك أيضاً.',
       );
+
+  // ---- P10: Health (heart rate only) ----
+  String get hrDataStatusTitle => _t(en: 'Gadget data status', fa: 'وضعیت داده‌ی گجت', ar: 'حالة بيانات الجهاز');
+  String hrStateTitle(String state) {
+    switch (state) {
+      case 'receiving':
+        return _t(en: 'Gadget is connected and sending', fa: 'گجت وصله و داده می‌فرسته', ar: 'الجهاز متصل ويرسل البيانات');
+      case 'quiet':
+        return _t(en: 'Gadget has been quiet for a while', fa: 'یه مدته از گجت خبری نیست', ar: 'الجهاز صامت منذ فترة');
+      case 'stale':
+        return _t(en: 'No data from the gadget since yesterday', fa: 'از دیروز داده‌ای از گجت نرسیده', ar: 'لا بيانات من الجهاز منذ أمس');
+      default:
+        return _t(en: 'No gadget data yet', fa: 'هنوز داده‌ای از گجت نیومده', ar: 'لا بيانات من الجهاز بعد');
+    }
+  }
+
+  String hrLastReceivedAgo(int minutes) {
+    if (minutes < 1) return _t(en: 'Last received just now', fa: 'آخرین دریافت همین الان', ar: 'آخر استلام الآن');
+    if (minutes < 60) {
+      return _t(en: 'Last received $minutes min ago', fa: 'آخرین دریافت $minutes دقیقه پیش', ar: 'آخر استلام قبل $minutes دقيقة');
+    }
+    final h = minutes ~/ 60;
+    if (h < 48) return _t(en: 'Last received $h h ago', fa: 'آخرین دریافت $h ساعت پیش', ar: 'آخر استلام قبل $h ساعة');
+    final d = h ~/ 24;
+    return _t(en: 'Last received $d days ago', fa: 'آخرین دریافت $d روز پیش', ar: 'آخر استلام قبل $d يوماً');
+  }
+
+  String get hrReadingsReceived => _t(en: 'Readings received', fa: 'اندازه‌گیری دریافت‌شده', ar: 'القياسات المستلمة');
+  String get hrFirstAndLast => _t(en: 'First and last data', fa: 'اولین و آخرین داده', ar: 'أول وآخر بيانات');
+  String get hrLongestGap => _t(en: 'Longest stretch without data', fa: 'طولانی‌ترین فاصله‌ی بدون داده', ar: 'أطول فترة بلا بيانات');
+  String hrDuration(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h == 0) return _t(en: '$m min', fa: '$m دقیقه', ar: '$m دقيقة');
+    if (m == 0) return _t(en: '$h h', fa: '$h ساعت', ar: '$h ساعة');
+    return _t(en: '$h h $m min', fa: '$h ساعت و $m دقیقه', ar: '$h ساعة و $m دقيقة');
+  }
+
+  String get hrThisWeek => _t(en: 'This week', fa: 'این هفته', ar: 'هذا الأسبوع');
+  String get hrDaysWithData => _t(en: 'Days with data', fa: 'روزهایی که داده داشتی', ar: 'أيام فيها بيانات');
+  String hrOutOfSeven(int n) => _t(en: '$n of 7', fa: '$n از ۷', ar: '$n من 7');
+  String get hrAvgPerDay => _t(en: 'Average readings per day', fa: 'میانگین اندازه‌گیری در روز', ar: 'متوسط القياسات يومياً');
+  String get hrGapHint => _t(
+        en: 'There were stretches without data; maybe the gadget was not on your wrist or Bluetooth was off. If it was something else, tell Sedi.',
+        fa: 'یه مدت داده نیومده؛ شاید گجت روی دستت نبود یا بلوتوث قطع بود. اگه موضوع دیگه‌ای بود به صدی بگو.',
+        ar: 'كانت هناك فترات بلا بيانات؛ ربما لم يكن الجهاز على معصمك أو كان البلوتوث مغلقاً. إن كان السبب آخر فأخبر صدی.',
+      );
+  String get hrOnlyHeartRate => _t(
+        en: 'For now only heart rate. Other gadgets come in the next Sedi version.',
+        fa: 'فعلاً فقط ضربان قلب. گجت‌های دیگه توی نسخه‌ی بعدی صدی اضافه می‌شن.',
+        ar: 'حالياً نبض القلب فقط. الأجهزة الأخرى في النسخة القادمة من صدی.',
+      );
+  String get manageDevice => _t(en: 'Manage gadget', fa: 'مدیریت گجت', ar: 'إدارة الجهاز');
+  String get hrSummaryAvg => _t(en: 'Average', fa: 'میانگین', ar: 'المتوسط');
+  String get hrSummaryMin => _t(en: 'Lowest', fa: 'کمترین', ar: 'الأدنى');
+  String get hrSummaryMax => _t(en: 'Highest', fa: 'بیشترین', ar: 'الأعلى');
+  String get hrChartTitleDaily => _t(en: 'Daily average', fa: 'میانگین روزانه', ar: 'المتوسط اليومي');
+  String get hrChartTitleWeekly => _t(en: 'Weekly average', fa: 'میانگین هفتگی', ar: 'المتوسط الأسبوعي');
+  String get hrChartLabel => _t(en: 'Heart rate average chart', fa: 'نمودار میانگین ضربان قلب', ar: 'مخطط متوسط نبض القلب');
+  String hrTrendNote(String trend) {
+    switch (trend) {
+      case 'up':
+        return _t(
+          en: 'Your average has gone up a little over this period. These are only your own numbers.',
+          fa: 'میانگینت توی این بازه کمی بالا رفته. این‌ها فقط عددهای خودته.',
+          ar: 'ارتفع متوسطك قليلاً في هذه الفترة. هذه أرقامك أنت فقط.',
+        );
+      case 'down':
+        return _t(
+          en: 'Your average has come down a little over this period. These are only your own numbers.',
+          fa: 'میانگینت توی این بازه کمی پایین اومده. این‌ها فقط عددهای خودته.',
+          ar: 'انخفض متوسطك قليلاً في هذه الفترة. هذه أرقامك أنت فقط.',
+        );
+      case 'steady':
+        return _t(
+          en: 'Your average has stayed about the same over this period. These are only your own numbers.',
+          fa: 'میانگینت توی این بازه کم‌وبیش ثابت مونده. این‌ها فقط عددهای خودته.',
+          ar: 'بقي متوسطك تقريباً ثابتاً في هذه الفترة. هذه أرقامك أنت فقط.',
+        );
+      default:
+        return '';
+    }
+  }
+
+  String get hrMemoryNote => _t(
+        en: 'Sedi keeps the daily average in her memory, next to your sleep and plans.',
+        fa: 'صدی میانگین روزانه رو توی حافظه‌اش نگه می‌داره تا کنار خواب و برنامه‌هات ببینه.',
+        ar: 'تحتفظ صدی بالمتوسط اليومي في ذاكرتها بجانب نومك وخططك.',
+      );
+  String hrAvgChip(int n) => CalendarDateMath.localizeDigitsForLanguage(
+        _t(en: 'Average heart rate $n', fa: 'ضربان میانگین $n', ar: 'متوسط النبض $n'),
+        lang,
+      );
 }
