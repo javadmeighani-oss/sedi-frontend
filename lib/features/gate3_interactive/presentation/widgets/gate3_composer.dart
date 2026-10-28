@@ -43,6 +43,9 @@ class Gate3Composer extends StatefulWidget {
 class _Gate3ComposerState extends State<Gate3Composer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  // Keeps the TextField's element alive when the layout flips between the one-line row and the wide column;
+  // without it the field is rebuilt, the input connection drops and the keyboard closes/opens while typing.
+  final GlobalKey _fieldKey = GlobalKey(debugLabel: 'gate3ComposerField');
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
   static const double _maxTextHeight = 168;
@@ -260,12 +263,15 @@ class _Gate3ComposerState extends State<Gate3Composer> {
               padding: const EdgeInsets.all(8),
               child: LayoutBuilder(
                 builder: (context, box) {
-                  final field = widget.isRecording
-                      ? _buildRecordingBody()
-                      : _buildTextField(
-                          textDirection: textDirection,
-                          textAlign: textAlign,
-                        );
+                  final field = KeyedSubtree(
+                    key: _fieldKey,
+                    child: widget.isRecording
+                        ? _buildRecordingBody()
+                        : _buildTextField(
+                            textDirection: textDirection,
+                            textAlign: textAlign,
+                          ),
+                  );
                   // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
                   // instead of the text wrapping early between two buttons (Javad 2026-10-28).
                   if (!widget.isRecording && _needsWideField(box.maxWidth, textDirection)) {
