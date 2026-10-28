@@ -242,7 +242,8 @@ jobs:
             test/r031_schedule_today_test.dart \
             test/d130_prelaunch_fixes_test.dart \
             test/h1_history_explorer_test.dart \
-            test/p8_plan_page_test.dart \n            test/p9_same_day_recap_test.dart
+            test/p8_plan_page_test.dart \
+            test/p9_same_day_recap_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:
