@@ -60,10 +60,12 @@ class NotificationRepository {
     required String action,
     String? clientTs,
     Map<String, dynamic>? meta,
+    String? reason,
     bool recoverSessionOn401 = true,
   }) async {
     final body = <String, dynamic>{
       'action': action,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
       if (clientTs != null) 'client_ts': clientTs,
       if (meta != null && meta.isNotEmpty) 'meta': meta,
     };

@@ -231,8 +231,15 @@ class _ScheduleNotificationSettingsCardState
             _channel('appointment', _l10n.chAppointment, p),
             _channel('medication', _l10n.chMedication, p),
             _channel('companion', _l10n.chCompanion, p),
-            _channel('system', _l10n.chSystem, p),
             _channel('health_alert', _l10n.chHealthAlert, p),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Text(
+                _l10n.healthAlertAlwaysOn,
+                style: const TextStyle(
+                    fontSize: 12, color: AppTheme.textSecondary),
+              ),
+            ),
             Divider(height: 1, color: A3DestinationSurface.hairline),
             SwitchListTile(
               value: p.quietEnabled,
@@ -287,6 +294,14 @@ class _ScheduleNotificationSettingsCardState
                     ],
                   ),
                 ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                _l10n.notifLearningLine,
+                style: const TextStyle(
+                    fontSize: 12.5, height: 1.6, color: AppTheme.textPrimary),
               ),
             ),
             if (_message != null)

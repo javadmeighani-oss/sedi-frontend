@@ -34,7 +34,10 @@ void main() {
     expect(page.contains('ScheduleAddReminderSheet'), isTrue);
     expect(page.contains('createReminder'), isTrue);
     expect(page.contains('deleteEvent'), isTrue);
-    expect(page.contains("e.source == 'conversation'"), isTrue);
+    // R-031: the "from chat" flag is computed in the pure day builder and shown by the page.
+    final domain = _read('lib/features/lifestyle/domain/schedule_today.dart');
+    expect(domain.contains("e.source == 'conversation'"), isTrue);
+    expect(page.contains('i.fromChat'), isTrue);
     expect(page.contains('appointmentOffWarning'), isTrue);
     final card = _read(
       'lib/features/lifestyle/presentation/widgets/schedule_notification_settings_card.dart',

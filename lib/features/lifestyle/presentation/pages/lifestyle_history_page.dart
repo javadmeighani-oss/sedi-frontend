@@ -5,9 +5,14 @@ import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/dto/history_response.dart';
+import '../../../../services/lifestyle/memory_explorer_service.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
+import '../widgets/history_calendar_card.dart';
+import '../widgets/memory_text_sheet.dart';
+import 'memory_day_page.dart';
+import 'memory_search_page.dart';
 
 /// Backend [HistoryResponse.currentGroupKey] is the only current-day authority.
 /// Null means fail-closed: do not reconstruct a device day.
@@ -23,6 +28,8 @@ String? exactStoredTranscriptText(String? stored) {
   return stored;
 }
 
+/// My History (H1): search Sedi's memory, jump to any day on a calendar, read and correct the last 30 days of chat,
+/// and see what Sedi kept about older days. Every date comes from the backend; the page never reads the device clock.
 class LifestyleHistoryPage extends StatefulWidget {
   const LifestyleHistoryPage({super.key});
 
@@ -32,13 +39,18 @@ class LifestyleHistoryPage extends StatefulWidget {
 
 class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
   final _api = ApiClient();
+  final _memory = MemoryExplorerService();
+  final _searchController = TextEditingController();
   String _group = 'daily';
   HistoryResponse? _history;
   String? _summaryText;
   bool _loading = true;
   bool _summaryLoading = false;
   String? _error;
-  String? _expandedKey;
+  String? _selectedIso;
+  Set<String> _memoryDays = const {};
+  String? _dotsFrom;
+  String? _dotsTo;
 
   LifestyleL10n get _l10n =>
       LifestyleL10n(SediLocaleController.instance.languageCode);
@@ -49,17 +61,23 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
       _history = null;
       _summaryText = null;
-      _expandedKey = null;
     });
     await Future.wait([_loadHistory(), _loadSummary()]);
     if (!mounted) return;
     setState(() => _loading = false);
+    if (_dotsFrom != null && _dotsTo != null) _loadDots(_dotsFrom!, _dotsTo!);
   }
 
   Future<void> _loadHistory() async {
@@ -114,7 +132,60 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     }
   }
 
-  List<HistoryGroupItem>? _archiveDays() => archiveDaysFromHistory(_history);
+  Future<void> _loadDots(String from, String to) async {
+    _dotsFrom = from;
+    _dotsTo = to;
+    try {
+      final days = await _memory.daysWithMemory(from: from, to: to);
+      if (!mounted || _dotsFrom != from) return;
+      setState(() => _memoryDays = days);
+    } catch (_) {
+      // dots are decoration: the calendar still works without them
+    }
+  }
+
+  String? get _todayIso {
+    final key = _history?.currentGroupKey;
+    return (key == null || key.isEmpty) ? null : key;
+  }
+
+  Future<void> _openDay(String iso) async {
+    setState(() => _selectedIso = iso);
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => MemoryDayPage(iso: iso)),
+    );
+    if (changed == true && mounted) _load();
+  }
+
+  void _openSearch(String query) {
+    final q = query.trim();
+    if (q.length < 2) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MemorySearchPage(initialQuery: q, todayIso: _todayIso ?? ''),
+      ),
+    );
+  }
+
+  Future<void> _addNote() async {
+    final l10n = _l10n;
+    final day = _selectedIso ?? _todayIso;
+    if (day == null) return;
+    final text = await showMemoryTextSheet(
+      context,
+      l10n: l10n,
+      title: l10n.noteForDay,
+      hint: l10n.noteHint,
+    );
+    if (text == null) return;
+    final res = await _memory.addNote(day: day, text: text);
+    if (!mounted) return;
+    if (res.ok) {
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saveFailed)));
+    }
+  }
 
   String _formatDayLabel(String key, LifestyleL10n l10n) {
     final formatted = CalendarDateMath.formatIsoForProfileDisplay(key, l10n.lang);
@@ -129,6 +200,7 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final today = _todayIso;
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
@@ -137,23 +209,95 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
           title: Text(l10n.myHistory),
           backgroundColor: A3DestinationSurface.canvas,
         ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                backgroundColor: AppTheme.ctaFill,
+                foregroundColor: AppTheme.textPrimary,
+                textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              onPressed: today == null ? null : _addNote,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.noteForDay),
+            ),
+          ),
+        ),
         body: RefreshIndicator(
           color: AppTheme.gate2ButtonOlive,
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              A3DestinationCard(
+              TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
+                onSubmitted: _openSearch,
+                decoration: InputDecoration(
+                  hintText: l10n.searchMemoryHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   l10n.historyExplain,
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
-                    height: 1.4,
-                    fontSize: 14,
+                    height: 1.5,
+                    fontSize: 13,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              if (today != null)
+                HistoryCalendarCard(
+                  todayIso: today,
+                  selectedIso: _selectedIso,
+                  memoryDays: _memoryDays,
+                  l10n: l10n,
+                  onPick: _openDay,
+                  onMonthChanged: _loadDots,
+                ),
+              if (today != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 10, 6, 0),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.gate2ButtonOlive,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.memoryDotLegend,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.recentDays,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (!_loading) ..._recentDayCards(l10n),
+              const SizedBox(height: 14),
               A3DestinationCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,17 +345,6 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.conversationsLast30Days,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (!_loading) ..._conversationCards(l10n),
             ],
           ),
         ),
@@ -219,7 +352,7 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     );
   }
 
-  List<Widget> _conversationCards(LifestyleL10n l10n) {
+  List<Widget> _recentDayCards(LifestyleL10n l10n) {
     if (_error != null && _history == null) {
       return [
         Text(
@@ -229,8 +362,8 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
       ];
     }
 
-    final days = _archiveDays();
-    if (days == null) {
+    final past = archiveDaysFromHistory(_history);
+    if (past == null) {
       return [
         Text(
           l10n.archiveTemporarilyUnavailable,
@@ -242,6 +375,9 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
         ),
       ];
     }
+    final todayKey = _todayIso;
+    final todayGroup = _history!.items.where((g) => g.key == todayKey).toList();
+    final days = [...todayGroup, ...past].take(7).toList(growable: false);
     if (days.isEmpty) {
       return [
         Text(
@@ -259,19 +395,47 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
       for (final group in days)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: _DayArchiveCard(
-            group: group,
-            expanded: _expandedKey == group.key,
-            dateLabel: _formatDayLabel(group.key, l10n),
-            countLabel: CalendarDateMath.localizeDigitsForLanguage(
-              l10n.turnCount(group.turns.length),
-              l10n.lang,
+          child: A3DestinationCard(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            onTap: () => _openDay(group.key),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.key == todayKey
+                            ? '${CalendarDateMath.formatIsoForProfileDisplay(group.key, l10n.lang)} · ${l10n.todayLabel}'
+                            : _formatDayLabel(group.key, l10n),
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        CalendarDateMath.localizeDigitsForLanguage(
+                          l10n.turnCount(group.turns
+                              .where((t) => exactStoredTranscriptText(t.userMessage) != null)
+                              .length),
+                          l10n.lang,
+                        ),
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  l10n.isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                  color: AppTheme.textSecondary,
+                ),
+              ],
             ),
-            onToggle: () {
-              setState(() {
-                _expandedKey = _expandedKey == group.key ? null : group.key;
-              });
-            },
           ),
         ),
     ];
@@ -286,179 +450,6 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
         setState(() => _group = key);
         _loadSummary();
       },
-    );
-  }
-}
-
-class _DayArchiveCard extends StatelessWidget {
-  final HistoryGroupItem group;
-  final bool expanded;
-  final String dateLabel;
-  final String countLabel;
-  final VoidCallback onToggle;
-
-  const _DayArchiveCard({
-    required this.group,
-    required this.expanded,
-    required this.dateLabel,
-    required this.countLabel,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return A3DestinationCard(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      borderColor: expanded ? AppTheme.gate2ButtonOlive.withOpacity(0.45) : null,
-      onTap: onToggle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      dateLabel,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      countLabel,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                expanded
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 20,
-                color: expanded
-                    ? AppTheme.gate2ButtonOlive
-                    : AppTheme.textSecondary,
-              ),
-            ],
-          ),
-          ClipRect(
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOut,
-              alignment: Alignment.topCenter,
-              child: expanded
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: _ReadOnlyTranscript(turns: group.turns),
-                    )
-                  : const SizedBox(width: double.infinity, height: 0),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReadOnlyTranscript extends StatelessWidget {
-  final List<HistoryTurnItem> turns;
-
-  const _ReadOnlyTranscript({
-    required this.turns,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < turns.length; i++) ...[
-          if (i > 0) const SizedBox(height: 14),
-          if (exactStoredTranscriptText(turns[i].userMessage) != null)
-            _HistoryUserBubble(text: turns[i].userMessage),
-          if (exactStoredTranscriptText(turns[i].sediResponse) != null) ...[
-            const SizedBox(height: 8),
-            _HistorySediText(text: turns[i].sediResponse!),
-          ],
-        ],
-      ],
-    );
-  }
-}
-
-class _HistoryUserBubble extends StatelessWidget {
-  final String text;
-
-  const _HistoryUserBubble({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    if (text.trim().isEmpty) return const SizedBox.shrink();
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 300),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppTheme.metalGrey.withOpacity(0.15),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(AppTheme.radiusLarge),
-              topRight: Radius.circular(AppTheme.radiusLarge),
-              bottomLeft: Radius.circular(AppTheme.radiusLarge),
-              bottomRight: Radius.circular(AppTheme.radiusSmall),
-            ),
-            border: Border.all(
-              color: AppTheme.metalGrey.withOpacity(0.35),
-              width: 1,
-            ),
-            boxShadow: AppTheme.softShadow,
-          ),
-          child: Text(
-            text,
-            textAlign: TextAlign.start,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-              height: 1.45,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HistorySediText extends StatelessWidget {
-  final String text;
-
-  const _HistorySediText({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
-        child: Text(
-          text,
-          textAlign: TextAlign.start,
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 15,
-            height: 1.45,
-          ),
-        ),
-      ),
     );
   }
 }

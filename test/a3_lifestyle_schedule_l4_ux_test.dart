@@ -12,18 +12,22 @@ void main() {
     expect(src.contains('A3DestinationSurface.canvas'), isTrue);
     expect(src.contains('gate3PaleOliveBackground'), isFalse);
     expect(src.contains('A3DestinationCard'), isTrue);
-    expect(src.contains("'today'"), isTrue);
-    expect(src.contains("'tomorrow'"), isTrue);
-    expect(src.contains("'week'"), isTrue);
-    expect(src.contains("'later'"), isTrue);
+    // R-031: today first, then what is coming up (grouping lives in the pure domain file).
+    final domain = _read('lib/features/lifestyle/domain/schedule_today.dart');
+    expect(src.contains('buildToday'), isTrue);
+    expect(src.contains('buildUpcoming'), isTrue);
+    expect(domain.contains('buildToday'), isTrue);
     expect(src.contains('patchReminder'), isTrue);
-    expect(src.contains('1440'), isTrue);
-    expect(src.contains('60'), isTrue);
+    final sheets = _read(
+      'lib/features/lifestyle/presentation/widgets/schedule_reminder_sheets.dart',
+    );
+    expect(sheets.contains('1440'), isTrue);
+    expect(sheets.contains('60'), isTrue);
     expect(src.contains('join(\' · \')'), isFalse);
     expect(src.contains('LifestyleScheduleService'), isTrue);
-    expect(src.contains('listI8Actions'), isTrue);
-    expect(src.contains('e.location'), isTrue);
-    expect(src.contains('e.eventType'), isTrue);
-    expect(src.contains('e.title'), isTrue);
+    expect(src.contains('listI8Actions'), isFalse); // D-130: the unclear governed-actions block is gone
+    expect(src.contains('.location'), isTrue);
+    expect(domain.contains('e.eventType'), isTrue);
+    expect(domain.contains('e.title'), isTrue);
   });
 }
