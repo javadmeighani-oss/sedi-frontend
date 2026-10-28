@@ -84,6 +84,26 @@ class NotificationInboxL10n {
     }
   }
 
+  String get planNotDoneTitle =>
+      _t(en: 'That is fine. What happened?', fa: 'اشکالی نداره. چی شد؟', ar: 'لا بأس. ماذا حدث؟');
+
+  String get planNotDoneHint => _t(
+        en: 'This helps Sedi make your plan easier.',
+        fa: 'با این، صدی برنامه رو راحت‌تر می‌کنه.',
+        ar: 'هذا يساعد صدی على تسهيل خطتك.',
+      );
+
+  String planReasonLabel(String code) {
+    switch (code) {
+      case 'no_time':
+        return _t(en: 'No time', fa: 'وقت نداشتم', ar: 'لم يكن لدي وقت');
+      case 'dont_like':
+        return _t(en: 'Did not like it', fa: 'دوست نداشتم', ar: 'لم يعجبني');
+      default:
+        return _t(en: 'Not feeling well', fa: 'حالم خوب نیست', ar: 'لست بخير');
+    }
+  }
+
   String get talkToSedi => _t(
         en: 'Talk to Sedi',
         fa: 'صحبت با صدی',

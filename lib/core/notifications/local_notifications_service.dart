@@ -13,6 +13,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../data/repositories/notification_repository.dart';
 import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'background_notification_action_handler.dart';
@@ -106,7 +107,12 @@ List<AndroidNotificationAction> resolveNotificationActions({
 
   void addAction(String id, String label) {
     final key = id.trim().toLowerCase();
-    if (key != 'like' && key != 'dislike' && key != 'open_chat') return;
+    if (key != 'like' &&
+        key != 'dislike' &&
+        key != 'open_chat' &&
+        !NotificationRepository.planFollowUpActions.contains(key)) {
+      return;
+    }
     if (!labels.containsKey(key)) order.add(key);
     labels[key] = label.trim().isEmpty
         ? fallbackActionLabel(key, language)
@@ -179,6 +185,24 @@ String fallbackActionLabel(String actionId, String language) {
           : lang == 'ar'
           ? 'التحدث مع صدی'
           : 'Talk to Sedi';
+    case 'done':
+      return lang == 'fa'
+          ? 'آره، انجام شد'
+          : lang == 'ar'
+          ? 'تم'
+          : 'Done';
+    case 'plan_not_done':
+      return lang == 'fa'
+          ? 'نشد'
+          : lang == 'ar'
+          ? 'لم يتم'
+          : 'Not done';
+    case 'later':
+      return lang == 'fa'
+          ? 'بعداً'
+          : lang == 'ar'
+          ? 'لاحقًا'
+          : 'Later';
     default:
       return actionId;
   }
@@ -438,7 +462,9 @@ class LocalNotificationsService {
     if (response == null) return;
     // An answer to the in-notification "why?" question (app in the foreground): same handler as the background path.
     final id = response.actionId ?? '';
-    if (id.startsWith(BackgroundNotificationActionHandler.reasonActionPrefix)) {
+    if (id.startsWith(BackgroundNotificationActionHandler.reasonActionPrefix) ||
+        id.startsWith(BackgroundNotificationActionHandler.planReasonPrefix) ||
+        id == BackgroundNotificationActionHandler.planNotDoneAction) {
       BackgroundNotificationActionHandler.handle(response);
       return;
     }
