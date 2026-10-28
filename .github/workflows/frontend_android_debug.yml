@@ -239,7 +239,8 @@ jobs:
             test/d102_logo_align_resonance_dock_test.dart \
             test/d127_living_echo_and_style_test.dart \
             test/d128_tray_dislike_reason_and_repeat_test.dart \
-            test/r031_schedule_today_test.dart
+            test/r031_schedule_today_test.dart \
+            test/d130_prelaunch_fixes_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:

@@ -12,9 +12,10 @@ import 'sedi_presence_tokens.dart';
 ///
 /// Four states, four motions (state authority = [Gate3InteractionState]):
 ///  - idle      = Sedi SEES / watches: nearly flat, tiny breathing ticks;
-///  - listening = Sedi HEARS: sound swells arrive from both edges to the centre;
-///  - thinking  = Sedi THINKS: a short packet of raised lines scans left and right;
+///  - listening = Sedi HEARS: wide, slow swells flow out from the centre;
+///  - thinking  = Sedi THINKS: soft pulses leave the centre one after another;
 ///  - speaking  = Sedi SPEAKS: syllable-like bursts flow out from the centre.
+/// D-130: every state moves from the centre outwards (a voice leaving a mouth), never inwards.
 /// States cross-fade smoothly. Deterministic — no per-frame random noise, no
 /// scribble path, and no ECG/medical grammar. Visual-only; not I9,
 /// microphone amplitude, or physiology.
@@ -292,19 +293,19 @@ class _ResonanceLinePainter extends CustomPainter {
     final k = 1 + (_hash(i, 2) * 4).floor(); // 1..4 cycles per loop
     final flutter = 0.72 + 0.28 * math.sin(_tau * (k * p + _hash(i, 3)));
 
-    // Sees: a calm resting spectrum (D-102): every line keeps its own height, a slow breath moves them. Same
-    // grammar as the active states, only quieter, so the dock never looks like an empty dotted line.
-    final idle = (0.30 + 0.10 * math.sin(_tau * (p + _hash(i, 4)))) *
+    // Sees: a calm resting spectrum (D-102). D-130: even at rest the soft swells travel from the CENTRE outwards, like a
+    // voice leaving the mouth - never from the edges to the middle.
+    final idle = (0.30 + 0.10 * math.sin(_tau * (2 * p - 1.1 * d + 0.25 * _hash(i, 4)))) *
         (0.40 + 0.60 * _hash(i, 1));
 
-    // Hears: swells travel in from the edges to the centre.
-    final s1 = math.sin(_tau * (1.6 * d + 3 * p));
+    // Hears: swells now also radiate from the centre outwards (D-130, Javad: the resonance goes from the centre to the
+    // sides like a mouth); listening differs from speaking by slower, wider swells.
+    final s1 = math.sin(_tau * (3 * p - 1.6 * d));
     final listen = 0.22 + 0.78 * s1 * s1;
 
-    // Thinks: a packet of raised lines scans left and right.
-    final c = 0.5 + 0.38 * math.sin(_tau * 2 * p);
-    final packet = math.exp(-math.pow((x - c) / 0.13, 2)).toDouble();
-    final think = 0.08 + 0.92 * packet;
+    // Thinks: soft pulses leave the centre one after another (no left/right sloshing).
+    final pulse = 0.5 + 0.5 * math.sin(_tau * (2 * p - 1.0 * d));
+    final think = 0.14 + 0.86 * pulse * pulse;
 
     // Speaks: syllable bursts flowing outward from the centre.
     final s2 = math.sin(_tau * (5 * p - 1.2 * d));

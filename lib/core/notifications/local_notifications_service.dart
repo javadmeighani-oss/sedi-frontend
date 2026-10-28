@@ -436,6 +436,12 @@ class LocalNotificationsService {
 
   static void _handleNotificationResponse(NotificationResponse? response) {
     if (response == null) return;
+    // An answer to the in-notification "why?" question (app in the foreground): same handler as the background path.
+    final id = response.actionId ?? '';
+    if (id.startsWith(BackgroundNotificationActionHandler.reasonActionPrefix)) {
+      BackgroundNotificationActionHandler.handle(response);
+      return;
+    }
     onNotificationResponse?.call(response.actionId, response.payload);
   }
 

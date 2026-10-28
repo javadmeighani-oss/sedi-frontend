@@ -27,7 +27,6 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   final _svc = LifestyleScheduleService();
   List<LifestyleUserEventDto> _events = const [];
   List<LifestyleMedicationDto> _meds = const [];
-  List<LifestyleI8ActionDto> _actions = const [];
   Set<String> _doneIds = <String>{};
   // Optimistic ticks until the next reload confirms them.
   final Map<String, bool> _doneOverride = <String, bool>{};
@@ -56,14 +55,12 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     final ev = await _svc.listEvents();
     final md = await _svc.listMedications();
     final dn = await _svc.listDone(today);
-    final ac = await _svc.listI8Actions();
     if (!mounted) return;
     setState(() {
       _loading = false;
       _events = ev.data ?? const [];
       _meds = md.data ?? const [];
       _doneIds = dn.data ?? <String>{};
-      _actions = ac.data ?? const [];
       _doneOverride.clear();
       if (!ev.ok) _error = ev.errorMessage;
     });
@@ -300,11 +297,6 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                     if (!_appointmentChannelOn) ...[
                       const SizedBox(height: 10),
                       _warning(l10n.appointmentOffWarning),
-                    ],
-                    if (_actions.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      _sectionTitle(l10n.governedActions),
-                      ..._actions.map(_actionRow),
                     ],
                   ],
                 ),
@@ -630,30 +622,6 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
               itemBuilder: (_) => [
                 PopupMenuItem(value: 'delete', child: Text(l10n.deleteItem)),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _actionRow(LifestyleI8ActionDto a) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: A3DestinationCard(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                a.title,
-                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              _l10n.scheduleStatusLabel(a.status),
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
             ),
           ],
         ),

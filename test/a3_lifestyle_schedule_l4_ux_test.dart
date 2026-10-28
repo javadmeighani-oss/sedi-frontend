@@ -25,7 +25,7 @@ void main() {
     expect(sheets.contains('60'), isTrue);
     expect(src.contains('join(\' · \')'), isFalse);
     expect(src.contains('LifestyleScheduleService'), isTrue);
-    expect(src.contains('listI8Actions'), isTrue);
+    expect(src.contains('listI8Actions'), isFalse); // D-130: the unclear governed-actions block is gone
     expect(src.contains('.location'), isTrue);
     expect(domain.contains('e.eventType'), isTrue);
     expect(domain.contains('e.title'), isTrue);
