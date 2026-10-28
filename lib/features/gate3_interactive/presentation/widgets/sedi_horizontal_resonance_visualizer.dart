@@ -235,9 +235,9 @@ class _SediHorizontalResonanceVisualizerState
 /// Draws the resonance as a neat SOUND SPECTRUM (D-101, reference: a voice waveform): thin vertical lines on a
 /// regular grid, tallest at the centre and tapering to dots at the edges, a faint centre axis and a few glowing
 /// tips. The four states change how the sound behaves:
-///  - idle      (sees)   : nearly flat - small breathing ticks along the axis;
-///  - listening (hears)  : swells arrive from both edges towards the centre;
-///  - thinking           : a short packet of lines rises and scans left and right;
+///  - idle      (sees)   : a calm resting spectrum whose soft swells leave the centre outwards;
+///  - listening (hears)  : wide, slow swells flow from the centre to the sides;
+///  - thinking           : soft pulses leave the centre one after another;
 ///  - speaking           : syllable-like bursts flow outward from the centre.
 ///
 /// Every line has its own fixed "character" (deterministic, not random per frame) and every temporal frequency is an
