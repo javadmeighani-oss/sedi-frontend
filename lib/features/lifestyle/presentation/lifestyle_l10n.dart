@@ -968,4 +968,26 @@ class LifestyleL10n {
         fa: 'یه جایگزین مناسب برای «$title» پیشنهاد بده که با برنامه‌ام جور باشه.',
         ar: 'اقترحي بديلًا مناسبًا لـ «$title» يناسب خطتي.',
       );
+
+  // ---- P8b: alternatives and corrections inside the page ----
+  String get alternativesTitle => _t(
+        en: 'Alternatives that fit your plan',
+        fa: 'جایگزین‌هایی که با برنامه‌ات جور درمیاد',
+        ar: 'بدائل تناسب خطتك',
+      );
+  String get alternativesEmpty => _t(
+        en: 'I could not find a fitting alternative right now; you can ask Sedi below.',
+        fa: 'الان جایگزین مناسبی پیدا نکردم؛ می‌تونی پایین از صدی بخوای.',
+        ar: 'لم أجد بديلاً مناسباً الآن؛ يمكنك أن تسأل صدی أدناه.',
+      );
+  String get applyChange => _t(en: 'Apply change', fa: 'ثبت تغییر', ar: 'تطبيق التغيير');
+  String get itemEdit => _t(en: 'Edit text and duration', fa: 'ویرایش متن و مدت', ar: 'تعديل النص والمدة');
+  String get editTitleHint => _t(en: 'Title', fa: 'عنوان', ar: 'العنوان');
+  String get editNoteHint => _t(en: 'Note', fa: 'توضیح', ar: 'ملاحظة');
+  String get editDurationHint => _t(en: 'Duration (minutes)', fa: 'مدت (دقیقه)', ar: 'المدة (دقائق)');
+  String get planChangedSnack => _t(
+        en: 'Saved. Sedi knows about it too.',
+        fa: 'ثبت شد؛ صدی هم می‌دونه.',
+        ar: 'تم الحفظ، وصدی تعرف ذلك أيضاً.',
+      );
 }

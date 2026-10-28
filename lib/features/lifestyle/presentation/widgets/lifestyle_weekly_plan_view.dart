@@ -11,6 +11,7 @@ import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.d
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../lifestyle_l10n.dart';
 import '../pages/lifestyle_page.dart';
+import '../../../../data/dto/lifestyle/plan_alternative.dart';
 import 'lifestyle_plan_sheets.dart';
 
 enum LifestyleWeeklyDomain { nutrition, exercise }
@@ -225,20 +226,47 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
       title: title,
       time: a.localTime,
       canSkip: reviewable,
+      loadAlternatives: () async {
+        final res = await _svc.fetchAlternatives(id);
+        return res.ok ? (res.data ?? const <PlanAlternative>[]) : const <PlanAlternative>[];
+      },
     );
     if (choice == null || !mounted) return;
     switch (choice.kind) {
-      case 'alternative':
+      case 'chat':
         _sendToChat(l10n.alternativeMessage(title));
         return;
       case 'skip':
         await _review(a, 'skipped', reason: choice.value);
+        return;
+      case 'replace':
+        await _edit(_svc.replaceAction(id, choice.value ?? ''), l10n);
         return;
       case 'move':
         await _edit(_svc.moveAction(id, choice.value ?? ''), l10n);
         return;
       case 'remove':
         await _edit(_svc.removeAction(id), l10n);
+        return;
+      case 'edit':
+        final edited = await showPlanItemEditSheet(
+          context,
+          l10n: l10n,
+          title: title,
+          note: a.detail ?? '',
+          durationMinutes: a.durationMinutes,
+          isExercise: widget.domain == LifestyleWeeklyDomain.exercise,
+        );
+        if (edited == null || !mounted) return;
+        await _edit(
+          _svc.editAction(
+            id,
+            title: edited.title,
+            note: edited.note,
+            durationMinutes: edited.durationMinutes,
+          ),
+          l10n,
+        );
         return;
     }
   }
@@ -248,6 +276,9 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     if (!mounted) return;
     if (res.ok == true) {
       await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.planChangedSnack)));
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saveFailed)));
     }

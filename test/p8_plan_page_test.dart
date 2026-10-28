@@ -84,4 +84,30 @@ void main() {
     expect(bg.contains('planNotDoneReasons'), isTrue);
     expect(bg.contains('_handlePlanReasonAnswer'), isTrue);
   });
+
+  test('P8b: alternatives, replace and corrections happen in the page and Sedi is told through the backend', () {
+    final svc = _read('lib/services/lifestyle/lifestyle_weekly_plan_service.dart');
+    expect(svc.contains("'/lifestyle/actions/\$actionId/alternatives'"), isTrue);
+    expect(svc.contains("'/lifestyle/actions/\$actionId/replace'"), isTrue);
+    expect(svc.contains("'item_id': itemId"), isTrue);
+    expect(svc.contains("'duration_minutes': durationMinutes"), isTrue);
+    final view = _read('lib/features/lifestyle/presentation/widgets/lifestyle_weekly_plan_view.dart');
+    expect(view.contains('_svc.fetchAlternatives'), isTrue);
+    expect(view.contains('_svc.replaceAction'), isTrue);
+    expect(view.contains('_svc.editAction'), isTrue);
+    expect(view.contains('showPlanItemEditSheet'), isTrue);
+    expect(view.contains('planChangedSnack'), isTrue);
+    final sheets = _read('lib/features/lifestyle/presentation/widgets/lifestyle_plan_sheets.dart');
+    expect(sheets.contains("PlanItemChoice('replace', picked)"), isTrue);
+    expect(sheets.contains('loadAlternatives'), isTrue);
+    for (final lang in ['fa', 'en', 'ar']) {
+      final l = LifestyleL10n(lang);
+      for (final t in [
+        l.alternativesTitle, l.alternativesEmpty, l.applyChange, l.itemEdit, l.editTitleHint, l.editNoteHint,
+        l.editDurationHint, l.planChangedSnack,
+      ]) {
+        expect(t, isNotEmpty, reason: lang);
+      }
+    }
+  });
 }
