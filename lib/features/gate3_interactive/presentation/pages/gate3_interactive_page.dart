@@ -25,6 +25,7 @@ import '../../../notifications/presentation/widgets/dislike_reason_sheet.dart';
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../gate3_assistant_starter_bus.dart';
+import '../gate3_user_message_bus.dart';
 import '../gate3_composer_draft_bus.dart';
 import '../widgets/gate3_attachment_flow.dart';
 import '../widgets/gate3_composer.dart';
@@ -77,6 +78,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   Timer? _backPressTimer;
   StreamSubscription<String>? _draftSub;
   StreamSubscription<String>? _starterSub;
+  StreamSubscription<String>? _userMessageSub;
 
   /// Backend canonical unread SENT-history count; null = not loaded yet.
   int? _unreadNotificationCount;
@@ -109,6 +111,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _starterSub = Gate3AssistantStarterBus.instance.stream.listen((text) {
       if (!mounted) return;
       _controller.insertPresentationAssistantMessage(text);
+    });
+    _userMessageSub = Gate3UserMessageBus.instance.stream.listen((text) {
+      if (!mounted) return;
+      _controller.sendUserMessage(text);
     });
     _refreshUnreadBadge();
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
@@ -197,6 +203,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _inboxRefreshSub?.cancel();
     _draftSub?.cancel();
     _starterSub?.cancel();
+    _userMessageSub?.cancel();
     _backPressTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);

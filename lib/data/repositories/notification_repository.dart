@@ -55,6 +55,9 @@ class NotificationRepository {
   ///
   /// [recoverSessionOn401] must be false from background isolates so a failed
   /// refresh never forces UI navigation / logout.
+  /// Tray buttons of a nutrition / exercise plan follow-up ("did you do it?").
+  static const Set<String> planFollowUpActions = {'done', 'plan_not_done', 'later'};
+
   Future<ApiResponse<Map<String, dynamic>?>> sendFeedback({
     required int notificationId,
     required String action,
@@ -65,6 +68,8 @@ class NotificationRepository {
   }) async {
     final body = <String, dynamic>{
       'action': action,
+      // P8: plan follow-up answers (done / plan_not_done / later) use the contract path the backend binds to the plan item.
+      if (planFollowUpActions.contains(action)) ...{'reaction': 'interact', 'action_id': action},
       if (reason != null && reason.isNotEmpty) 'reason': reason,
       if (clientTs != null) 'client_ts': clientTs,
       if (meta != null && meta.isNotEmpty) 'meta': meta,

@@ -1,3 +1,4 @@
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 
 /// Lifestyle hub localization (en/fa/ar). Presentation only.
@@ -826,4 +827,145 @@ class LifestyleL10n {
         return gregorian[i];
     }
   }
+
+  // ---- P8: set up / change the Nutrition and Exercise plan inside the page ----
+  String get planSetupButton => _t(
+        en: 'Set up or change plan',
+        fa: 'تنظیم یا تغییر برنامه',
+        ar: 'إعداد الخطة أو تعديلها',
+      );
+  String get allWeekHeading => _t(en: 'Whole week', fa: 'کل هفته', ar: 'الأسبوع كله');
+  String planSetupTitle(bool nutrition) => nutrition
+      ? _t(en: 'My nutrition plan', fa: 'برنامه تغذیه‌ی من', ar: 'خطة تغذيتي')
+      : _t(en: 'My exercise plan', fa: 'برنامه ورزش من', ar: 'خطة تمريني');
+  String get planSetupIntro => _t(
+        en: 'Sedi starts from what she already knows about you. Tell her the rest here and she builds the plan.',
+        fa: 'صدی از چیزهایی که از تو می‌دونه شروع می‌کنه؛ بقیه‌اش رو همین‌جا بگو تا برنامه رو بسازه.',
+        ar: 'تبدأ صدی مما تعرفه عنك. أخبرها بالباقي هنا لتبني الخطة.',
+      );
+  String get knownFactsTitle =>
+      _t(en: 'What I already know', fa: 'این‌ها رو از قبل می‌دونم', ar: 'ما أعرفه مسبقًا');
+  String get goalQuestion => _t(en: 'What is your goal?', fa: 'هدفت چیه؟', ar: 'ما هدفك؟');
+  String planGoalLabel(String key) {
+    switch (key) {
+      case 'sugar':
+        return _t(en: 'Control blood sugar', fa: 'کنترل قند خون', ar: 'ضبط سكر الدم');
+      case 'weight':
+        return _t(en: 'Lose weight', fa: 'کاهش وزن', ar: 'إنقاص الوزن');
+      case 'strength':
+        return _t(en: 'Get stronger', fa: 'قوی‌تر شدن', ar: 'زيادة القوة');
+      case 'mobility':
+        return _t(en: 'Stay mobile', fa: 'انعطاف و تحرک', ar: 'المرونة والحركة');
+      case 'fitness':
+        return _t(en: 'Fitness', fa: 'تناسب اندام', ar: 'اللياقة');
+      default:
+        return _t(en: 'General health', fa: 'سلامت عمومی', ar: 'صحة عامة');
+    }
+  }
+
+  String get mealsQuestion =>
+      _t(en: 'How many meals a day?', fa: 'چند وعده در روز؟', ar: 'كم وجبة في اليوم؟');
+  String mealsOption(int n) {
+    switch (n) {
+      case 3:
+        return _t(en: '3 meals', fa: '۳ وعده', ar: '3 وجبات');
+      case 4:
+        return _t(en: '3 meals + snack', fa: '۳ وعده + میان‌وعده', ar: '3 وجبات + وجبة خفيفة');
+      default:
+        return _t(en: '5 meals', fa: '۵ وعده', ar: '5 وجبات');
+    }
+  }
+
+  String get daysQuestion => _t(
+        en: 'How many days a week can you exercise?',
+        fa: 'هفته‌ای چند روز می‌تونی ورزش کنی؟',
+        ar: 'كم يومًا في الأسبوع تستطيع التمرن؟',
+      );
+  String daysOption(int n) => CalendarDateMath.localizeDigitsForLanguage(
+        _t(en: '$n days', fa: '$n روز', ar: '$n أيام'),
+        lang,
+      );
+
+  String get avoidQuestion => _t(
+        en: 'What do you dislike or avoid?',
+        fa: 'چی رو دوست نداری یا نمی‌خوری؟',
+        ar: 'ما الذي لا تحبه أو تتجنبه؟',
+      );
+  String avoidLabel(String key) {
+    switch (key) {
+      case 'fish':
+        return _t(en: 'Fish', fa: 'ماهی', ar: 'السمك');
+      case 'dairy':
+        return _t(en: 'Dairy', fa: 'لبنیات', ar: 'الألبان');
+      case 'red_meat':
+        return _t(en: 'Red meat', fa: 'گوشت قرمز', ar: 'اللحم الأحمر');
+      default:
+        return _t(en: 'Eggs', fa: 'تخم‌مرغ', ar: 'البيض');
+    }
+  }
+
+  String get otherThingHint =>
+      _t(en: 'Something else (optional)', fa: 'چیز دیگه‌ای هم هست؟ (اختیاری)', ar: 'شيء آخر (اختياري)');
+  String get buildPlanButton =>
+      _t(en: 'Sedi, build the plan', fa: 'صدی برنامه رو بساز', ar: 'يا صدی، ابني الخطة');
+
+  /// The user message the setup sheet sends to the canonical chat (the plan composer there does the rest).
+  String composeSetupMessage({
+    required bool nutrition,
+    required String goalKey,
+    required int count,
+    required List<String> avoid,
+    String extra = '',
+  }) {
+    final goal = planGoalLabel(goalKey);
+    final avoided = [for (final a in avoid) avoidLabel(a), if (extra.trim().isNotEmpty) extra.trim()];
+    final sep = lang == 'en' ? ', ' : '، ';
+    if (nutrition) {
+      final tail = avoided.isEmpty
+          ? ''
+          : _t(
+              en: ' I do not like or eat: ${avoided.join(sep)}.',
+              fa: ' این‌ها رو دوست ندارم یا نمی‌خورم: ${avoided.join(sep)}.',
+              ar: ' لا أحب أو لا آكل: ${avoided.join(sep)}.',
+            );
+      return _t(
+        en: 'Please build me a weekly nutrition plan. My goal: $goal. I want $count meals a day.$tail',
+        fa: 'یه برنامه غذایی هفتگی برام بساز. هدفم: $goal. روزی $count وعده می‌خوام.$tail',
+        ar: 'ابني لي خطة تغذية أسبوعية. هدفي: $goal. أريد $count وجبات في اليوم.$tail',
+      );
+    }
+    final tail = extra.trim().isEmpty
+        ? ''
+        : _t(en: ' Note: ${extra.trim()}.', fa: ' نکته: ${extra.trim()}.', ar: ' ملاحظة: ${extra.trim()}.');
+    return _t(
+      en: 'Please build me a weekly exercise plan. My goal: $goal. I can exercise $count days a week.$tail',
+      fa: 'یه برنامه ورزشی هفتگی برام بساز. هدفم: $goal. هفته‌ای $count روز می‌تونم ورزش کنم.$tail',
+      ar: 'ابني لي خطة تمرين أسبوعية. هدفي: $goal. أستطيع التمرن $count أيام في الأسبوع.$tail',
+    );
+  }
+
+  // item sheet
+  String get itemMoveTime => _t(en: 'Change its time', fa: 'ساعتش رو عوض کن', ar: 'غيّر وقته');
+  String get itemSkipToday =>
+      _t(en: 'I will skip this today', fa: 'امروز انجامش نمی‌دم', ar: 'سأتخطى هذا اليوم');
+  String get itemRemove => _t(
+        en: 'Remove it from this week',
+        fa: 'از برنامه‌ی این هفته حذفش کن',
+        ar: 'احذفه من هذا الأسبوع',
+      );
+  String get itemRemoveQuestion => _t(
+        en: 'Remove this item from this week?',
+        fa: 'این مورد از برنامه‌ی این هفته حذف شود؟',
+        ar: 'حذف هذا العنصر من هذا الأسبوع؟',
+      );
+  String get itemAskAlternative => _t(
+        en: 'Ask Sedi for an alternative',
+        fa: 'از صدی جایگزین بخواه',
+        ar: 'اطلب بديلًا من صدی',
+      );
+  String alternativeMessage(String title) => _t(
+        en: 'Please suggest an alternative to "$title" that fits my plan.',
+        fa: 'یه جایگزین مناسب برای «$title» پیشنهاد بده که با برنامه‌ام جور باشه.',
+        ar: 'اقترحي بديلًا مناسبًا لـ «$title» يناسب خطتي.',
+      );
 }

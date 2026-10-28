@@ -26,6 +26,20 @@ class LifestyleWeeklyPlanService {
     );
   }
 
+  /// The user moves one plan item to [localTime] (HH:MM); Sedi's reminder for it follows the new time.
+  Future<ApiResponse<void>> moveAction(int actionId, String localTime) {
+    return _api.patch<void>(
+      '/lifestyle/actions/$actionId',
+      body: <String, dynamic>{'local_time': localTime},
+      parser: (_) => null,
+    );
+  }
+
+  /// The user takes one plan item out of this week.
+  Future<ApiResponse<void>> removeAction(int actionId) {
+    return _api.delete<void>('/lifestyle/actions/$actionId', parser: (_) => null);
+  }
+
   Future<ApiResponse<LifestyleWeeklyPlanDto>> fetchWeeklyPlan() {
     return _api.get<LifestyleWeeklyPlanDto>(
       '/lifestyle/weekly-plan',
