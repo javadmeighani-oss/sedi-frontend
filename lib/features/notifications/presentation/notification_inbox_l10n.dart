@@ -64,13 +64,19 @@ class NotificationInboxL10n {
       _t(en: 'Why did you dislike it?', fa: 'چرا نپسندیدی؟', ar: 'لماذا لم يعجبك؟');
 
   String get dislikeReasonHint => _t(
-        en: 'This helps Sedi send you better notifications.',
-        fa: 'با این، صدی نوتیف‌های مناسب‌تری برات می‌فرسته.',
-        ar: 'هذا يساعد صدی على إرسال إشعارات أنسب لك.',
+        en: 'Pick one and I will send the next one at a better time.',
+        fa: 'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم.',
+        ar: 'اختر واحدًا وسأرسل التالي في وقت أنسب.',
       );
 
   String dislikeReasonLabel(String code) {
     switch (code) {
+      case 'busy_now':
+        return _t(en: "I'm busy now", fa: 'الان درگیرم', ar: 'مشغول الآن');
+      case 'rest_time':
+        return _t(en: 'Rest time', fa: 'وقت استراحتمه', ar: 'وقت راحتي');
+      case 'not_in_mood':
+        return _t(en: 'Not in the mood', fa: 'حوصله ندارم', ar: 'لا رغبة لدي');
       case 'too_frequent':
         return _t(en: 'Too many', fa: 'زیاد می‌فرسته', ar: 'كثيرة جداً');
       case 'irrelevant':

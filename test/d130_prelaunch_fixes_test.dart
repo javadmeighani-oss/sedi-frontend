@@ -43,7 +43,8 @@ void main() {
 
   test('a tray Dislike asks the reason inside a notification with three buttons', () {
     expect(BackgroundNotificationActionHandler.reasonActionPrefix, 'reason:');
-    expect(BackgroundNotificationActionHandler.promptReasons, ['too_frequent', 'wrong_timing', 'irrelevant']);
+    // R-039: "I'm busy now / it is rest time / no mood" - all mean "not now", asked in the SAME (bigger) notification
+    expect(BackgroundNotificationActionHandler.promptReasons, ['busy_now', 'rest_time', 'not_in_mood']);
     final bg = _read('lib/core/notifications/background_notification_action_handler.dart');
     expect(bg.contains('_showReasonPrompt('), isTrue);
     expect(bg.contains('showsUserInterface: false'), isTrue); // the answer never opens the app
@@ -51,6 +52,8 @@ void main() {
     expect(bg.contains('action.startsWith(reasonActionPrefix)'), isTrue);
     // the in-app chat sheet is only the fallback when the prompt cannot be shown
     expect(bg.contains('if (!shown)'), isTrue);
+    expect(bg.contains('BigTextStyleInformation('), isTrue); // the same notification, bigger
+    expect(bg.contains('final asksWhy'), isTrue); // the tray is NOT closed before the reason is answered
     final service = _read('lib/core/notifications/local_notifications_service.dart');
     expect(service.contains('BackgroundNotificationActionHandler.reasonActionPrefix'), isTrue);
     final repo = _read('lib/data/repositories/notification_repository.dart');

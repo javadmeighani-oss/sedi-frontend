@@ -6,8 +6,8 @@ import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/notifications/notification_action_coordinator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
-import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
 import '../../../../data/models/notification_item.dart';
@@ -18,6 +18,7 @@ import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../notification_inbox_l10n.dart';
 import '../widgets/dislike_reason_sheet.dart';
 
@@ -447,15 +448,15 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.metalGrey.withOpacity(0.2),
+        color: Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppTheme.textSecondary,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          color: SediGlass.ink,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -501,11 +502,34 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final top = MediaQuery.of(context).padding.top + kToolbarHeight;
     Widget page = Scaffold(
       backgroundColor: A3DestinationSurface.canvas,
+      extendBodyBehindAppBar: true,
       appBar: A3PageAppBar(
-        title: Text(l10n.title),
-        backgroundColor: A3DestinationSurface.canvas,
+        // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SediHologramOrb(
+              state: Gate3InteractionState.idle,
+              diameter: 38,
+              showRings: false,
+              animate: false,
+              keyedLogo: false,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              l10n.title,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: SediGlass.inkDeep,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.textPrimary,
         actions: [
           // Selection mode: Cancel only. Standalone Select removed —
@@ -517,7 +541,13 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const SediSceneBackdrop(),
+          Padding(
+            padding: EdgeInsets.only(top: top),
+            child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
@@ -567,6 +597,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             ),
           Expanded(child: _buildBody(l10n)),
         ],
+            ),
+          ),
+        ],
       ),
     );
 
@@ -601,23 +634,27 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? SediPalette.pistachio500.withOpacity(0.24)
-              : AppTheme.gate2CardWhite,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? SediPalette.pistachio700.withOpacity(0.55)
-                : A3DestinationSurface.hairline,
-          ),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: selected
+            ? SediGlass.pistachioSphere().copyWith(
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.circular(999),
+              )
+            : BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white.withOpacity(0.78), Colors.white.withOpacity(0.32)],
+                ),
+                border: Border.all(color: Colors.white.withOpacity(0.92)),
+              ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? SediPalette.pistachio900 : AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
+            color: selected ? SediGlass.inkDeep : SediGlass.ink,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -637,8 +674,24 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         color: AppTheme.primaryBlack,
         child: ListView(
           children: [
-            const SizedBox(height: 160),
-            AppEmptyState(title: l10n.emptyTitle, subtitle: l10n.emptySubtitle),
+            const SizedBox(height: 120),
+            A3DestinationCard(
+              child: Column(
+                children: [
+                  Text(
+                    l10n.emptyTitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: SediGlass.inkDeep),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.emptySubtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, height: 1.7, fontWeight: FontWeight.w600, color: SediGlass.ink),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -700,13 +753,8 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     const selectionGutterWidth = 48.0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: A3DestinationCard(
-        backgroundColor: displayAttention
-            ? SediPalette.pistachio100
-            : SediPalette.sageInput,
-        borderColor: displayAttention
-            ? SediPalette.pistachio900.withOpacity(0.55)
-            : AppTheme.gate2BorderSubtle,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
         onTap: () async {
           if (_selectionMode) {
             _toggleSelected(item.id);
@@ -722,6 +770,9 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             _enterSelection(item.id);
           }
         },
+        child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: SediGlass.card(BorderRadius.circular(24), strong: displayAttention),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -753,9 +804,10 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
               padding: const EdgeInsetsDirectional.only(end: 12),
               child: SediHologramOrb(
                 state: Gate3InteractionState.idle,
-                diameter: 40,
+                diameter: 44,
                 showRings: false,
                 animate: false,
+                keyedLogo: false,
               ),
             ),
             Expanded(
@@ -771,7 +823,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           width: 10,
                           height: 10,
                           decoration: const BoxDecoration(
-                            color: SediPalette.skin500,
+                            color: Color(0xFF5F7B22),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -783,41 +835,42 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: SediGlass.inkDeep,
                       fontSize: 16,
                       fontWeight: displayAttention
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+                          ? FontWeight.w800
+                          : FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     _displayBody(item, l10n),
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
-                      color: displayAttention
-                          ? AppTheme.textPrimary.withOpacity(0.78)
-                          : AppTheme.textSecondary.withOpacity(0.92),
+                      color: SediGlass.ink,
                       fontSize: 14,
-                      height: 1.4,
+                      height: 1.65,
                       fontWeight: displayAttention
-                          ? FontWeight.w500
-                          : FontWeight.w400,
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     l10n.relativeTime(item.sentAt ?? item.createdAt),
                     style: TextStyle(
-                      color: AppTheme.textSecondary.withOpacity(0.85),
+                      color: SediGlass.ink.withOpacity(0.75),
                       fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
         ),
       ),
     );

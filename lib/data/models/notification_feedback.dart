@@ -50,6 +50,9 @@ enum FeedbackReaction {
 
 /// Feedback reason (V1 optional): too_frequent | irrelevant | unclear
 const List<String> kFeedbackReasonValues = [
+  'busy_now',
+  'rest_time',
+  'not_in_mood',
   'too_frequent',
   'irrelevant',
   'unclear',

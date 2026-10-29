@@ -30,9 +30,9 @@ class BackgroundNotificationActionHandler {
   /// Android shows at most three buttons: the reasons that change Sedi's behaviour the most. The other two reasons
   /// (unclear / not helpful) are inferred by the backend when the user answers nothing.
   static const List<String> promptReasons = <String>[
-    'too_frequent',
-    'wrong_timing',
-    'irrelevant',
+    'busy_now',
+    'rest_time',
+    'not_in_mood',
   ];
 
   /// P8: "did you do it?" plan follow-up. Not done asks WHY inside a fresh notification (3 buttons), like Dislike.
@@ -86,10 +86,13 @@ class BackgroundNotificationActionHandler {
         clientTs: clientTs,
       );
 
-      // A4: dismiss tray immediately for like / dislike / open_chat.
-      // Never restore on ACK/network failure.
-      await _dismissTrayIsolated(id);
-      await TrayNotificationSnapshotStore.remove(id);
+      // A4: dismiss tray immediately for open_chat / answers. R-039: Dislike and "not done" keep the SAME notification:
+      // it grows in place and asks WHY (no second notification); it closes when the reason is answered or times out.
+      final asksWhy = action == 'dislike' || action == planNotDoneAction;
+      if (!asksWhy) {
+        await _dismissTrayIsolated(id);
+        await TrayNotificationSnapshotStore.remove(id);
+      }
 
       // Body / Talk-to-Sedi: queue only — foreground drain owns ACK + nav.
       final isPlanAnswer = NotificationRepository.planFollowUpActions.contains(action);
@@ -110,11 +113,13 @@ class BackgroundNotificationActionHandler {
       // The reason is asked inside a fresh notification (3 buttons); only when it cannot be shown does the chat page
       // ask later (fallback).
       if (action == planNotDoneAction) {
-        await _showPlanReasonPrompt(notificationId: id, payload: payload);
+        final shown = await _showPlanReasonPrompt(notificationId: id, payload: payload);
+        if (!shown) await _dismissTrayIsolated(id);
       }
       if (action == 'dislike') {
         final shown = await _showReasonPrompt(notificationId: id, payload: payload);
         if (!shown) {
+          await _dismissTrayIsolated(id);
           try {
             await PendingDislikeReasons.add(id);
           } catch (e) {
@@ -157,9 +162,11 @@ class BackgroundNotificationActionHandler {
         notificationId: notificationId,
         actionId: actionId,
       );
-      await _dismissTrayIsolated(notificationId);
-      await TrayNotificationSnapshotStore.remove(notificationId);
-      debugPrint('[FCM-bg] ACK ok; pending removed + tray dismissed');
+      if (actionId != 'dislike' && actionId != planNotDoneAction) {
+        await _dismissTrayIsolated(notificationId);
+        await TrayNotificationSnapshotStore.remove(notificationId);
+      }
+      debugPrint('[FCM-bg] ACK ok; pending removed');
       return true;
     } catch (e) {
       debugPrint('[FCM-bg] ACK error (retained): $e');
@@ -216,6 +223,11 @@ class BackgroundNotificationActionHandler {
             onlyAlertOnce: true,
             autoCancel: true,
             timeoutAfter: 90000,
+            // R-039: the same notification, bigger: the question and what it is for, then the three answers.
+            styleInformation: BigTextStyleInformation(
+              l10n.dislikeReasonHint,
+              contentTitle: l10n.dislikeReasonTitle,
+            ),
             actions: actions,
           ),
         ),
@@ -235,7 +247,7 @@ class BackgroundNotificationActionHandler {
   }
 
   /// «اشکالی نداره. چی شد؟» + three reason buttons; the answer updates the skipped review with its reason.
-  static Future<void> _showPlanReasonPrompt({
+  static Future<bool> _showPlanReasonPrompt({
     required int notificationId,
     required Map<String, dynamic> payload,
   }) async {
@@ -268,6 +280,10 @@ class BackgroundNotificationActionHandler {
             onlyAlertOnce: true,
             autoCancel: true,
             timeoutAfter: 90000,
+            styleInformation: BigTextStyleInformation(
+              l10n.planNotDoneHint,
+              contentTitle: l10n.planNotDoneTitle,
+            ),
             actions: <AndroidNotificationAction>[
               for (final r in planNotDoneReasons)
                 AndroidNotificationAction(
@@ -287,8 +303,10 @@ class BackgroundNotificationActionHandler {
           'reason_prompt': true,
         }),
       );
+      return true;
     } catch (e) {
       debugPrint('[FCM-bg] plan reason prompt not shown: $e');
+      return false;
     }
   }
 

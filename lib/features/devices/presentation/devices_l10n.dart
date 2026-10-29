@@ -28,6 +28,18 @@ class DevicesL10n {
       _t(en: 'Unclassified', fa: 'طبقه‌بندی‌نشده', ar: 'غير مصنف');
   String get noGadgets =>
       _t(en: 'No gadgets', fa: 'گجتی نیست', ar: 'لا أجهزة');
+  // ---- pilot V1 (R-034): Sedi's own specialised gadgets ----
+  String get specialTitle => _t(
+        en: "Sedi's specialised gadgets",
+        fa: 'گجت‌های تخصصی صدی',
+        ar: 'أجهزة صدی المتخصصة',
+      );
+  String get specialBody => _t(
+        en: 'The gadgets in development belong only to Sedi and are made to care for you. For now the heart-rate gadget is being built; when it is ready you connect it right here.',
+        fa: 'گجت‌هایی که در حال توسعه‌اند فقط مال صدی‌ان و برای مراقبت از تو ساخته می‌شن. فعلاً گجت ضربان قلب در دست ساخته؛ وقتی آماده شد، همین‌جا وصلش می‌کنی.',
+        ar: 'الأجهزة قيد التطوير تخص صدی وحده وتُصنع للعناية بك. حاليًا يجري تطوير جهاز نبض القلب، وعندما يصبح جاهزًا تربطه هنا.',
+      );
+
   String get active => _t(en: 'Active', fa: 'فعال', ar: 'نشط');
   String get revoked => _t(en: 'Revoked', fa: 'باطل‌شده', ar: 'ملغى');
   String get rename => _t(en: 'Rename', fa: 'تغییر نام', ar: 'إعادة تسمية');

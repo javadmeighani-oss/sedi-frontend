@@ -220,6 +220,7 @@ void main() {
       expect(bg.contains('recoverSessionOn401: false'), isTrue);
       // Immediate dismiss before ACK; failure retains pending only.
       expect(bg.contains('dismiss tray immediately'), isTrue);
+      expect(bg.contains('final asksWhy = action == \'dislike\' || action == planNotDoneAction;'), isTrue);
       expect(bg.contains('keep pending for resume drain'), isTrue);
       expect(bg.contains('_restoreOriginalIsolated'), isFalse);
       expect(bg.contains('_showProcessingIsolated'), isFalse);
@@ -310,7 +311,8 @@ void main() {
     test('like/dislike/open_chat dismiss tray immediately via cancelNotification', () {
       final local =
           _read('lib/core/notifications/local_notifications_service.dart');
-      expect(local.contains('cancelNotification: true'), isTrue);
+      // R-039: only Dislike / "not done" keep the notification (it grows in place and asks WHY); the rest close at once.
+      expect(local.contains("cancelNotification: id != 'dislike' && id != 'plan_not_done'"), isTrue);
       expect(local.contains('cancelNotification: false'), isFalse);
       expect(local.contains('cancelByBackendNotificationId'), isTrue);
       expect(local.contains('dismiss tray immediately on action tap'), isTrue);
