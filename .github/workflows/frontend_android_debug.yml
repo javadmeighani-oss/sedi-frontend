@@ -247,7 +247,8 @@ jobs:
             test/ux_fixes_2_test.dart \
             test/composer_keyboard_stable_test.dart \
             test/pilot_ui_v2_chat_test.dart \
-            test/pilot_ui_v2_profile_test.dart
+            test/pilot_ui_v2_profile_test.dart \
+            test/pilot_ui_v2_lifestyle_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:

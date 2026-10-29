@@ -294,6 +294,9 @@ class LifestyleL10n {
           ar: 'بقي ${_n(open)} اليوم',
         );
 
+  /// Digits in the language's own numerals (Eastern digits for fa/ar).
+  String digits(Object v) => _n(v);
+
   /// Eastern digits for fa/ar.
   String _n(Object v) {
     final s = '$v';
