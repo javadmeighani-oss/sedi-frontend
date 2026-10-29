@@ -621,19 +621,25 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
           Expanded(
             child: Directionality(
               textDirection: TextDirection.ltr,
-              child: Text(
-                number,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                  letterSpacing: 0.2,
+              child: Padding(
+                // room between the number and the pencil (Javad 2026-10-29: they were touching)
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  number,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ),
           ),
+          const SizedBox(width: 6),
           if (sent)
             const Padding(
               padding: EdgeInsets.all(8),

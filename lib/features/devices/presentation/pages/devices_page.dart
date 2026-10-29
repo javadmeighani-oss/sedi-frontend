@@ -179,9 +179,21 @@ class _DevicesPageState extends State<DevicesPage> {
               child: Container(
                 height: 54,
                 alignment: Alignment.center,
-                decoration: SediGlass.pistachioSphere().copyWith(
-                  shape: BoxShape.rectangle,
+                decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(27),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFDCE98F), Color(0xFFB8CB55)],
+                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.7)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6E8C28).withOpacity(0.30),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

@@ -121,13 +121,7 @@ void main() {
     for (final subtitle in l10n.sectionSubtitles) {
       expect(find.text(subtitle), findsOneWidget);
     }
-    expect(
-      find.descendant(
-        of: find.byType(ListView),
-        matching: find.byType(InkWell),
-      ),
-      findsNWidgets(5),
-    );
+    expect(find.byType(ListView), findsNothing); // pilot V1: the hub never scrolls
     expect(find.byIcon(Icons.favorite_border), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
     // pilot V1 (R-034): the schedule and exercise cards got new glyphs (calendar-check, dumbbell)

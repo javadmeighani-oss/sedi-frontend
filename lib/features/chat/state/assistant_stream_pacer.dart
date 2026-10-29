@@ -21,14 +21,16 @@ class AssistantStreamPacer {
   bool _cancelled = false;
   bool _hasPainted = false;
   DateTime? _lastPaintAt;
+  Duration _lastGap = revealDelay;
 
   bool get isIdle => !_running && _queue.isEmpty;
 
   Future<void> get whenIdle => _idle.future;
 
-  void enqueue(String chunk, void Function(String chunk) apply) {
+  /// [gap] = how long to wait AFTER this chunk is painted before the next one (default: [revealDelay]).
+  void enqueue(String chunk, void Function(String chunk) apply, {Duration? gap}) {
     if (_cancelled || chunk.isEmpty) return;
-    _queue.add(_QueuedChunk(chunk, apply));
+    _queue.add(_QueuedChunk(chunk, apply, gap ?? revealDelay));
     if (_idle.isCompleted) {
       _idle = Completer<void>();
     }
@@ -37,7 +39,7 @@ class AssistantStreamPacer {
 
   Future<void> _waitForCadence() async {
     if (!_hasPainted || _lastPaintAt == null) return;
-    final remaining = revealDelay - DateTime.now().difference(_lastPaintAt!);
+    final remaining = _lastGap - DateTime.now().difference(_lastPaintAt!);
     if (remaining > Duration.zero) {
       await Future<void>.delayed(remaining);
     }
@@ -53,6 +55,7 @@ class AssistantStreamPacer {
       next.apply(next.chunk);
       _hasPainted = true;
       _lastPaintAt = DateTime.now();
+      _lastGap = next.gap;
     }
     _running = false;
     if (!_idle.isCompleted) {
@@ -72,6 +75,7 @@ class AssistantStreamPacer {
 class _QueuedChunk {
   final String chunk;
   final void Function(String chunk) apply;
+  final Duration gap;
 
-  const _QueuedChunk(this.chunk, this.apply);
+  const _QueuedChunk(this.chunk, this.apply, this.gap);
 }

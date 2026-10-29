@@ -146,17 +146,11 @@ class _LifestylePageState extends State<LifestylePage> {
             const SediSceneBackdrop(),
             LayoutBuilder(
               builder: (context, box) {
-                // Everything fits one screen; the list only scrolls on very small screens.
-                final todayBlock = summary == null ? 0.0 : _todayHeight + _gap;
-                final minGrid = 560.0;
-                final height = math.max(
-                  box.maxHeight - top - 24,
-                  todayBlock + minGrid,
-                );
-                return ListView(
+                // Everything fits ONE screen and never scrolls: the cards share the height that is left.
+                final height = math.max(box.maxHeight - top - 24, 0.0);
+                return Padding(
                   padding: EdgeInsets.fromLTRB(16, top, 16, 24),
-                  children: [
-                    SizedBox(
+                  child: SizedBox(
                       height: height,
                       child: Column(
                         children: [
@@ -222,7 +216,6 @@ class _LifestylePageState extends State<LifestylePage> {
                         ],
                       ),
                     ),
-                  ],
                 );
               },
             ),

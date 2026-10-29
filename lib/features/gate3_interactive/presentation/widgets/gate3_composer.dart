@@ -295,28 +295,35 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: field,
                       ),
-                      Row(
-                        children: [
-                          _buildAttachButton(),
-                          const Spacer(),
-                          _buildPrimaryAction(hasText),
-                        ],
+                      // the button order is physical, not language-bound: paperclip left, mic / send right
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Row(
+                          children: [
+                            _buildAttachButton(),
+                            const Spacer(),
+                            _buildPrimaryAction(hasText),
+                          ],
+                        ),
                       ),
                     ],
                   );
                 }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildAttachButton(),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: field,
+                return Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildAttachButton(),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: field,
+                        ),
                       ),
-                    ),
-                    _buildPrimaryAction(hasText),
-                  ],
+                      _buildPrimaryAction(hasText),
+                    ],
+                  ),
                 );
               },
             ),
