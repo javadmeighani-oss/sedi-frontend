@@ -403,11 +403,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                           Positioned.fill(
                             child: Column(
                               children: [
-                                // The expanded top tray (about 84dp of icons) used to cover the sphere: it now moves down with it.
+                                // The expanded top tray (glass panel + its pill, 88dp more than the collapsed pill) moves the sphere down with it.
                                 AnimatedContainer(
                                   duration: Gate3TopNavigationTray.toggleDuration,
                                   curve: Gate3TopNavigationTray.toggleCurve,
-                                  height: _topTrayExpanded ? 84 : 0,
+                                  height: _topTrayExpanded
+                                      ? Gate3TopNavigationTray.expandedExtraHeight
+                                      : 0,
                                 ),
                                 SediLivingEcho(
                                   state: _orbState(),

@@ -1,14 +1,13 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import 'gate3_attachment_flow.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
 
-/// Gate 3 composer. Hologram redesign: a floating glass capsule
-/// [+] [text field] [mic / send / stop]. Behaviour is unchanged.
+/// Gate 3 composer. Pilot V1 (R-034): a liquid-glass capsule [attach] [text field] [mic / send / stop] with a
+/// round pistachio 3D mic and a bare thin-line attach icon. Behaviour is unchanged.
 class Gate3Composer extends StatefulWidget {
   final ValueChanged<String> onSendText;
   final VoidCallback onStartRecording;
@@ -46,11 +45,15 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   // Keeps the TextField's element alive when the layout flips between the one-line row and the wide column;
   // without it the field is rebuilt, the input connection drops and the keyboard closes/opens while typing.
   final GlobalKey _fieldKey = GlobalKey(debugLabel: 'gate3ComposerField');
+  // The paperclip: the attach icons rise from its top edge.
+  final GlobalKey _attachKey = GlobalKey(debugLabel: 'gate3ComposerAttach');
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
   static const double _maxTextHeight = 168;
   static const double _minTextHeight = 44;
-  static const double _capsuleRadius = 29;
+  static const double _capsuleRadius = 34;
+  static const double _primarySize = 52;
+  static const double _attachSize = 48;
 
   @override
   void initState() {
@@ -120,6 +123,12 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     }
   }
 
+  Rect? _attachRect() {
+    final box = _attachKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
   void _openAttachmentMenu() {
     _focusNode.unfocus();
     Gate3AttachmentMenu.show(
@@ -127,6 +136,18 @@ class _Gate3ComposerState extends State<Gate3Composer> {
       widget.lang,
       flow: _attachmentFlow,
       onTalk: widget.onSendText,
+      anchor: _attachRect(),
+    );
+  }
+
+  Widget _buildAttachButton() {
+    return Gate3ComposerActionButton(
+      key: _attachKey,
+      icon: Icons.attach_file_rounded,
+      size: _attachSize,
+      iconSize: 28,
+      bare: true,
+      onTap: widget.isRecording ? null : _openAttachmentMenu,
     );
   }
 
@@ -207,7 +228,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     if (widget.isRecording) {
       return Gate3ComposerActionButton(
         icon: Icons.stop_rounded,
-        size: 44,
+        size: _primarySize,
         iconSize: 24,
         backgroundColor: SediPalette.skin700,
         iconColor: Colors.white,
@@ -218,21 +239,17 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     if (hasText) {
       return Gate3ComposerActionButton(
         icon: Icons.arrow_upward_rounded,
-        size: 44,
+        size: _primarySize,
         iconSize: 24,
-        backgroundColor: SediPalette.pistachio500,
-        iconColor: SediPalette.charcoal950,
-        glowColor: SediPalette.pistachio300,
+        sphere: true,
         onTap: _send,
       );
     }
     return Gate3ComposerActionButton(
       icon: Icons.mic_rounded,
-      size: 44,
+      size: _primarySize,
       iconSize: 24,
-      backgroundColor: SediPalette.pistachio500,
-      iconColor: SediPalette.charcoal950,
-      glowColor: SediPalette.pistachio300,
+      sphere: true,
       onTap: _handleMic,
     );
   }
@@ -242,82 +259,66 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     final hasText = _controller.text.trim().isNotEmpty;
     final textDirection =
         widget.isRtl ? TextDirection.rtl : TextDirection.ltr;
-    final textAlign = widget.isRtl ? TextAlign.right : TextAlign.left;
+    // Typed lines are justified like the chat text: every wrapped line the same width.
+    const textAlign = TextAlign.justify;
     const radius = BorderRadius.all(Radius.circular(_capsuleRadius));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              color: SediPalette.sageSurface.withOpacity(0.96),
-              border: Border.all(
-                color: SediPalette.sageLine,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: LayoutBuilder(
-                builder: (context, box) {
-                  final field = KeyedSubtree(
-                    key: _fieldKey,
-                    child: widget.isRecording
-                        ? _buildRecordingBody()
-                        : _buildTextField(
-                            textDirection: textDirection,
-                            textAlign: textAlign,
-                          ),
-                  );
-                  // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
-                  // instead of the text wrapping early between two buttons (Javad 2026-10-28).
-                  if (!widget.isRecording && _needsWideField(box.maxWidth, textDirection)) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: field,
+      child: SediGlass.blur(
+        radius: radius,
+        sigma: 20,
+        child: DecoratedBox(
+          decoration: SediGlass.capsule(radius),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final field = KeyedSubtree(
+                  key: _fieldKey,
+                  child: widget.isRecording
+                      ? _buildRecordingBody()
+                      : _buildTextField(
+                          textDirection: textDirection,
+                          textAlign: textAlign,
                         ),
-                        Row(
-                          children: [
-                            Gate3ComposerActionButton(
-                              icon: Icons.add_rounded,
-                              size: 44,
-                              iconSize: 22,
-                              onTap: _openAttachmentMenu,
-                            ),
-                            const Spacer(),
-                            _buildPrimaryAction(hasText),
-                          ],
-                        ),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                );
+                // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
+                // instead of the text wrapping early between two buttons (Javad 2026-10-28).
+                if (!widget.isRecording &&
+                    _needsWideField(box.maxWidth, textDirection)) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Gate3ComposerActionButton(
-                        icon: Icons.add_rounded,
-                        size: 44,
-                        iconSize: 22,
-                        onTap: widget.isRecording ? null : _openAttachmentMenu,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: field,
                       ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: field,
-                        ),
+                      Row(
+                        children: [
+                          _buildAttachButton(),
+                          const Spacer(),
+                          _buildPrimaryAction(hasText),
+                        ],
                       ),
-                      _buildPrimaryAction(hasText),
                     ],
                   );
-                },
-              ),
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildAttachButton(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: field,
+                      ),
+                    ),
+                    _buildPrimaryAction(hasText),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -336,7 +337,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     final text = _controller.text;
     if (text.trim().isEmpty) return false;
     if (text.contains('\n')) return true;
-    final narrow = rowWidth - 88 - 20; // two 44dp buttons + the field's horizontal padding
+    // the attach and primary buttons + the field's horizontal padding
+    final narrow = rowWidth - (_attachSize + _primarySize) - 20;
     if (narrow <= 0) return false;
     final painter = TextPainter(
       text: TextSpan(text: text, style: _fieldStyle),

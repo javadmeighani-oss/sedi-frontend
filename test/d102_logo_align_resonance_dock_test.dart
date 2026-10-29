@@ -44,8 +44,8 @@ void main() {
     );
     final logo = tester.getRect(find.byType(SediHologramOrb));
     final text = tester.getRect(find.text(long));
-    // First line box = 15 * 1.45; the text block starts after the inset.
-    final firstLineCentre = text.top + 15 * 1.45 / 2;
+    // First line box = 15 * 1.7 (pilot V1); the text block starts after the inset.
+    final firstLineCentre = text.top + 15 * 1.7 / 2;
     expect(logo.center.dy, closeTo(firstLineCentre, 1.0));
   });
 
@@ -66,8 +66,9 @@ void main() {
   });
 
   test('text inset follows the logo and line metrics', () {
-    expect(MessageBubble.sediTextTopInset,
-        closeTo((34 - 15 * 1.45) / 2, 0.001));
+    // the glass panel pads the text by 11dp; the logo's centre sits on the first line's centre
+    expect(MessageBubble.sediLogoTopInset,
+        closeTo(11 + 15 * 1.7 / 2 - 34 / 2, 0.001));
   });
 
   testWidgets('resonance dock is centred and about half the width',

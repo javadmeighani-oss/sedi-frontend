@@ -168,7 +168,7 @@ void main() {
   });
 
   group('Chat bubbles + resonance', () {
-    testWidgets('user bubble only; assistant unboxed and full', (tester) async {
+    testWidgets('user bubble is the only Container bubble; assistant text is full (glass panel, pilot V1)', (tester) async {
       const long = 'line one\nline two\nline three';
       await tester.pumpWidget(
         const MaterialApp(
@@ -187,7 +187,7 @@ void main() {
       expect(texts.length, 2);
       expect(texts.any((t) => t.maxLines == 2), isTrue);
       expect(texts.any((t) => t.maxLines == null), isTrue);
-      // Only user message uses a decorated Container bubble.
+      // Only the user message uses a decorated Container bubble (Sedi's glass panel is a DecoratedBox).
       final decorated = tester
           .widgetList<Container>(find.byType(Container))
           .where((c) => c.decoration is BoxDecoration)

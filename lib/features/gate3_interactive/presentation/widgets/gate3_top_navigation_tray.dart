@@ -1,11 +1,11 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/sedi_palette.dart';
+import '../../../../core/theme/sedi_glass.dart';
 
 /// Presentation-only collapsible tray around the A3 destination icon row.
-/// Hologram redesign: a glass tray that floats over the scene (same API).
+///
+/// Pilot V1 (R-034): collapsed it is only a small glass pill with a thin chevron; open it is one frosted glass
+/// panel dropping from the top, with the pill hanging on its lower edge and its chevron pointing up. Same API.
 class Gate3TopNavigationTray extends StatefulWidget {
   final bool expanded;
   final VoidCallback onToggle;
@@ -15,7 +15,14 @@ class Gate3TopNavigationTray extends StatefulWidget {
 
   static const Duration toggleDuration = Duration(milliseconds: 240);
   static const Curve toggleCurve = Curves.easeOutCubic;
+
+  /// Tap target of the pill (the visible pill is [pillHeight] tall inside it).
   static const double handleHeight = 44;
+  static const double pillWidth = 78;
+  static const double pillHeight = 32;
+
+  /// Extra height the open panel needs below the collapsed tray (the page moves its content down by this much).
+  static const double expandedExtraHeight = 88;
 
   const Gate3TopNavigationTray({
     super.key,
@@ -33,6 +40,11 @@ class Gate3TopNavigationTray extends StatefulWidget {
 class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
     with SingleTickerProviderStateMixin {
   late final AnimationController _size;
+
+  // The pill's tap box sits 2dp from the top when collapsed (its visible pill 8dp from the top); when open the pill
+  // hangs 16dp over the panel's lower edge, so the box bottom is 22dp below that edge.
+  static const double _gapCollapsed = 2 + Gate3TopNavigationTray.handleHeight;
+  static const double _gapExpanded = 22;
 
   @override
   void initState() {
@@ -66,72 +78,80 @@ class _Gate3TopNavigationTrayState extends State<Gate3TopNavigationTray>
 
   @override
   Widget build(BuildContext context) {
-    final showIcons = widget.expanded || _size.value > 0.001;
-    const radius = BorderRadius.vertical(bottom: Radius.circular(22));
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: SediPalette.sageSurface.withOpacity(0.96),
-            border: const Border(
-              bottom: BorderSide(color: SediPalette.sageLine, width: 0.8),
-            ),
-            borderRadius: radius,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onToggle,
-                child: ClipRect(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    heightFactor: _size.value,
-                    child: showIcons
-                        ? Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                            child: widget.child,
-                          )
-                        : const SizedBox(width: double.infinity, height: 0),
+    final t = _size.value;
+    final showPanel = widget.expanded || t > 0.001;
+    const radius = BorderRadius.vertical(bottom: Radius.circular(34));
+    final gap = _gapCollapsed + (_gapExpanded - _gapCollapsed) * t;
+
+    final Widget panel = showPanel
+        ? SediGlass.blur(
+            radius: radius,
+            sigma: 22,
+            child: DecoratedBox(
+              decoration: SediGlass.trayPanel(radius),
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: t,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 14, 10, 22),
+                    child: widget.child,
                   ),
                 ),
               ),
-              Semantics(
-                key: const ValueKey('a3-top-tray-semantics'),
-                button: true,
-                label: widget.expanded
-                    ? widget.collapseLabel
-                    : widget.expandLabel,
-                child: Material(
-                  color: const Color(0x00000000),
-                  child: InkWell(
-                    key: const ValueKey('a3-top-tray-toggle'),
-                    onTap: widget.onToggle,
+            ),
+          )
+        : const SizedBox(width: double.infinity, height: 0);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: gap),
+          child: panel,
+        ),
+        Positioned(
+          bottom: 0,
+          child: Semantics(
+            key: const ValueKey('a3-top-tray-semantics'),
+            button: true,
+            label: widget.expanded ? widget.collapseLabel : widget.expandLabel,
+            child: Material(
+              color: const Color(0x00000000),
+              child: InkWell(
+                key: const ValueKey('a3-top-tray-toggle'),
+                onTap: widget.onToggle,
+                customBorder: const StadiumBorder(),
+                child: SizedBox(
+                  width: Gate3TopNavigationTray.pillWidth,
+                  height: Gate3TopNavigationTray.handleHeight,
+                  child: Center(
                     child: SizedBox(
-                      width: double.infinity,
-                      height: Gate3TopNavigationTray.handleHeight,
-                      child: Center(
-                        child: _TrayChevron(expanded: widget.expanded),
+                      width: Gate3TopNavigationTray.pillWidth,
+                      height: Gate3TopNavigationTray.pillHeight,
+                      child: DecoratedBox(
+                        decoration: SediGlass.pill(strong: widget.expanded),
+                        child: Center(
+                          child: _TrayChevron(expanded: widget.expanded),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
-/// Visible chevron only. Handle tap target stays [Gate3TopNavigationTray.handleHeight].
+/// Visible chevron only: thin, rounded, deep olive. The tap target is the pill's box.
 class _TrayChevron extends StatelessWidget {
-  static const double visualSize = 18 * 1.56; // +20 % (D-095)
-  static const double strokeWidth = 2.6; // bolder, clearly visible (D-095)
+  static const double visualSize = 18 * 1.56;
+  static const double strokeWidth = 1.9;
 
   final bool expanded;
 
@@ -143,7 +163,7 @@ class _TrayChevron extends StatelessWidget {
       size: const Size.square(visualSize),
       painter: _TrayChevronPainter(
         pointingUp: expanded,
-        color: SediPalette.pistachio900,
+        color: SediGlass.ink,
         strokeWidth: strokeWidth,
       ),
     );

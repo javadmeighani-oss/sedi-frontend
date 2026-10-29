@@ -81,8 +81,8 @@ void main() {
     expect(bubble.contains('AlignmentDirectional.centerEnd'), isFalse);
     expect(bubble.contains('resolveTextDirection'), isTrue);
     expect(bubble.contains('textDirection: textDirection'), isTrue);
-    expect(bubble.contains('TextAlign.right'), isTrue);
-    expect(bubble.contains('TextAlign.left'), isTrue);
+    // pilot V1 (R-034): every line of a message is justified to the same width
+    expect(bubble.contains('TextAlign.justify'), isTrue);
     expect(bubble.contains('Read more'), isTrue);
     expect(bubble.contains('Read less'), isTrue);
     expect(bubble.contains('Tap to retry'), isTrue);
@@ -221,7 +221,7 @@ void main() {
     expect(ltrDec.right, greaterThan(ltrDec.left));
     final ltrText = tester.widget<Text>(find.text('Hello'));
     expect(ltrText.textDirection, TextDirection.ltr);
-    expect(ltrText.textAlign, TextAlign.left);
+    expect(ltrText.textAlign, TextAlign.justify);
     final ltrHit = tester.getRect(
       _editHitTarget(find.byIcon(Icons.edit_outlined)),
     );
@@ -270,7 +270,7 @@ void main() {
 
     final userText = tester.widget<Text>(find.text('سلام ۱۲۳'));
     expect(userText.textDirection, TextDirection.rtl);
-    expect(userText.textAlign, TextAlign.right);
+    expect(userText.textAlign, TextAlign.justify);
 
     final faAlign =
         tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
@@ -297,7 +297,7 @@ void main() {
 
     final userText = tester.widget<Text>(find.text('سلام دنیا'));
     expect(userText.textDirection, TextDirection.rtl);
-    expect(userText.textAlign, TextAlign.right);
+    expect(userText.textAlign, TextAlign.justify);
     final align =
         tester.widget<Align>(_userGroupAlign(find.byType(MessageBubble)));
     expect(align.alignment, Alignment.centerRight);
@@ -323,7 +323,7 @@ void main() {
     await tester.pump();
     final userText = tester.widget<Text>(find.text(mixed));
     expect(userText.textDirection, TextDirection.rtl);
-    expect(userText.textAlign, TextAlign.right);
+    expect(userText.textAlign, TextAlign.justify);
     final host = tester.getRect(find.byType(MessageBubble));
     expect(
       _isPhysicalRight(host, tester.getRect(_decoratedUserBubble())),

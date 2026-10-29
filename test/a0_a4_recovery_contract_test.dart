@@ -162,7 +162,7 @@ void main() {
       ),
     );
 
-    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file_rounded), findsOneWidget); // pilot V1: the paperclip replaces the plus
     expect(find.byIcon(Icons.image_outlined), findsNothing);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontSize, 16.2);
