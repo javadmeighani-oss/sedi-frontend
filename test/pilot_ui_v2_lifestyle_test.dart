@@ -21,10 +21,10 @@ void main() {
     for (final title in l10n.sectionTitles) {
       expect(find.text(title), findsOneWidget);
     }
-    expect(
-      find.descendant(of: find.byType(ListView), matching: find.byType(InkWell)),
-      findsNWidgets(5),
-    );
+    // Javad 2026-10-29: the hub is ONE screen - nothing scrolls
+    expect(find.byType(ListView), findsNothing);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
     // R-035: the sphere is on the start side of the title (left in LTR)
     final orb = tester.getCenter(find.byType(SediHologramOrb));
     final title = tester.getCenter(find.text(l10n.title));

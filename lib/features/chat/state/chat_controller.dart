@@ -23,6 +23,7 @@ import '../../../services/chat/chat_stream_client.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
 import 'assistant_stream_pacer.dart';
+import 'natural_reveal.dart';
 
 /// Current-day raw turns only. Backend [HistoryResponse.currentGroupKey] is day authority.
 List<ChatMessage> currentDayMessagesFromHistory(HistoryResponse history) {
@@ -259,6 +260,7 @@ class ChatController extends ChangeNotifier {
   Future<void> sendUserMessage(String text, {DateTime? createdAt}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    _finishRevealNow();
     final localId = DateTime.now().microsecondsSinceEpoch.toString();
     // Do not mutate Account.preferred_language from typed language.
     currentLanguage = SediLocaleController.instance.languageCode;
@@ -307,7 +309,10 @@ class ChatController extends ChangeNotifier {
             notifyListeners();
           }
 
-          pacer.enqueue(delta, apply);
+          final tokens = NaturalReveal.tokens(delta);
+          for (final token in tokens) {
+            pacer.enqueue(token, apply, gap: NaturalReveal.gapFor(token));
+          }
         },
       );
       await pacer.whenIdle;
@@ -446,16 +451,68 @@ class ChatController extends ChangeNotifier {
 
   void _addSediMessage(String text) {
     isThinking = false;
+    _finishRevealNow();
+    final tokens = NaturalReveal.tokens(text);
+    if (tokens.length <= 1) {
+      isSpeaking = false;
+      messages.add(ChatMessage(text: text, role: ChatRole.assistant));
+      notifyListeners();
+      return;
+    }
+
+    // Javad 2026-10-29: Sedi's text is always "streamed" - word by word, slowly and naturally - also when the
+    // answer (or the opener) arrives in one piece. The speaking state lasts until the last word.
+    final id = 'sedi-reveal-${DateTime.now().microsecondsSinceEpoch}';
+    final pacer = AssistantStreamPacer();
+    _revealPacer = pacer;
+    _revealId = id;
+    _revealFull = text;
+    isSpeaking = true;
+    var shown = false;
+    for (final token in tokens) {
+      pacer.enqueue(
+        token,
+        (chunk) {
+          if (!shown) {
+            shown = true;
+            messages.add(ChatMessage.assistant(text: chunk, localId: id));
+          } else {
+            final idx = messages.indexWhere((m) => m.localId == id);
+            if (idx >= 0) {
+              messages[idx] = ChatMessage.assistant(text: messages[idx].text + chunk, localId: id);
+            }
+          }
+          notifyListeners();
+        },
+        gap: NaturalReveal.gapFor(token, total: tokens.length),
+      );
+    }
+    pacer.whenIdle.then((_) {
+      if (_revealId == id) {
+        _revealId = null;
+        _revealPacer = null;
+        isSpeaking = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  AssistantStreamPacer? _revealPacer;
+  String? _revealId;
+  String _revealFull = '';
+
+  /// A reveal in progress shows its whole text at once (the user sent something new, or the screen closes).
+  void _finishRevealNow() {
+    final id = _revealId;
+    if (id == null) return;
+    _revealPacer?.cancel();
+    final idx = messages.indexWhere((m) => m.localId == id);
+    if (idx >= 0) {
+      messages[idx] = ChatMessage.assistant(text: _revealFull, localId: id);
+    }
+    _revealId = null;
+    _revealPacer = null;
     isSpeaking = false;
-
-    messages.add(
-      ChatMessage(
-        text: text,
-        role: ChatRole.assistant,
-      ),
-    );
-
-    notifyListeners();
   }
 
   /// Presentation-only Lifestyle/context starter. Never SPEAKING; never auto-send.
@@ -529,6 +586,7 @@ class ChatController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _revealPacer?.cancel();
     _streamClient.dispose();
     super.dispose();
   }

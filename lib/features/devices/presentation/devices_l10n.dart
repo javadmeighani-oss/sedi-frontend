@@ -35,9 +35,9 @@ class DevicesL10n {
         ar: 'أجهزة صدی المتخصصة',
       );
   String get specialBody => _t(
-        en: 'The gadgets in development belong only to Sedi and are made to care for you. For now the heart-rate gadget is being built; when it is ready you connect it right here.',
-        fa: 'گجت‌هایی که در حال توسعه‌اند فقط مال صدی‌ان و برای مراقبت از تو ساخته می‌شن. فعلاً گجت ضربان قلب در دست ساخته؛ وقتی آماده شد، همین‌جا وصلش می‌کنی.',
-        ar: 'الأجهزة قيد التطوير تخص صدی وحده وتُصنع للعناية بك. حاليًا يجري تطوير جهاز نبض القلب، وعندما يصبح جاهزًا تربطه هنا.',
+        en: "Soon, Sedi's specialised gadgets will connect here for your continuous care.",
+        fa: 'به‌زودی گجت‌های تخصصی صدی برای مراقبت پیوسته‌ی شما در همین بخش متصل خواهند شد.',
+        ar: 'قريبًا سيتم ربط أجهزة صدی المتخصصة هنا لرعايتك المستمرة.',
       );
 
   String get active => _t(en: 'Active', fa: 'فعال', ar: 'نشط');
