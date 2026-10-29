@@ -45,10 +45,11 @@ void main() {
   test('the pacer honours a per-chunk gap and keeps its default cadence', () async {
     final seen = <String>[];
     final pacer = AssistantStreamPacer();
-    pacer.enqueue('a ', seen.add, gap: const Duration(milliseconds: 5));
-    pacer.enqueue('b ', seen.add, gap: const Duration(milliseconds: 5));
+    pacer.enqueue('a ', seen.add, gap: const Duration(milliseconds: 60));
+    pacer.enqueue('b ', seen.add, gap: const Duration(milliseconds: 60));
     pacer.enqueue('c', seen.add);
-    expect(seen, ['a ']);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(seen, ['a ']); // the first word shows at once, the next waits for the gap
     await pacer.whenIdle;
     expect(seen, ['a ', 'b ', 'c']);
     expect(AssistantStreamPacer.revealDelay.inMilliseconds, 53);
