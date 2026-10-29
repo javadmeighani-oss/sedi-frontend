@@ -1,13 +1,18 @@
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../../../services/lifestyle/lifestyle_schedule_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../domain/schedule_today.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
@@ -17,6 +22,7 @@ import 'lifestyle_nutrition_page.dart';
 import 'lifestyle_schedule_page.dart';
 
 /// A3 Lifestyle hub — exactly five primary sections. Old sleep/water/mood UI retired here.
+/// Pilot V1 (R-034/R-035): glass bento cards, icon first; the Sedi sphere sits on the start side of the title.
 class LifestylePage extends StatefulWidget {
   const LifestylePage({super.key});
 
@@ -26,6 +32,9 @@ class LifestylePage extends StatefulWidget {
 
 class _LifestylePageState extends State<LifestylePage> {
   static const Color _canvas = Color(0xFFDCE0C0); // Soft Sage (= A3DestinationSurface.canvas)
+
+  static const double _todayHeight = 140;
+  static const double _gap = 12;
 
   /// Live one-line summary of today (R-031); null until loaded or when it cannot be read.
   ScheduleDaySummary? _summary;
@@ -61,183 +70,482 @@ class _LifestylePageState extends State<LifestylePage> {
   Widget build(BuildContext context) {
     final l10n = LifestyleL10n(SediLocaleController.instance.languageCode);
     final summary = _summary;
-    final cards = <_HubCard>[
-      _HubCard(
-        l10n.health,
-        l10n.healthSubtitle,
-        Icons.favorite_border,
-        const LifestyleHealthPage(),
-      ),
-      _HubCard(
-        l10n.myHistory,
-        l10n.historySubtitle,
-        Icons.history,
-        const LifestyleHistoryPage(),
-      ),
-      _HubCard(
-        l10n.mySchedule,
-        summary == null
-            ? l10n.scheduleSubtitle
-            : l10n.hubScheduleLine(summary.total - summary.done),
-        Icons.event_note_outlined,
-        const LifestyleSchedulePage(),
-      ),
-      _HubCard(
-        l10n.nutritionPlan,
-        l10n.nutritionSubtitle,
-        Icons.restaurant_outlined,
-        const LifestyleNutritionPage(),
-      ),
-      _HubCard(
-        l10n.exercisePlan,
-        l10n.exerciseSubtitle,
-        Icons.directions_run_outlined,
-        const LifestyleExercisePage(),
-      ),
-    ];
+    final top = MediaQuery.of(context).padding.top + kToolbarHeight + 8;
+
+    final health = _HubCard(
+      l10n.health,
+      l10n.healthSubtitle,
+      Icons.favorite_border,
+      const LifestyleHealthPage(),
+      _HubTint.health,
+    );
+    final history = _HubCard(
+      l10n.myHistory,
+      l10n.historySubtitle,
+      Icons.history,
+      const LifestyleHistoryPage(),
+      _HubTint.history,
+    );
+    final schedule = _HubCard(
+      l10n.mySchedule,
+      summary == null
+          ? l10n.scheduleSubtitle
+          : l10n.hubScheduleLine(summary.total - summary.done),
+      Icons.event_available_outlined,
+      const LifestyleSchedulePage(),
+      _HubTint.schedule,
+    );
+    final nutrition = _HubCard(
+      l10n.nutritionPlan,
+      l10n.nutritionSubtitle,
+      Icons.restaurant_outlined,
+      const LifestyleNutritionPage(),
+      _HubTint.nutrition,
+    );
+    final exercise = _HubCard(
+      l10n.exercisePlan,
+      l10n.exerciseSubtitle,
+      Icons.fitness_center_outlined,
+      const LifestyleExercisePage(),
+      _HubTint.exercise,
+    );
 
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: _canvas,
+        extendBodyBehindAppBar: true,
         appBar: A3PageAppBar(
-          title: Text(l10n.title),
-          backgroundColor: _canvas,
+          // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 38,
+                showRings: false,
+                animate: false,
+                keyedLogo: false,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.title,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.transparent,
         ),
-        body: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          itemCount: cards.length + (summary == null ? 0 : 1),
-          separatorBuilder: (_, __) => const SizedBox(height: 16),
-          itemBuilder: (context, i) {
-            if (summary != null && i == 0) {
-              return _hubTodayCard(summary, l10n);
-            }
-            final c = cards[summary == null ? i : i - 1];
-            return _LifestyleHubDestinationCard(card: c);
-          },
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SediSceneBackdrop(),
+            LayoutBuilder(
+              builder: (context, box) {
+                // Everything fits one screen; the list only scrolls on very small screens.
+                final todayBlock = summary == null ? 0.0 : _todayHeight + _gap;
+                final minGrid = 560.0;
+                final height = math.max(
+                  box.maxHeight - top - 24,
+                  todayBlock + minGrid,
+                );
+                return ListView(
+                  padding: EdgeInsets.fromLTRB(16, top, 16, 24),
+                  children: [
+                    SizedBox(
+                      height: height,
+                      child: Column(
+                        children: [
+                          if (summary != null) ...[
+                            SizedBox(
+                              height: _todayHeight,
+                              child: _hubTodayCard(summary, l10n),
+                            ),
+                            const SizedBox(height: _gap),
+                          ],
+                          Expanded(
+                            flex: 286,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _LifestyleHubDestinationCard(
+                                    card: health,
+                                    tall: true,
+                                  ),
+                                ),
+                                const SizedBox(width: _gap),
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      Expanded(
+                                        child: _LifestyleHubDestinationCard(
+                                          card: history,
+                                        ),
+                                      ),
+                                      const SizedBox(height: _gap),
+                                      Expanded(
+                                        child: _LifestyleHubDestinationCard(
+                                          card: schedule,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: _gap),
+                          Expanded(
+                            flex: 150,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _LifestyleHubDestinationCard(
+                                    card: nutrition,
+                                  ),
+                                ),
+                                const SizedBox(width: _gap),
+                                Expanded(
+                                  child: _LifestyleHubDestinationCard(
+                                    card: exercise,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// "Today" summary: how many things, how many done, what is next (same data as My Schedule).
+/// "Today" summary: the date as the small line, ONE sentence (never the word twice), a real progress ring
+/// and what is next - the same data as My Schedule. Shown only once that data is loaded.
 Widget _hubTodayCard(ScheduleDaySummary s, LifestyleL10n l10n) {
-    final fraction = s.total == 0 ? 0.0 : s.done / s.total;
-    final next = s.next;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [SediPalette.pistachio300, SediPalette.pistachio500],
+  final now = DateTime.now();
+  final lang = SediLocaleController.instance.languageCode;
+  final date =
+      '${l10n.weekdayShort(now.weekday)} ${CalendarDateMath.formatIsoForLanguage(isoDay(now), lang)}';
+  final fraction = s.total == 0 ? 0.0 : s.done / s.total;
+  final next = s.next;
+  const ink = Color(0xFF1B2208);
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [SediPalette.pistachio300, SediPalette.pistachio500],
+      ),
+      borderRadius: BorderRadius.circular(32),
+      border: Border.all(color: Colors.white.withOpacity(0.7)),
+      boxShadow: [
+        BoxShadow(
+          color: SediPalette.pistachio700.withOpacity(0.30),
+          blurRadius: 36,
+          offset: const Offset(0, 18),
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SediPalette.pistachio700.withOpacity(0.45)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.today,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2B3316)),
+      ],
+    ),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 76,
+          height: 76,
+          child: CustomPaint(
+            painter: _TodayRingPainter(fraction),
+            child: Center(
+              child: s.total == 0
+                  ? const Icon(Icons.wb_sunny_outlined,
+                      size: 34, color: Color(0xFF2B3A0E))
+                  : Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text(
+                        '${l10n.digits(s.done)}/${l10n.digits(s.total)}',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: ink,
+                        ),
+                      ),
+                    ),
+            ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            l10n.hubToday(s.total, s.done),
-            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: Color(0xFF1B2208)),
-          ),
-          if (s.total > 0) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 10,
-                backgroundColor: Colors.white.withOpacity(0.55),
-                valueColor: const AlwaysStoppedAnimation<Color>(SediPalette.pistachio900),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today_outlined,
+                      size: 15, color: Color(0xFF2B3316)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      date,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2B3316),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-          if (next != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              l10n.hubNext(next.title, l10n.timeText(next.when)),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1B2208)),
-            ),
-          ],
-        ],
-      ),
+              const SizedBox(height: 5),
+              Text(
+                l10n.hubToday(s.total, s.done),
+                style: const TextStyle(
+                  fontSize: 20,
+                  height: 1.3,
+                  fontWeight: FontWeight.w800,
+                  color: ink,
+                ),
+              ),
+              if (next != null) ...[
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule_rounded, size: 17, color: ink),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        l10n.hubNext(next.title, l10n.timeText(next.when)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _TodayRingPainter extends CustomPainter {
+  final double fraction;
+
+  const _TodayRingPainter(this.fraction);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2 - 5;
+    canvas.drawCircle(c, r, Paint()..color = Colors.white.withOpacity(0.35));
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7
+        ..color = Colors.white.withOpacity(0.75),
     );
+    if (fraction > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: c, radius: r),
+        -math.pi / 2,
+        2 * math.pi * fraction,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round
+          ..color = SediPalette.pistachio900,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TodayRingPainter oldDelegate) =>
+      oldDelegate.fraction != fraction;
 }
 
 class _LifestyleHubDestinationCard extends StatelessWidget {
   final _HubCard card;
 
-  const _LifestyleHubDestinationCard({required this.card});
+  /// The tall Health card: a larger icon tile and a soft decorative wave (decoration only, not data).
+  final bool tall;
+
+  const _LifestyleHubDestinationCard({required this.card, this.tall = false});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.gate2CardWhite,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => card.page),
-        ),
-        child: Ink(
+    final radius = BorderRadius.circular(30);
+    final tile = tall ? 58.0 : 50.0;
+    return Semantics(
+      container: true,
+      button: true,
+      label: card.title,
+      excludeSemantics: true,
+      child: SediGlass.blur(
+        radius: radius,
+        sigma: 16,
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppTheme.gate2CardWhite,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-            border: Border.all(
-              color: AppTheme.gate2BorderSubtle,
-              width: 0.8,
+            borderRadius: radius,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: card.tint.colors,
             ),
+            border: Border.all(color: Colors.white.withOpacity(0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF48551F).withOpacity(0.15),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(card.icon, color: AppTheme.gate2ButtonOlive, size: 24),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        card.title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => card.page),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: tile,
+                      height: tile,
+                      decoration: SediGlass.tile(),
+                      child: Icon(
+                        card.icon,
+                        size: 30,
+                        color: SediGlass.ink,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        card.subtitle,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.35,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textSecondary,
-                        ),
+                    ),
+                    if (tall)
+                      const Expanded(child: _SoftWave())
+                    else
+                      const Spacer(),
+                    Text(
+                      card.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1F2A09),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      card.subtitle,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4B5530),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// A faint pulse line on the Health card. Purely decorative: it never shows or implies a measurement.
+class _SoftWave extends StatelessWidget {
+  const _SoftWave();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Opacity(
+        opacity: 0.45,
+        child: CustomPaint(
+          size: Size(110, 30),
+          painter: _SoftWavePainter(),
+        ),
+      ),
+    );
+  }
+}
+
+class _SoftWavePainter extends CustomPainter {
+  const _SoftWavePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final path = Path()
+      ..moveTo(0, h * 0.55)
+      ..lineTo(w * 0.2, h * 0.55)
+      ..lineTo(w * 0.27, h * 0.2)
+      ..lineTo(w * 0.35, h * 0.95)
+      ..lineTo(w * 0.43, h * 0.4)
+      ..lineTo(w * 0.5, h * 0.55)
+      ..lineTo(w * 0.72, h * 0.55)
+      ..lineTo(w * 0.78, h * 0.3)
+      ..lineTo(w * 0.85, h * 0.8)
+      ..lineTo(w * 0.9, h * 0.55)
+      ..lineTo(w, h * 0.55);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFF5F7B22),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SoftWavePainter oldDelegate) => false;
+}
+
+/// Glass tints of the five cards (pistachio and shell family only).
+class _HubTint {
+  final List<Color> colors;
+  const _HubTint(this.colors);
+
+  static const health = _HubTint([Color(0x8CFFFFFF), Color(0x38ECF2CE)]);
+  static const history = _HubTint([Color(0xB3FBF8EE), Color(0x42F2E8CC)]);
+  static const schedule = _HubTint([Color(0x9ED5E383), Color(0x4DB8CB55)]);
+  static const nutrition = _HubTint([Color(0x94E7F0B0), Color(0x2EFFFFFF)]);
+  static const exercise = _HubTint([Color(0x80BED26E), Color(0x29FFFFFF)]);
 }
 
 class _HubCard {
@@ -245,7 +553,8 @@ class _HubCard {
   final String subtitle;
   final IconData icon;
   final Widget page;
-  const _HubCard(this.title, this.subtitle, this.icon, this.page);
+  final _HubTint tint;
+  const _HubCard(this.title, this.subtitle, this.icon, this.page, this.tint);
 }
 
 /// Opens canonical existing A3 chat (presentation CTA only).

@@ -47,15 +47,18 @@ void main() {
     expect(textBox.constraints.maxHeight, 168);
 
     final add = tester.widget<Gate3ComposerActionButton>(
-      find.widgetWithIcon(Gate3ComposerActionButton, Icons.add_rounded),
+      find.widgetWithIcon(Gate3ComposerActionButton, Icons.attach_file_rounded),
     );
     final mic = tester.widget<Gate3ComposerActionButton>(
       find.widgetWithIcon(Gate3ComposerActionButton, Icons.mic_rounded),
     );
-    expect(add.size, 44);
-    expect(add.iconSize, 22);
-    expect(mic.size, 44);
+    // pilot V1 (R-034): a bare 48dp paperclip and a 52dp pistachio 3D mic
+    expect(add.size, 48);
+    expect(add.iconSize, 28);
+    expect(add.bare, isTrue);
+    expect(mic.size, 52);
     expect(mic.iconSize, 24);
+    expect(mic.sphere, isTrue);
 
     final row = tester.widget<Row>(
       find.descendant(

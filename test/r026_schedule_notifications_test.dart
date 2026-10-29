@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/data/dto/chat/chat_send_request.dart';
 import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
+import 'package:sedi_app/features/lifestyle/presentation/widgets/schedule_add_sheets.dart';
 import 'package:sedi_app/features/lifestyle/presentation/widgets/schedule_reminder_sheets.dart';
 
 String _read(String path) => File(path).readAsStringSync();
@@ -25,12 +26,14 @@ void main() {
   });
 
   test(
-      'R-026 My Schedule: notification settings, add reminder, delete, "from chat"',
+      'R-026 My Schedule: one add sheet, delete, "from chat" and the single bell setting (pilot V1)',
       () {
     final page = _read(
       'lib/features/lifestyle/presentation/pages/lifestyle_schedule_page.dart',
     );
-    expect(page.contains('ScheduleNotificationSettingsCard'), isTrue);
+    // Javad 2026-10-29: the big «اعلان‌های صدی» card is gone; the bell keeps ONE setting (how many).
+    expect(page.contains('ScheduleNotificationSettingsCard'), isFalse);
+    expect(page.contains('showScheduleAmountSheet'), isTrue);
     expect(page.contains('ScheduleAddReminderSheet'), isTrue);
     expect(page.contains('createReminder'), isTrue);
     expect(page.contains('deleteEvent'), isTrue);
@@ -38,12 +41,12 @@ void main() {
     final domain = _read('lib/features/lifestyle/domain/schedule_today.dart');
     expect(domain.contains("e.source == 'conversation'"), isTrue);
     expect(page.contains('i.fromChat'), isTrue);
-    expect(page.contains('appointmentOffWarning'), isTrue);
-    final card = _read(
-      'lib/features/lifestyle/presentation/widgets/schedule_notification_settings_card.dart',
+    final sheet = _read(
+      'lib/features/lifestyle/presentation/widgets/schedule_amount_sheet.dart',
     );
-    expect(card.contains('NotificationPrefsRepository'), isTrue);
-    expect(card.contains('quietEnabled'), isTrue);
+    expect(sheet.contains('NotificationPrefsRepository'), isTrue);
+    expect(sheet.contains('engagementLevel'), isTrue);
+    expect(sheet.contains('quietEnabled'), isFalse); // quiet hours are no longer a setting
     final repo =
         _read('lib/data/repositories/notification_prefs_repository.dart');
     expect(repo.contains('Future<NotificationPrefsView?> fetch('), isTrue);
@@ -119,16 +122,19 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ثبت'));
+    // pilot V1: save is the check icon (no text)
+    await tester.tap(find.byKey(const ValueKey('schedule-add-save')));
     await tester.pump();
     expect(find.text(LifestyleL10n('fa').reminderNeedsTitle), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'قرص فشار');
-    await tester.tap(find.text('ثبت'));
+    await tester.tap(find.byKey(const ValueKey('schedule-add-save')));
     await tester.pumpAndSettle();
     // The default time is one hour ahead and the default offset is "at event time".
     expect(result, isNotNull);
     expect(result!.title, 'قرص فشار');
     expect(result!.offsetMinutes, 0);
     expect(result!.startsAt.isAfter(DateTime.now()), isTrue);
+    expect(result!.recurrenceRule, isNull); // «یک‌بار» is the default
+    expect(result!.type, ScheduleAddType.free);
   });
 }

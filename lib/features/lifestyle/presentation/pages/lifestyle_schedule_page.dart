@@ -2,20 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../../../services/lifestyle/lifestyle_schedule_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../domain/schedule_today.dart';
 import '../lifestyle_l10n.dart';
 import '../widgets/schedule_add_sheets.dart';
-import '../widgets/schedule_notification_settings_card.dart';
+import '../widgets/schedule_amount_sheet.dart';
 import '../widgets/schedule_reminder_sheets.dart';
 
-/// "My Schedule" (R-026 / R-031 redesign): today first - what is next, by category, with a tick for "done" that Sedi
-/// remembers (I7). The user adds their own plans by type (medication / doctor visit / meeting / other) and Sedi
-/// notifies on time. Notification settings live in one compact, plain-language card. Items Sedi created from chat are
-/// marked.
+/// "My Schedule" (R-026 / R-031, pilot V1 redesign R-034): today first - what is next, by category, with a tick for
+/// "done" that Sedi remembers (I7). The user adds anything in ONE sheet (type, title, day, time, repeat on chosen
+/// weekdays at the same time, when to notify) and Sedi notifies on time. The only notification setting is the bell in
+/// the header (how many). Items Sedi created from chat are marked.
 class LifestyleSchedulePage extends StatefulWidget {
   const LifestyleSchedulePage({super.key});
 
@@ -31,7 +35,6 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   // Optimistic ticks until the next reload confirms them.
   final Map<String, bool> _doneOverride = <String, bool>{};
   bool _loading = true;
-  bool _appointmentChannelOn = true;
   String? _error;
   ScheduleCategory? _filter;
 
@@ -146,28 +149,24 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     }
   }
 
+  /// ONE sheet for everything: the type is chosen inside it (medication keeps its dose times).
   Future<void> _add() async {
-    final type = await showAddTypeSheet(context, _l10n);
-    if (type == null || !mounted) return;
-    if (type == ScheduleAddType.medication) {
-      await _addMedication();
+    final input = await showModalBottomSheet<NewReminderInput>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ScheduleAddReminderSheet(l10n: _l10n),
+    );
+    if (input == null || !mounted) return;
+    if (input.type == ScheduleAddType.medication) {
+      await _addMedication(input);
     } else {
-      await _addEvent(type);
+      await _addEvent(input);
     }
   }
 
-  Future<void> _addMedication() async {
-    final input = await showModalBottomSheet<NewMedicationInput>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: SediPalette.sageSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (_) => ScheduleAddMedicationSheet(l10n: _l10n),
-    );
-    if (input == null || !mounted) return;
-    final res = await _svc.createMedication(name: input.name, times: input.times);
+  Future<void> _addMedication(NewReminderInput input) async {
+    final res = await _svc.createMedication(name: input.title, times: input.times);
     if (!mounted) return;
     if (res.ok) {
       await _load(silent: true);
@@ -176,20 +175,10 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     }
   }
 
-  Future<void> _addEvent(ScheduleAddType type) async {
-    final input = await showModalBottomSheet<NewReminderInput>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppTheme.gate2CardWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => ScheduleAddReminderSheet(l10n: _l10n),
-    );
-    if (input == null || !mounted) return;
+  Future<void> _addEvent(NewReminderInput input) async {
     final String domain;
     final String eventType;
-    switch (type) {
+    switch (input.type) {
       case ScheduleAddType.appointment:
         domain = 'medical';
         eventType = 'doctor_visit';
@@ -208,6 +197,7 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       offsetMinutes: input.offsetMinutes,
       eventDomain: domain,
       eventType: eventType,
+      recurrenceRule: input.recurrenceRule,
     );
     if (!mounted) return;
     if (res.ok) {
@@ -229,143 +219,279 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     // Javad 2026-10-28: with nothing planned there is ONE clear thing to do - add. No empty boxes, no filter chips.
     final hasAny = all.isNotEmpty || upcoming.isNotEmpty;
     final categories = all.map((i) => i.category).toSet().length;
+    final top = MediaQuery.of(context).padding.top + kToolbarHeight + 8;
 
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: A3DestinationSurface.canvas,
+        extendBodyBehindAppBar: true,
         appBar: A3PageAppBar(
-          title: Text(l10n.mySchedule),
-          backgroundColor: A3DestinationSurface.canvas,
+          // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 38,
+                showRings: false,
+                animate: false,
+                keyedLogo: false,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.mySchedule,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.transparent,
+          actions: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12),
+              child: Tooltip(
+                message: l10n.engagementTitle,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => showScheduleAmountSheet(context, l10n),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withOpacity(0.82),
+                            Colors.white.withOpacity(0.32),
+                          ],
+                        ),
+                        border: Border.all(color: Colors.white.withOpacity(0.92)),
+                      ),
+                      child: const Icon(Icons.notifications_none_rounded,
+                          size: 22, color: SediGlass.ink),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         bottomNavigationBar: hasAny
             ? SafeArea(
                 minimum: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: FilledButton.icon(
-                  onPressed: _add,
-                  icon: const Icon(Icons.add_rounded),
-                  label: Text(l10n.addToSchedule),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.ctaFill,
-                    foregroundColor: AppTheme.ctaText,
-                    minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                  ),
+                child: Center(
+                  heightFactor: 1,
+                  child: _addPill(l10n),
                 ),
               )
             : null,
-        body: RefreshIndicator(
-          color: AppTheme.gate2ButtonOlive,
-          onRefresh: _load,
-          child: _loading
-              ? ListView(children: const [
-                  SizedBox(height: 80),
-                  Center(
-                    child: CircularProgressIndicator(color: AppTheme.gate2ButtonOlive),
-                  ),
-                ])
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                  children: [
-                    if (!hasAny) ...[
-                      _emptyAddCard(l10n),
-                      const SizedBox(height: 14),
-                    ] else ...[
-                      if (all.isNotEmpty) ...[
-                        _nextCard(next, all, l10n, now),
-                        const SizedBox(height: 12),
-                      ],
-                      if (categories >= 2) ...[
-                        _chips(all, l10n),
-                        const SizedBox(height: 14),
-                      ],
-                    ],
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: A3DestinationCard(
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(color: AppTheme.dangerRed),
-                          ),
-                        ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SediSceneBackdrop(),
+            RefreshIndicator(
+              color: AppTheme.gate2ButtonOlive,
+              onRefresh: _load,
+              child: _loading
+                  ? ListView(children: const [
+                      SizedBox(height: 160),
+                      Center(
+                        child: CircularProgressIndicator(color: AppTheme.gate2ButtonOlive),
                       ),
-                    if (all.isNotEmpty) ...[
-                      _sectionTitle(l10n.today),
-                      if (shownToday.isEmpty)
-                        _emptyCard(l10n.allDoneToday)
-                      else
-                        ...shownToday.map((i) => _itemCard(i, l10n)),
-                    ],
-                    if (upcoming.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      _sectionTitle(l10n.upcoming),
-                      ...upcoming.map((i) => _itemCard(i, l10n, upcoming: true)),
-                    ],
-                    const SizedBox(height: 14),
-                    ScheduleNotificationSettingsCard(
-                      l10n: l10n,
-                      onAppointmentChannelChanged: (on) {
-                        if (mounted) setState(() => _appointmentChannelOn = on);
-                      },
+                    ])
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(16, top, 16, 24),
+                      children: [
+                        if (!hasAny) ...[
+                          _emptyAddCard(l10n),
+                          const SizedBox(height: 14),
+                        ] else ...[
+                          if (all.isNotEmpty) ...[
+                            _nextCard(next, all, l10n, now),
+                            const SizedBox(height: 12),
+                          ],
+                          if (categories >= 2) ...[
+                            _chips(all, l10n),
+                            const SizedBox(height: 14),
+                          ],
+                        ],
+                        if (_error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: A3DestinationCard(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(color: AppTheme.dangerRed),
+                              ),
+                            ),
+                          ),
+                        if (all.isNotEmpty) ...[
+                          if (shownToday.isEmpty)
+                            _emptyCard(l10n.allDoneToday)
+                          else
+                            ...shownToday.map((i) => _itemCard(i, l10n)),
+                        ],
+                        if (upcoming.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          _sectionTitle(l10n.upcoming),
+                          ...upcoming.map((i) => _itemCard(i, l10n, upcoming: true)),
+                        ],
+                      ],
                     ),
-                    if (!_appointmentChannelOn) ...[
-                      const SizedBox(height: 10),
-                      _warning(l10n.appointmentOffWarning),
-                    ],
-                  ],
-                ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  /// The 3D pistachio Add pill (one short word).
+  Widget _addPill(LifestyleL10n l10n, {bool wide = false}) {
+    return Semantics(
+      button: true,
+      label: l10n.addAction,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: _add,
+        child: Container(
+          height: 56,
+          width: wide ? double.infinity : null,
+          constraints: const BoxConstraints(minWidth: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const RadialGradient(
+              center: Alignment(-0.5, -0.8),
+              radius: 1.6,
+              colors: [
+                Color(0xFFF6FBD6),
+                Color(0xFFCFE27C),
+                Color(0xFFA9C648),
+                Color(0xFF8FAE3E),
+              ],
+              stops: [0.0, 0.38, 0.8, 1.0],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x57608022),
+                blurRadius: 22,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_rounded, size: 26, color: SediGlass.inkDeep),
+              const SizedBox(width: 10),
+              Text(
+                l10n.addAction,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _glass(double radius) => SediGlass.card(BorderRadius.circular(radius));
+
   /// The one empty state: what this page is for and a big Add button (replaces the empty "nothing today" boxes).
-  Widget _emptyAddCard(LifestyleL10n l10n) => A3DestinationCard(
-        padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _emptyAddCard(LifestyleL10n l10n) {
+    final radius = BorderRadius.circular(34);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 18,
+      child: DecoratedBox(
+        decoration: SediGlass.card(radius, strong: true),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 84,
+                  height: 84,
+                  decoration: SediGlass.tile().copyWith(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: const Icon(Icons.event_available_rounded,
+                      size: 44, color: SediGlass.ink),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.scheduleEmptyTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // what can be added: icons only
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (final icon in const [
+                    Icons.medication_outlined,
+                    Icons.local_hospital_outlined,
+                    Icons.groups_outlined,
+                    Icons.notifications_active_outlined,
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: SediGlass.tile().copyWith(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Icon(icon, size: 26, color: SediGlass.ink),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _addPill(l10n, wide: true),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+        child: Row(
           children: [
-            const Icon(Icons.event_available_rounded, size: 40, color: AppTheme.gate2ButtonOlive),
-            const SizedBox(height: 12),
+            const Icon(Icons.calendar_today_outlined, size: 17, color: SediPalette.sageMuted),
+            const SizedBox(width: 8),
             Text(
-              l10n.scheduleEmptyTitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.scheduleEmptyHint,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, height: 1.7, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: _add,
-              icon: const Icon(Icons.add_rounded),
-              label: Text(l10n.addToSchedule),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.ctaFill,
-                foregroundColor: AppTheme.ctaText,
-                minimumSize: const Size.fromHeight(56),
-                textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              text,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: SediPalette.sageMuted,
+                fontSize: 13,
               ),
             ),
           ],
-        ),
-      );
-
-  Widget _sectionTitle(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            color: SediPalette.sageMuted,
-            fontSize: 15,
-          ),
         ),
       );
 
@@ -383,108 +509,145 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       );
 
   Widget _nextCard(ScheduleItem? next, List<ScheduleItem> all, LifestyleL10n l10n, DateTime now) {
-    final doneCount = all.where((i) => i.done).length;
     final title = next == null
         ? (all.isEmpty ? l10n.nothingToday : l10n.allDoneToday)
-        : '${next.title} · ${l10n.timeText(next.when)}';
-    final trailing = next == null ? null : l10n.relativeIn(next.when.difference(now));
+        : next.title;
+    final label = next == null
+        ? null
+        : '${l10n.nextUp} · ${l10n.relativeIn(next.when.difference(now))}';
+    const ink = Color(0xFF1B2208);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [SediPalette.pistachio300, SediPalette.pistachio500],
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SediPalette.pistachio700.withOpacity(0.45)),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: SediPalette.pistachio700.withOpacity(0.30),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.55),
-              shape: BoxShape.circle,
+            width: 56,
+            height: 56,
+            decoration: SediGlass.tile().copyWith(borderRadius: BorderRadius.circular(20)),
+            child: Icon(
+              next == null ? Icons.event_available_rounded : _iconFor(next.category),
+              size: 30,
+              color: SediGlass.ink,
             ),
-            child: const Icon(Icons.schedule_rounded, color: Color(0xFF1B2208), size: 24),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  next == null ? l10n.today : l10n.nextUp,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2B3316)),
-                ),
+                if (label != null)
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF2B3316)),
+                  ),
                 Text(
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1B2208), height: 1.35),
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: ink, height: 1.3),
                 ),
-                if (all.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      l10n.hubToday(all.length, doneCount),
-                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF2B3316)),
-                    ),
-                  ),
               ],
             ),
           ),
-          if (trailing != null)
-            Text(
-              trailing,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1B2208)),
+          if (next != null)
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                l10n.timeText(next.when),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: ink),
+              ),
             ),
         ],
       ),
     );
   }
 
+  /// Category filter: icons only (shown only when there are two or more categories).
   Widget _chips(List<ScheduleItem> all, LifestyleL10n l10n) {
     int count(ScheduleCategory c) => all.where((i) => i.category == c).length;
-    Widget chip(String label, bool selected, VoidCallback onTap) {
+    Widget chip(Widget child, String semantic, bool selected, VoidCallback onTap) {
       return Padding(
         padding: const EdgeInsetsDirectional.only(end: 8),
-        child: ChoiceChip(
-          label: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: selected ? const Color(0xFFF6F3E0) : SediPalette.sageMuted,
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: semantic,
+          excludeSemantics: true,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Container(
+              height: 38,
+              constraints: const BoxConstraints(minWidth: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              decoration: selected
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(19),
+                      gradient: const RadialGradient(
+                        center: Alignment(-0.3, -0.6),
+                        radius: 1.6,
+                        colors: [
+                          Color(0xFFF6FBD6),
+                          Color(0xFFCFE27C),
+                          Color(0xFFA9C648),
+                        ],
+                      ),
+                    )
+                  : SediGlass.tile().copyWith(borderRadius: BorderRadius.circular(19)),
+              child: child,
             ),
           ),
-          selected: selected,
-          showCheckmark: false,
-          selectedColor: SediPalette.pistachio900,
-          backgroundColor: SediPalette.sageSurface,
-          side: const BorderSide(color: SediPalette.sageLine),
-          onSelected: (_) => onTap(),
         ),
       );
     }
 
-    final cats = <(ScheduleCategory, String)>[
-      (ScheduleCategory.medication, l10n.catMedication),
-      (ScheduleCategory.appointment, l10n.catAppointment),
-      (ScheduleCategory.meeting, l10n.catMeeting),
-      (ScheduleCategory.other, l10n.catOther),
+    final cats = <ScheduleCategory>[
+      ScheduleCategory.medication,
+      ScheduleCategory.appointment,
+      ScheduleCategory.meeting,
+      ScheduleCategory.other,
     ];
     return SizedBox(
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          chip(l10n.catAll(all.length), _filter == null, () => setState(() => _filter = null)),
+          chip(
+            Text(
+              l10n.catAll(all.length),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: SediGlass.inkDeep),
+            ),
+            l10n.catAll(all.length),
+            _filter == null,
+            () => setState(() => _filter = null),
+          ),
           for (final c in cats)
-            if (count(c.$1) > 0 || _filter == c.$1)
-              chip(c.$2, _filter == c.$1, () => setState(() => _filter = c.$1)),
+            if (count(c) > 0 || _filter == c)
+              chip(
+                Icon(_iconFor(c), size: 20, color: SediGlass.ink),
+                _catLabel(c, l10n),
+                _filter == c,
+                () => setState(() => _filter = c),
+              ),
         ],
       ),
     );
@@ -503,19 +666,6 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     }
   }
 
-  Color _accentFor(ScheduleCategory c) {
-    switch (c) {
-      case ScheduleCategory.medication:
-        return SediPalette.pistachio900;
-      case ScheduleCategory.appointment:
-        return SediPalette.skin700;
-      case ScheduleCategory.meeting:
-        return SediPalette.charcoal700;
-      case ScheduleCategory.other:
-        return SediPalette.charcoal500;
-    }
-  }
-
   String _catLabel(ScheduleCategory c, LifestyleL10n l10n) {
     switch (c) {
       case ScheduleCategory.medication:
@@ -529,177 +679,163 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     }
   }
 
+  /// A compact glass row: the category icon, the title with its time (and repeat), a small bell for the lead, the tick.
   Widget _itemCard(ScheduleItem i, LifestyleL10n l10n, {bool upcoming = false}) {
-    final accent = _accentFor(i.category);
     final repeat = l10n.repeatLabel(i.recurrenceRule, i.when.toIso8601String());
     final dateText = upcoming
         ? A3DestinationSurface.formatIsoTimestamp(i.when.toIso8601String(), l10n.lang)
         : null;
-    final reminderText = i.reminderMinutes == null
-        ? null
-        : '${l10n.reminder}: ${schedulePresetLabel(l10n, i.reminderMinutes)}';
     final done = i.done;
+    final radius = BorderRadius.circular(24);
+    final ink = done ? const Color(0xFF8A936B) : const Color(0xFF1F2A09);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 6, 12),
-        decoration: BoxDecoration(
-          color: done ? SediPalette.sageFill : SediPalette.sageSurface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: SediPalette.sageLine),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 58,
-              child: Text(
-                l10n.timeText(i.when),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  color: done ? SediPalette.sageMuted : AppTheme.textPrimary,
-                ),
+      child: SediGlass.blur(
+        radius: radius,
+        sigma: 14,
+        child: Container(
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 6, 10),
+          decoration: _glass(24),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: SediGlass.tile().copyWith(borderRadius: BorderRadius.circular(16)),
+                child: Icon(_iconFor(i.category), size: 25, color: SediGlass.ink),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    i.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: done ? SediPalette.sageMuted : AppTheme.textPrimary,
-                      decoration: done ? TextDecoration.lineThrough : null,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      i.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: ink,
+                        decoration: done ? TextDecoration.lineThrough : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_iconFor(i.category), size: 14, color: accent),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: Text(
+                              dateText == null
+                                  ? l10n.timeText(i.when)
+                                  : '$dateText  ${l10n.timeText(i.when)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF5B6640),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (repeat != null) ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.repeat_rounded, size: 14, color: Color(0xFF5B6640)),
                           const SizedBox(width: 4),
-                          Text(
-                            repeat == null ? _catLabel(i.category, l10n) : '${_catLabel(i.category, l10n)} · $repeat',
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: accent),
+                          Flexible(
+                            child: Text(
+                              repeat,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF5B6640),
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                      if (i.fromChat)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: SediPalette.sagePage,
-                            borderRadius: BorderRadius.circular(999),
+                        if (i.fromChat) ...[
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: l10n.fromChat,
+                            child: const Icon(Icons.chat_bubble_outline_rounded,
+                                size: 14, color: Color(0xFF5B6640)),
                           ),
-                          child: Text(
-                            l10n.fromChat,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: SediPalette.sageMuted),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (i.event?.location != null && i.event!.location!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(i.event!.location!, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                        ],
+                      ],
                     ),
-                  if (dateText != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(dateText, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
-                    ),
-                  if (done)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        l10n.doneLabel,
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF2B3316)),
-                      ),
-                    )
-                  else if (reminderText != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: InkWell(
-                        onTap: i.event == null ? null : () => _chooseReminder(i.event!),
+                    if (i.event?.location != null && i.event!.location!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          reminderText,
-                          style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary),
+                          i.event!.location!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (!upcoming)
-              Semantics(
-                button: true,
-                label: done ? l10n.undoDone : l10n.markDone,
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () => _toggleDone(i),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: done ? SediPalette.pistachio900 : Colors.transparent,
-                        border: Border.all(color: SediPalette.pistachio900, width: 2),
-                      ),
-                      child: done
-                          ? const Icon(Icons.check_rounded, size: 22, color: Color(0xFFF6F3E0))
-                          : null,
+              if (!done && i.event != null && i.reminderMinutes != null)
+                Tooltip(
+                  message: '${l10n.reminder}: ${schedulePresetLabel(l10n, i.reminderMinutes)}',
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => _chooseReminder(i.event!),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.notifications_none_rounded, size: 20, color: SediGlass.ink),
                     ),
                   ),
                 ),
+              if (!upcoming)
+                Semantics(
+                  button: true,
+                  label: done ? l10n.undoDone : l10n.markDone,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => _toggleDone(i),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: done
+                            ? SediGlass.pistachioSphere()
+                            : BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.35),
+                                border: Border.all(
+                                  color: const Color(0x7348551F),
+                                  width: 1.6,
+                                ),
+                              ),
+                        child: done
+                            ? const Icon(Icons.check_rounded, size: 20, color: SediGlass.inkDeep)
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+              PopupMenuButton<String>(
+                tooltip: l10n.deleteItem,
+                icon: const Icon(Icons.more_horiz_rounded, color: AppTheme.textSecondary),
+                onSelected: (v) {
+                  if (v == 'delete') _delete(i);
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'delete', child: Text(l10n.deleteItem)),
+                ],
               ),
-            PopupMenuButton<String>(
-              tooltip: l10n.deleteItem,
-              icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
-              onSelected: (v) {
-                if (v == 'delete') _delete(i);
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(value: 'delete', child: Text(l10n.deleteItem)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _warning(String text) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: SediPalette.sageFill,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: SediPalette.sageLine),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.notifications_off_outlined, size: 20, color: SediPalette.pistachio900),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 12.5, color: AppTheme.textPrimary),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

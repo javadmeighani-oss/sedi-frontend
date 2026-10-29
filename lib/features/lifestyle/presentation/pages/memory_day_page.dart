@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../services/lifestyle/memory_explorer_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../lifestyle_l10n.dart';
 import '../widgets/memory_text_sheet.dart';
 
@@ -27,6 +31,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
   bool _loading = true;
   bool _failed = false;
   bool _changed = false;
+  final _noteCtrl = TextEditingController();
 
   LifestyleL10n get _l10n => LifestyleL10n(SediLocaleController.instance.languageCode);
 
@@ -34,6 +39,12 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -93,18 +104,18 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
     return ok == true;
   }
 
-  Future<void> _addNote({required bool correction}) async {
-    final l10n = _l10n;
-    final text = await _askText(
-      title: correction ? l10n.fixSummary : l10n.noteForDay,
-      hint: correction ? l10n.correctionHint : l10n.noteHint,
-    );
-    if (text == null) return;
+  /// Saves what the user typed in the box that exists only inside an opened day: a note, or - for a day older than
+  /// the 30 raw days - a correction that sits BESIDE Sedi's derived summary (it is never rewritten).
+  Future<void> _saveNote({required bool correction}) async {
+    final text = _noteCtrl.text.trim();
+    if (text.isEmpty) return;
+    FocusScope.of(context).unfocus();
     await _run(() => _service.addNote(
           day: widget.iso,
           text: text,
           kind: correction ? 'correction' : 'note',
         ));
+    if (mounted) _noteCtrl.clear();
   }
 
   Future<void> _editTurn(MemoryTurnDto t) async {
@@ -168,6 +179,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
             '${wd == null ? '' : l10n.weekdayShort(wd)} · ${l10n.daysAgoLabel(day.daysAgo)}',
             l10n.lang,
           );
+    final showBox = day != null && !_failed && day.consent;
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: PopScope(
@@ -177,21 +189,122 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
         },
         child: Scaffold(
           backgroundColor: A3DestinationSurface.canvas,
+          extendBodyBehindAppBar: true,
           appBar: A3PageAppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+            title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(dateLabel),
-                if (sub.isNotEmpty)
-                  Text(sub,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+                const SediHologramOrb(
+                  state: Gate3InteractionState.idle,
+                  diameter: 38,
+                  showRings: false,
+                  animate: false,
+                  keyedLogo: false,
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        dateLabel,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: SediGlass.inkDeep,
+                        ),
+                      ),
+                      if (sub.isNotEmpty)
+                        Text(
+                          sub,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF5B6640),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            backgroundColor: A3DestinationSurface.canvas,
+            backgroundColor: Colors.transparent,
           ),
-          body: _body(l10n, day),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              const SediSceneBackdrop(),
+              _body(l10n, day),
+              if (showBox)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.of(context).padding.bottom,
+                  child: _noteBox(l10n, correction: !day!.rawVisible),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The glass edit box, only here (a day that was opened): a note or a correction for this day.
+  Widget _noteBox(LifestyleL10n l10n, {required bool correction}) {
+    final radius = BorderRadius.circular(32);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 20,
+      child: Container(
+        height: 64,
+        padding: const EdgeInsetsDirectional.fromSTEB(18, 6, 8, 6),
+        decoration: SediGlass.capsule(radius),
+        child: Row(
+          children: [
+            const Icon(Icons.edit_outlined, size: 24, color: SediGlass.ink),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _noteCtrl,
+                maxLength: 240,
+                minLines: 1,
+                maxLines: 2,
+                cursorColor: SediGlass.ink,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _saveNote(correction: correction),
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  counterText: '',
+                  border: InputBorder.none,
+                  hintText: correction ? l10n.dayCorrectionBox : l10n.dayNoteBox,
+                  hintStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF4B5530),
+                  ),
+                ),
+              ),
+            ),
+            Tooltip(
+              message: l10n.save,
+              child: GestureDetector(
+                onTap: () => _saveNote(correction: correction),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: SediGlass.pistachioSphere(),
+                  child: const Icon(Icons.check_rounded, size: 24, color: SediGlass.inkDeep),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -222,7 +335,8 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
       color: AppTheme.gate2ButtonOlive,
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: EdgeInsets.fromLTRB(
+            16, MediaQuery.of(context).padding.top + kToolbarHeight + 8, 16, 120),
         children: [
           if (old) _banner(l10n),
           if (day.turns.isNotEmpty) ...[
@@ -233,15 +347,6 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
             _heading(l10n.sediDaySummary),
             _summaryCard(l10n, day),
           ],
-          if (old && day.summaryText.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                onPressed: () => _addNote(correction: true),
-                child: Text(l10n.fixSummary),
-              ),
-            ),
           _notesAndEvents(l10n, day, old),
           if (day.facts.isNotEmpty) ...[
             _heading(l10n.learnedThatDay),
@@ -272,7 +377,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
         ),
       );
 
-  Widget _banner(LifestyleL10n l10n) => A3DestinationCard(
+  Widget _banner(LifestyleL10n l10n) => _GlassCard(
         padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +400,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
       );
 
   Widget _turnsCard(LifestyleL10n l10n, List<MemoryTurnDto> turns) {
-    return A3DestinationCard(
+    return _GlassCard(
       padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
       child: Column(
         children: [
@@ -320,6 +425,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
                         ),
                       ),
                       Text(turns[i].userMessage,
+                          textAlign: TextAlign.justify,
                           style: const TextStyle(
                               fontSize: 15,
                               height: 1.6,
@@ -333,6 +439,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.textSecondary)),
                         Text(turns[i].sediResponse!,
+                            textAlign: TextAlign.justify,
                             style: const TextStyle(
                                 fontSize: 15,
                                 height: 1.6,
@@ -360,12 +467,13 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
         CalendarDateMath.localizeDigitsForLanguage(
             l10n.lang == 'en' ? '${day.chips.userDone} done' : '${day.chips.userDone} ✓', l10n.lang),
     ];
-    return A3DestinationCard(
+    return _GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (day.summaryText.isNotEmpty)
             Text(day.summaryText,
+                textAlign: TextAlign.justify,
                 style: const TextStyle(
                     fontSize: 15,
                     height: 1.7,
@@ -391,15 +499,11 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
       children: [
         _heading(
           old && day.notes.isNotEmpty ? l10n.correctionsTitle : l10n.eventsAndNotes,
-          trailing: TextButton(
-            onPressed: () => _addNote(correction: false),
-            child: Text(l10n.addItem),
-          ),
         ),
         for (final e in day.events)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: A3DestinationCard(
+            child: _GlassCard(
               padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
               child: Row(
                 children: [
@@ -429,7 +533,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
         for (final n in day.notes)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: A3DestinationCard(
+            child: _GlassCard(
               padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
               child: Row(
                 children: [
@@ -472,7 +576,7 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
   Widget _factRow(LifestyleL10n l10n, MemoryFactDto f) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: A3DestinationCard(
+      child: _GlassCard(
         padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
         child: Row(
           children: [
@@ -486,6 +590,27 @@ class _MemoryDayPageState extends State<MemoryDayPage> {
                 color: AppTheme.dangerRed),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The glass card of the redesigned history screens (pilot V1, R-034).
+class _GlassCard extends StatelessWidget {
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  const _GlassCard({this.padding = const EdgeInsets.all(16), required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(24);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 14,
+      child: DecoratedBox(
+        decoration: SediGlass.card(radius),
+        child: Padding(padding: padding, child: child),
       ),
     );
   }

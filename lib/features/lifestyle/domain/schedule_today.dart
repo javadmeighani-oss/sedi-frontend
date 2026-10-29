@@ -90,7 +90,16 @@ class ScheduleItem {
 
 const _byDay = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 
-/// Does a stored rule (`FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO`) occur on [day], given the series' first date?
+/// The rule the add sheet stores: every day, or the chosen ISO weekdays (1 = Monday ... 7 = Sunday) at the same time.
+/// Null for "once" (no weekday chosen). Matches what the backend reminder scheduler understands.
+String? recurrenceRuleFor({required bool daily, Set<int> isoWeekdays = const {}}) {
+  if (daily) return 'FREQ=DAILY';
+  final days = isoWeekdays.where((w) => w >= 1 && w <= 7).toList()..sort();
+  if (days.isEmpty) return null;
+  return 'FREQ=WEEKLY;BYDAY=${days.map((w) => _byDay[w - 1]).join(',')}';
+}
+
+/// Does a stored rule (`FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO,WE`) occur on [day], given the series' first date?
 bool ruleOccursOn(String? rule, DateTime day, DateTime first) {
   if (rule == null || !rule.startsWith('FREQ=')) return false;
   final d = DateTime(day.year, day.month, day.day);
@@ -98,9 +107,11 @@ bool ruleOccursOn(String? rule, DateTime day, DateTime first) {
   if (d.isBefore(f)) return false;
   if (rule.contains('FREQ=DAILY')) return true;
   if (rule.contains('FREQ=WEEKLY')) {
-    final m = RegExp(r'BYDAY=([A-Z]{2})').firstMatch(rule);
-    final code = m?.group(1) ?? _byDay[f.weekday - 1];
-    return _byDay[d.weekday - 1] == code;
+    final m = RegExp(r'BYDAY=([A-Z,]+)').firstMatch(rule);
+    final codes = m == null
+        ? <String>[_byDay[f.weekday - 1]]
+        : m.group(1)!.split(',').where((c) => c.length == 2).toList();
+    return codes.contains(_byDay[d.weekday - 1]);
   }
   return false;
 }

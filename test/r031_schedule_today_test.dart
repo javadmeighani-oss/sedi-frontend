@@ -151,17 +151,16 @@ void main() {
     expect(fa.notifSettingsTitle, 'اعلان‌های صدی'); // simplified 2026-10-28 (was «صدی کِی و چی بهت خبر بده؟»)
   });
 
-  test('the page wires done, add-by-type, medication and the compact notification card', () {
+  test('the page wires done, the one add sheet, medication and the single bell setting', () {
     final page = File('lib/features/lifestyle/presentation/pages/lifestyle_schedule_page.dart').readAsStringSync();
     expect(page.contains('_svc.markDone('), isTrue);
-    expect(page.contains('showAddTypeSheet('), isTrue);
+    expect(page.contains('showAddTypeSheet('), isFalse); // pilot V1: the type is chosen inside the one sheet
+    expect(page.contains('showModalBottomSheet<NewReminderInput>'), isTrue);
     expect(page.contains('_svc.createMedication('), isTrue);
-    expect(page.contains('ScheduleNotificationSettingsCard('), isTrue);
+    expect(page.contains('ScheduleNotificationSettingsCard('), isFalse);
+    expect(page.contains('showScheduleAmountSheet('), isTrue);
     expect(page.contains("eventType = 'doctor_visit'"), isTrue);
     final hub = File('lib/features/lifestyle/presentation/pages/lifestyle_page.dart').readAsStringSync();
     expect(hub.contains('summarize('), isTrue);
-    final card = File('lib/features/lifestyle/presentation/widgets/schedule_notification_settings_card.dart').readAsStringSync();
-    expect(card.contains("_channel('system'"), isFalse);
-    expect(card.contains('notifLearningLine'), isTrue);
   });
 }

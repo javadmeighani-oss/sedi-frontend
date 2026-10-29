@@ -147,7 +147,7 @@ List<AndroidNotificationAction> resolveNotificationActions({
   }
 
   if (labels.isEmpty) {
-    for (final id in const ['like', 'dislike', 'open_chat']) {
+    for (final id in const ['open_chat', 'dislike']) {
       addAction(id, fallbackActionLabel(id, language));
     }
   }
@@ -159,7 +159,8 @@ List<AndroidNotificationAction> resolveNotificationActions({
         labels[id]!,
         showsUserInterface: id == 'open_chat',
         // A4: dismiss tray immediately on action tap; pending ACK retries silently.
-        cancelNotification: true,
+        // R-039: Dislike and "not done" do NOT close the notification - it grows in place and asks WHY.
+        cancelNotification: id != 'dislike' && id != 'plan_not_done',
       ),
   ];
 }

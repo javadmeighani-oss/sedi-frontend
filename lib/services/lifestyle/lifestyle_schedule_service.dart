@@ -163,6 +163,7 @@ class LifestyleScheduleService {
     required int offsetMinutes,
     String eventDomain = 'lifestyle',
     String eventType = 'other',
+    String? recurrenceRule,
   }) async {
     String? tz;
     try {
@@ -182,6 +183,7 @@ class LifestyleScheduleService {
         if (tz != null && tz.isNotEmpty) 'timezone': tz,
         'reminder_enabled': true,
         'reminder_offsets': [offsetMinutes],
+        if (recurrenceRule != null && recurrenceRule.isNotEmpty) 'recurrence_rule': recurrenceRule,
         'source': 'manual',
       },
       parser: (_) => null,

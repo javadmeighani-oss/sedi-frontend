@@ -5,10 +5,14 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../../../data/repositories/devices_repository.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../ble/sedi_ble_models.dart';
 import '../../ble/sedi_ble_permissions.dart';
 import '../../ble/sedi_ble_transport.dart';
@@ -107,7 +111,12 @@ class _DevicesPageState extends State<DevicesPage> {
       onRefresh: _load,
       color: AppTheme.gate2ButtonOlive,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+          16,
+          28,
+        ),
         children: [
           if (_loading)
             const Padding(
@@ -119,12 +128,7 @@ class _DevicesPageState extends State<DevicesPage> {
           else if (_controller.devices.isEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: A3DestinationCard(
-                child: Text(
-                  l10n.noGadgets,
-                  style: const TextStyle(color: AppTheme.textSecondary),
-                ),
-              ),
+              child: _specialCard(l10n),
             )
           else
             for (final g in groups) ...[
@@ -166,24 +170,33 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
             ),
           const SizedBox(height: 8),
-          A3DestinationCard(
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 180),
-              opacity: _connecting ? 0.72 : 1,
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: _connecting ? null : () => _onConnectPressed(l10n),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.ctaFill,
-                    disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
-                    foregroundColor: AppTheme.ctaText,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 180),
+            opacity: _connecting ? 0.72 : 1,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(27),
+              onTap: _connecting ? null : () => _onConnectPressed(l10n),
+              child: Container(
+                height: 54,
+                alignment: Alignment.center,
+                decoration: SediGlass.pistachioSphere().copyWith(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(27),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded, color: AppTheme.ctaText),
+                    const SizedBox(width: 8),
+                    Text(
+                      _connecting ? l10n.scanning : l10n.connect,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.ctaText,
+                      ),
                     ),
-                  ),
-                  child: Text(_connecting ? l10n.scanning : l10n.connect),
+                  ],
                 ),
               ),
             ),
@@ -194,11 +207,39 @@ class _DevicesPageState extends State<DevicesPage> {
 
     Widget page = Scaffold(
       backgroundColor: A3DestinationSurface.canvas,
+      extendBodyBehindAppBar: true,
       appBar: A3PageAppBar(
-        title: Text(l10n.title),
-        backgroundColor: A3DestinationSurface.canvas,
+        // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SediHologramOrb(
+              state: Gate3InteractionState.idle,
+              diameter: 38,
+              showRings: false,
+              animate: false,
+              keyedLogo: false,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              l10n.title,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: SediGlass.inkDeep,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
       ),
-      body: body,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const SediSceneBackdrop(),
+          body,
+        ],
+      ),
     );
 
     if (SediLocaleController.instance.isRtl) {
@@ -208,6 +249,45 @@ class _DevicesPageState extends State<DevicesPage> {
       );
     }
     return page;
+  }
+
+  /// Sedi's own specialised gadgets: only the heart-rate gadget is in development (Javad 2026-10-29).
+  Widget _specialCard(DevicesL10n l10n) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+      decoration: SediGlass.card(BorderRadius.circular(28), strong: true),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 84,
+            height: 84,
+            child: CustomPaint(painter: _WatchPainter()),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.specialTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: SediGlass.inkDeep,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l10n.specialBody,
+            textAlign: TextAlign.justify,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.75,
+              fontWeight: FontWeight.w600,
+              color: SediGlass.ink,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _deviceCard(DevicePublicInfo d, DevicesL10n l10n) {
@@ -580,4 +660,59 @@ class _DeviceGroup {
     required this.title,
     required this.devices,
   });
+}
+
+/// A small vector smart-watch with a pulse line (the heart-rate gadget).
+class _WatchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+    canvas.drawCircle(c, r * 0.96, Paint()..color = Colors.white.withOpacity(0.72));
+    canvas.drawCircle(
+      c,
+      r * 0.96,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.07
+        ..color = const Color(0xFFCFE27C),
+    );
+    final strap = Paint()..color = const Color(0xFFB9C28E);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: c.translate(0, -r * 0.62), width: r * 0.58, height: r * 0.3), Radius.circular(r * 0.1)),
+      strap,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: c.translate(0, r * 0.62), width: r * 0.58, height: r * 0.3), Radius.circular(r * 0.1)),
+      strap,
+    );
+    final face = RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: r * 0.8, height: r * 0.9), Radius.circular(r * 0.24));
+    canvas.drawRRect(face, Paint()..color = const Color(0xFFF4F7E6));
+    canvas.drawRRect(
+      face,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.07
+        ..color = const Color(0xFF7F9E32),
+    );
+    final pulse = Path()
+      ..moveTo(c.dx - r * 0.28, c.dy + r * 0.02)
+      ..lineTo(c.dx - r * 0.12, c.dy + r * 0.02)
+      ..lineTo(c.dx - r * 0.04, c.dy - r * 0.2)
+      ..lineTo(c.dx + r * 0.06, c.dy + r * 0.24)
+      ..lineTo(c.dx + r * 0.14, c.dy + r * 0.02)
+      ..lineTo(c.dx + r * 0.28, c.dy + r * 0.02);
+    canvas.drawPath(
+      pulse,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.07
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFF48551F),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

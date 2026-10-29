@@ -200,10 +200,9 @@ void main() {
       expect(src.contains('archiveTemporarilyUnavailable'), isTrue);
       expect(src.contains("substring("), isFalse);
       expect(src.contains('exactStoredTranscriptText'), isTrue);
-      expect(src.contains("'/memory/period-summary'"), isTrue);
-      expect(src.contains("_chip('daily'"), isTrue);
-      expect(src.contains("_chip('weekly'"), isTrue);
-      expect(src.contains('_loadSummary()'), isTrue);
+      // pilot V1: no summaries card any more, only the day list and the calendar
+      expect(src.contains("'/memory/period-summary'"), isFalse);
+      expect(src.contains('_loadSummary()'), isFalse);
       expect(src.contains('_loadHistory()'), isTrue);
     });
   });

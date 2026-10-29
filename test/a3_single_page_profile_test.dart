@@ -71,11 +71,11 @@ void main() {
     expect(src.contains('AuthHelper.performLogout'), isTrue);
   });
 
-  test('profile phone card keeps Change Phone and Gate2OtpInput inside', () {
+  test('profile phone card keeps Change Phone and the OTP code field inside', () {
     final src = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
     ).readAsStringSync();
-    expect(src.contains('Gate2OtpInput'), isTrue);
+    expect(src.contains('OtpInputHelper'), isTrue); // pilot V1: one code field, same digit rules
     expect(src.contains('_phoneCard'), isTrue);
     expect(src.contains('changePhone'), isTrue);
     final phoneCardIdx = src.indexOf('Widget _phoneCard');

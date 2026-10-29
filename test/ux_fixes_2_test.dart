@@ -54,7 +54,7 @@ void main() {
   test('5 opening today earlier chats hides the recap; 7 the sphere makes room for the opened tray', () {
     final page = _read('lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart');
     expect(page.contains('i == _controller.restoredTodayCount'), isTrue);
-    expect(page.contains('height: _topTrayExpanded ? 84 : 0'), isTrue);
+    expect(page.contains('Gate3TopNavigationTray.expandedExtraHeight'), isTrue); // was 84 before the pilot-V1 tray
   });
 
   test('6 the delete-selected button turns solid once something is selected', () {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
@@ -19,12 +19,6 @@ class MessageBubble extends StatefulWidget {
   final String? readLessLabel;
   final String? retryLabel;
 
-  /// Soft halo so assistant text stays readable over the background hologram.
-  static const List<Shadow> _sediTextShadows = [
-    Shadow(color: Color(0xF2DCE0C0), blurRadius: 12),
-    Shadow(color: Color(0xCCDCE0C0), blurRadius: 3),
-  ];
-
   /// User bubble (D-127): the same pistachio glass as Sedi's sphere, with deep-olive ink (contrast >= 8:1).
   static const Color userTextColor = Color(0xFF1B2208);
   static const List<Color> userBubbleGradient = [
@@ -32,13 +26,16 @@ class MessageBubble extends StatefulWidget {
     SediPalette.pistachio500,
   ];
 
-  /// Sedi's logo sphere diameter and the text metrics of a message line. The first line of text is centred on the
-  /// logo's centre (D-102) so the logo, the text and the typing dots share one visual line.
+  /// Sedi's logo sphere diameter and the text metrics of a message line. Pilot V1 (R-034): her text sits in a
+  /// see-through glass panel, every line of text (hers and the user's) is justified to the same width, and the
+  /// logo is centred on the FIRST line of text so the logo, the text and the typing dots share one visual line.
   static const double sediLogoDiameter = 34;
   static const double _fontSize = 15;
-  static const double _lineHeight = 1.45;
-  static const double sediTextTopInset =
-      (sediLogoDiameter - _fontSize * _lineHeight) / 2;
+  static const double _lineHeight = 1.7;
+  static const double _panelPaddingV = 11;
+  static const double _panelPaddingH = 15;
+  static const double sediLogoTopInset =
+      _panelPaddingV + _fontSize * _lineHeight / 2 - sediLogoDiameter / 2;
 
   /// First-strong-character direction for bidi-safe user text.
   static TextDirection resolveTextDirection(String text) {
@@ -97,8 +94,6 @@ class _MessageBubbleState extends State<MessageBubble> {
     final textDirection = widget.isSedi && SediLocaleController.instance.isRtl
         ? TextDirection.rtl
         : MessageBubble.resolveTextDirection(widget.message);
-    final textAlign =
-        textDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left;
 
     final text = widget.showTyping
         ? const _TypingDots()
@@ -107,7 +102,8 @@ class _MessageBubbleState extends State<MessageBubble> {
             maxLines: shouldCollapse ? 2 : null,
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
             textDirection: textDirection,
-            textAlign: textAlign,
+            // Every line the same width (the last line of a paragraph keeps its natural end).
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: widget.isSedi
                   ? SediPalette.charcoal950
@@ -116,7 +112,6 @@ class _MessageBubbleState extends State<MessageBubble> {
               height: MessageBubble._lineHeight,
               // D-127: about 15 % heavier than w500 (Javad's phone test) - the nearest weight step is w600.
               fontWeight: FontWeight.w600,
-              shadows: widget.isSedi ? MessageBubble._sediTextShadows : null,
             ),
           );
 
@@ -193,14 +188,33 @@ class _MessageBubbleState extends State<MessageBubble> {
       );
     }
 
-    // Assistant: plain text in chat space — no bubble/card/container.
+    // Assistant: a see-through glass panel (its own light edge, blur and soft shadow lift it off the page).
     if (widget.isSedi) {
+      final radius = const BorderRadiusDirectional.only(
+        topStart: Radius.circular(22),
+        topEnd: Radius.circular(22),
+        bottomEnd: Radius.circular(22),
+        bottomStart: Radius.circular(6),
+      ).resolve(Directionality.of(context));
+      final panel = SediGlass.blur(
+        radius: radius,
+        child: DecoratedBox(
+          decoration: SediGlass.messagePanel(radius),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MessageBubble._panelPaddingH,
+              vertical: MessageBubble._panelPaddingV,
+            ),
+            child: body,
+          ),
+        ),
+      );
       return Align(
         alignment: alignment,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
+            constraints: const BoxConstraints(maxWidth: 356),
             // Every Sedi message starts with her small hologram sphere (D-097).
             // The typing dots sit on the SAME line as her icon (D-101).
             child: Row(
@@ -209,7 +223,12 @@ class _MessageBubbleState extends State<MessageBubble> {
                   : CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  padding: EdgeInsetsDirectional.only(
+                    end: 8,
+                    top: widget.showTyping
+                        ? 0
+                        : MessageBubble.sediLogoTopInset,
+                  ),
                   child: const SediHologramOrb(
                     state: Gate3InteractionState.idle,
                     diameter: MessageBubble.sediLogoDiameter,
@@ -218,16 +237,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     keyedLogo: false,
                   ),
                 ),
-                Flexible(
-                  child: widget.showTyping
-                      ? body
-                      : Padding(
-                          padding: const EdgeInsets.only(
-                            top: MessageBubble.sediTextTopInset,
-                          ),
-                          child: body,
-                        ),
-                ),
+                Flexible(child: panel),
               ],
             ),
           ),
@@ -255,8 +265,8 @@ class _MessageBubbleState extends State<MessageBubble> {
               child: IntrinsicWidth(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                    horizontal: MessageBubble._panelPaddingH,
+                    vertical: MessageBubble._panelPaddingV,
                   ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
@@ -265,15 +275,22 @@ class _MessageBubbleState extends State<MessageBubble> {
                       colors: MessageBubble.userBubbleGradient,
                     ),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppTheme.radiusLarge),
-                      topRight: Radius.circular(AppTheme.radiusLarge),
-                      bottomLeft: Radius.circular(AppTheme.radiusLarge),
-                      bottomRight: Radius.circular(AppTheme.radiusSmall),
+                      topLeft: Radius.circular(22),
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(22),
+                      bottomRight: Radius.circular(6),
                     ),
                     border: Border.all(
-                      color: SediPalette.pistachio700.withOpacity(0.45),
+                      color: Colors.white.withOpacity(0.55),
                       width: 1,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: SediPalette.pistachio700.withOpacity(0.28),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: body,
                 ),

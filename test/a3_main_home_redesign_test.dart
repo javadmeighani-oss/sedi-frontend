@@ -83,7 +83,7 @@ void main() {
     );
     expect(tray.contains('handleHeight = 44'), isTrue);
     expect(tray.contains('visualSize = 18 * 1.56'), isTrue);
-    expect(tray.contains('strokeWidth = 2.6'), isTrue);
+    expect(tray.contains('strokeWidth = 1.9'), isTrue); // pilot V1: thin chevron
     expect(tray.contains('size: 18'), isFalse);
     expect(Gate3TopNavigationTray.handleHeight, 44);
 

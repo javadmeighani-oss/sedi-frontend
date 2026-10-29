@@ -244,7 +244,15 @@ jobs:
             test/h1_history_explorer_test.dart \
             test/p8_plan_page_test.dart \
             test/p9_same_day_recap_test.dart \
-            test/ux_fixes_2_test.dart
+            test/ux_fixes_2_test.dart \
+            test/composer_keyboard_stable_test.dart \
+            test/pilot_ui_v2_chat_test.dart \
+            test/pilot_ui_v2_profile_test.dart \
+            test/pilot_ui_v2_lifestyle_test.dart \
+            test/pilot_ui_v2_schedule_test.dart \
+            test/pilot_ui_v2_history_test.dart \
+            test/pilot_ui_v2_plan_test.dart \
+            test/pilot_ui_v2_notifications_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:

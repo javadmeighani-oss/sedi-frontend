@@ -1,75 +1,107 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/sedi_palette.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../gate3_localization.dart';
 import 'gate3_attachment_flow.dart';
 
-/// Attachment entry sheet for the Gate 3 composer (R-021 / M4): camera, photos and files are real now.
+/// Attachment entry for the Gate 3 composer (R-021 / M4): files, photos and the camera are real.
+///
+/// Pilot V1 (R-034, Javad 2026-10-29): no sheet, no scrim, no filled buttons and no visible text - three bare
+/// thin-line icons rise one above the other from the paperclip, each in a hairline light ring. The labels live
+/// only in the accessibility tree.
 class Gate3AttachmentMenu {
   Gate3AttachmentMenu._();
 
+  static const double ringSize = 53;
+  static const double iconSize = 27;
+  static const double gap = 14;
+
+  /// [anchor] is the paperclip's rectangle in global coordinates; the stack rises from its top edge.
   static Future<void> show(
     BuildContext context,
     String lang, {
     required Gate3AttachmentFlow flow,
     required ValueChanged<String> onTalk,
+    Rect? anchor,
   }) async {
     final l10n = Gate3Localization(lang);
-    // Taken before the sheet closes: the flow keeps running after this context's sheet is popped.
+    // Taken before the menu closes: the flow keeps running after this context's route is popped.
     final hostContext = context;
-    await showModalBottomSheet<void>(
+    final screen = MediaQuery.of(context).size;
+    final from = anchor ??
+        Rect.fromLTWH(screen.width - 64, screen.height - 110, 48, 48);
+    await showGeneralDialog<void>(
       context: context,
-      showDragHandle: true,
-      backgroundColor: AppTheme.gate3PaleOliveBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (ctx, animation, secondaryAnimation) {
         void pick(Gate3AttachmentSource source) {
           Navigator.of(ctx).pop();
           if (!hostContext.mounted) return;
           flow.runDocument(hostContext, lang, source, onTalk: onTalk);
         }
 
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _AttachmentMenuItem(
-                  icon: Icons.camera_alt_outlined,
-                  label: l10n.camera,
-                  onTap: () => pick(Gate3AttachmentSource.camera),
+        final left = (from.center.dx - ringSize / 2)
+            .clamp(8.0, screen.width - ringSize - 8.0)
+            .toDouble();
+        final bottom = screen.height - from.top + 10;
+        return Stack(
+          children: [
+            Positioned(
+              left: left,
+              bottom: bottom,
+              child: FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.12),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _AttachmentIcon(
+                        icon: Icons.insert_drive_file_outlined,
+                        label: l10n.files,
+                        onTap: () => pick(Gate3AttachmentSource.file),
+                      ),
+                      const SizedBox(height: gap),
+                      _AttachmentIcon(
+                        icon: Icons.photo_library_outlined,
+                        label: l10n.photos,
+                        onTap: () => pick(Gate3AttachmentSource.gallery),
+                      ),
+                      const SizedBox(height: gap),
+                      _AttachmentIcon(
+                        icon: Icons.photo_camera_outlined,
+                        label: l10n.camera,
+                        onTap: () => pick(Gate3AttachmentSource.camera),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                _AttachmentMenuItem(
-                  icon: Icons.photo_outlined,
-                  label: l10n.photos,
-                  onTap: () => pick(Gate3AttachmentSource.gallery),
-                ),
-                const SizedBox(height: 8),
-                _AttachmentMenuItem(
-                  icon: Icons.attach_file_outlined,
-                  label: l10n.files,
-                  onTap: () => pick(Gate3AttachmentSource.file),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       },
     );
   }
 }
 
-class _AttachmentMenuItem extends StatelessWidget {
+class _AttachmentIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
-  const _AttachmentMenuItem({
+  const _AttachmentIcon({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -77,37 +109,20 @@ class _AttachmentMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: SediPalette.sageInput,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: SediPalette.sageFill,
-                ),
-                child: Icon(icon, size: 22, color: AppTheme.primaryBlack),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-            ],
+        child: Container(
+          width: Gate3AttachmentMenu.ringSize,
+          height: Gate3AttachmentMenu.ringSize,
+          decoration: SediGlass.lightRing(),
+          child: Icon(
+            icon,
+            size: Gate3AttachmentMenu.iconSize,
+            color: SediGlass.ink,
           ),
         ),
       ),

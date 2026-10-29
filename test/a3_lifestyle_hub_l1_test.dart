@@ -130,9 +130,10 @@ void main() {
     );
     expect(find.byIcon(Icons.favorite_border), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
-    expect(find.byIcon(Icons.event_note_outlined), findsOneWidget);
+    // pilot V1 (R-034): the schedule and exercise cards got new glyphs (calendar-check, dumbbell)
+    expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
     expect(find.byIcon(Icons.restaurant_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.directions_run_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.fitness_center_outlined), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

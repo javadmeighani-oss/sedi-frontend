@@ -44,11 +44,10 @@ void main() {
       'lib/features/lifestyle/presentation/pages/lifestyle_history_page.dart',
     ).readAsStringSync();
     expect(hist.contains('/memory/history'), isTrue);
-    expect(hist.contains('/memory/period-summary'), isTrue);
+    expect(hist.contains('/memory/period-summary'), isFalse); // the summaries card was removed (pilot V1)
     expect(hist.contains("'user_id'"), isFalse);
     expect(hist.contains('queryParams: {'), isTrue);
     expect(hist.contains('_history = null'), isTrue);
-    expect(hist.contains('_summaryText = null'), isTrue);
   });
 
   test('Nutrition/Exercise render backend weekly-plan only (no fake planner)', () {
