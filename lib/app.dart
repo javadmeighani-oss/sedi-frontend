@@ -102,7 +102,7 @@ class _SediAppState extends State<SediApp> with WidgetsBindingObserver {
           ),
         ),
         scaffoldBackgroundColor: AppTheme.background,
-        fontFamily: 'default',
+        fontFamily: 'Vazirmatn', // R-041: bundled app font (fa / ar / en)
         textTheme: const TextTheme(bodyMedium: AppTheme.bodyPrimary),
         iconTheme: const IconThemeData(color: AppTheme.iconInactive),
         appBarTheme: const AppBarTheme(
