@@ -33,8 +33,9 @@ void main() {
       expect(button.contains('plainIcon ? 56 : 72'), isFalse);
       expect(button.contains('width: 56'), isFalse);
       expect(button.contains('width: 72'), isFalse);
-      expect(button.contains('width: 44'), isTrue);
-      expect(button.contains('height: 44'), isTrue);
+      // pilot V1 (R-034): the tile is a glass square sized by one constant, still never a fixed 56 / 72 column
+      expect(button.contains('width: tileSize'), isTrue);
+      expect(button.contains('height: tileSize'), isTrue);
       expect(button.contains('maxLines: 1'), isTrue);
       expect(button.contains('softWrap: false'), isTrue);
       expect(button.contains('BoxFit.scaleDown'), isTrue);

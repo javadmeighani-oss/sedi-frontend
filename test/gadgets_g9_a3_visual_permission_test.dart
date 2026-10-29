@@ -285,8 +285,9 @@ void main() {
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(scaffold.backgroundColor, A3DestinationSurface.canvas);
 
+    // pilot V1: the bar floats transparent over the soft pistachio scene (R-034)
     final appBar = tester.widget<AppBar>(find.byType(AppBar));
-    expect(appBar.backgroundColor, A3DestinationSurface.canvas);
+    expect(appBar.backgroundColor, Colors.transparent);
 
     expect(find.text('Connect'), findsOneWidget);
     expect(find.textContaining('Last sync'), findsWidgets);

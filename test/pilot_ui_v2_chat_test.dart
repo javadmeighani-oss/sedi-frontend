@@ -67,7 +67,10 @@ void main() {
     expect(find.text(l10n.photos), findsNothing);
     expect(find.text(l10n.camera), findsNothing);
     // accessibility still names them
-    expect(find.bySemanticsLabel(l10n.camera), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Semantics && w.properties.label == l10n.camera),
+      findsOneWidget,
+    );
     // one above the other
     final files = tester.getCenter(find.byIcon(Icons.insert_drive_file_outlined));
     final photos = tester.getCenter(find.byIcon(Icons.photo_library_outlined));
