@@ -401,7 +401,7 @@ void main() {
       expect(inbox.contains('filterDelete'), isTrue);
       expect(inbox.contains('selectionGutterWidth'), isTrue);
       expect(inbox.contains('selectionGutterWidth = 48'), isTrue);
-      expect(inbox.contains('SediPalette.pistachio100'), isTrue);
+      expect(inbox.contains('strong: displayAttention'), isTrue); // pilot V1: unread = the stronger glass card
       expect(inbox.contains('hasUserResponse: true'), isTrue);
       expect(inbox.contains('displayAttention'), isTrue);
       // Card tap must NOT mark read — detail open only.
