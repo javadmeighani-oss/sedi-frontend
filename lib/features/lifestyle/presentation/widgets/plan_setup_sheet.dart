@@ -76,6 +76,7 @@ class _PlanSetupSheet extends StatefulWidget {
 }
 
 class _PlanSetupSheetState extends State<_PlanSetupSheet> {
+  String? _mode; // null = still choosing; 'simple' | 'pro'
   int _step = 0;
   bool _busy = false;
   String? _notice;
@@ -94,6 +95,13 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
   };
   late String _exerciseTime = widget.initialExerciseTime ?? '17:00';
   late PlanSettingsDto _settings = widget.initialSettings;
+  // The weekdays to train on: the simple exercise plan and the professional plan both start from Mon / Wed / Fri.
+  late final Set<int> _trainDays = widget.initialSettings.days.length < 7
+      ? widget.initialSettings.days.toSet()
+      : <int>{1, 3, 5};
+
+  bool get _pro => _mode == 'pro';
+  bool get _nutritionFields => _pro || widget.nutrition;
 
   PlanCoachL10n get _l => widget.l10n;
 
@@ -112,7 +120,7 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
     return t == null ? null : _hhmm(t);
   }
 
-  bool get _allergyOk => !widget.nutrition || _noAllergy || _allergyCtl.text.trim().isNotEmpty;
+  bool get _allergyOk => !_nutritionFields || _noAllergy || _allergyCtl.text.trim().isNotEmpty;
 
   void _next() {
     if (_step == 0 && !_allergyOk) {
@@ -140,16 +148,35 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
       _busy = true;
       _notice = null;
     });
-    final input = PlanSetupInput(
-      domain: widget.nutrition ? 'nutrition' : 'exercise',
-      goal: _l.base.planGoalLabel(_goal),
-      avoid: widget.nutrition ? _avoidText : '',
-      allergies: widget.nutrition ? _allergyCtl.text : '',
-      noAllergies: widget.nutrition && _noAllergy,
-      mealTimes: widget.nutrition ? Map<String, String>.from(_mealTimes) : const {},
-      exerciseTime: widget.nutrition ? null : _exerciseTime,
-      settings: _settings,
-    );
+    if (!_allergyOk) {
+      setState(() {
+        _busy = false;
+        _step = 0;
+        _notice = _l.allergyNeeded;
+      });
+      return;
+    }
+    final input = _pro
+        ? PlanSetupInput(
+            mode: 'pro',
+            domain: 'nutrition',
+            goal: _l.base.planGoalLabel(_goal),
+            avoid: _avoidText,
+            allergies: _allergyCtl.text,
+            noAllergies: _noAllergy,
+            mealTimes: Map<String, String>.from(_mealTimes),
+            exerciseTime: _exerciseTime,
+            exerciseDays: (_trainDays.toList()..sort()),
+            settings: _settings,
+          )
+        : PlanSetupInput(
+            domain: widget.nutrition ? 'nutrition' : 'exercise',
+            allergies: widget.nutrition ? _allergyCtl.text : '',
+            noAllergies: widget.nutrition && _noAllergy,
+            mealTimes: widget.nutrition ? Map<String, String>.from(_mealTimes) : const {},
+            exerciseTime: widget.nutrition ? null : _exerciseTime,
+            settings: widget.nutrition ? _settings : _settings.copyWith(days: (_trainDays.toList()..sort())),
+          );
     final outcome = await widget.onSubmit(input);
     if (!mounted) return;
     switch (outcome) {
@@ -239,7 +266,7 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
   }
 
   List<Widget> _stepGoal() {
-    final goals = widget.nutrition ? _nutritionGoals : _exerciseGoals;
+    final goals = _nutritionFields ? _nutritionGoals : _exerciseGoals;
     return [
       _label(_l.base.goalQuestion),
       _chips([
@@ -250,7 +277,7 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
             onTap: () => setState(() => _goal = g),
           ),
       ]),
-      if (widget.nutrition) ...[
+      if (_nutritionFields) ...[
         _label(_l.allergyQuestion),
         _chips([
           A3DestinationChip(
@@ -295,29 +322,149 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
     ];
   }
 
-  List<Widget> _stepTimes() {
-    if (widget.nutrition) {
-      return [
-        const SizedBox(height: 10),
-        for (final slot in _mealSlots)
-          _timeRow(
-            kind: slot,
-            label: _l.base.mealSlotLabel(slot),
-            time: _mealTimes[slot] ?? '12:00',
-            onPicked: (v) => _mealTimes[slot] = v,
-          ),
-      ];
-    }
-    return [
-      const SizedBox(height: 10),
-      _timeRow(
+  Widget _exerciseTimeRow() => _timeRow(
         kind: 'exercise',
         label: _l.exerciseTimeQuestion,
         time: _exerciseTime,
         onPicked: (v) => _exerciseTime = v,
-      ),
+      );
+
+  Widget _trainDayChips() => _dayChips(
+        selected: _trainDays,
+        onTap: (d) {
+          if (!_trainDays.add(d) && _trainDays.length > 1) _trainDays.remove(d);
+        },
+      );
+
+  Widget _mealRows() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final slot in _mealSlots)
+            _timeRow(
+              kind: slot,
+              label: _l.base.mealSlotLabel(slot),
+              time: _mealTimes[slot] ?? '12:00',
+              onPicked: (v) => _mealTimes[slot] = v,
+            ),
+        ],
+      );
+
+  /// Simple plan: just the days and the time (plus the allergy answer for meals), one calm page.
+  List<Widget> _stepSimple() {
+    if (widget.nutrition) {
+      return [
+        _label(_l.allergyQuestion),
+        _chips([
+          A3DestinationChip(
+            label: _l.noAllergy,
+            selected: _noAllergy,
+            onTap: () => setState(() {
+              _noAllergy = !_noAllergy;
+              if (_noAllergy) _allergyCtl.clear();
+            }),
+          ),
+        ]),
+        if (!_noAllergy)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextField(
+              controller: _allergyCtl,
+              maxLength: 120,
+              onChanged: (_) => setState(() => _notice = null),
+              decoration: InputDecoration(hintText: _l.allergyHint, counterText: ''),
+            ),
+          ),
+        const SizedBox(height: 12),
+        _mealRows(),
+      ];
+    }
+    return [
+      _label(_l.workoutDaysQuestion),
+      _trainDayChips(),
+      const SizedBox(height: 14),
+      _exerciseTimeRow(),
     ];
   }
+
+  List<Widget> _stepTimes() {
+    return [
+      const SizedBox(height: 10),
+      _mealRows(),
+      _exerciseTimeRow(),
+      _label(_l.workoutDaysQuestion),
+      _trainDayChips(),
+    ];
+  }
+
+  Widget _modeCard({
+    required IconData icon,
+    required String title,
+    required String hint,
+    required VoidCallback onTap,
+    bool strong = false,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: SediGlass.card(BorderRadius.circular(24), strong: strong),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.72),
+                border: Border.all(color: Colors.white.withOpacity(0.9)),
+              ),
+              child: Icon(icon, size: 22, color: SediGlass.ink),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: SediGlass.inkDeep)),
+                  const SizedBox(height: 2),
+                  Text(
+                    hint,
+                    textAlign: TextAlign.justify,
+                    style: const TextStyle(fontSize: 13, height: 1.55, fontWeight: FontWeight.w600, color: SediGlass.ink),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _stepMode() => [
+        const SizedBox(height: 14),
+        _modeCard(
+          icon: Icons.check_rounded,
+          title: _l.modeSimple,
+          hint: _l.modeSimpleHint,
+          strong: true,
+          onTap: () => setState(() {
+            _mode = 'simple';
+            _step = 0;
+          }),
+        ),
+        const SizedBox(height: 10),
+        _modeCard(
+          icon: Icons.insights_rounded,
+          title: _l.modePro,
+          hint: _l.modeProHint,
+          onTap: () => setState(() {
+            _mode = 'pro';
+            _step = 0;
+          }),
+        ),
+      ];
 
   List<Widget> _stepReminders() {
     final days = _settings.days.toSet();
@@ -396,12 +543,16 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
   @override
   Widget build(BuildContext context) {
     final l = _l;
-    final body = _step == 0
-        ? _stepGoal()
-        : _step == 1
-            ? _stepTimes()
-            : _stepReminders();
-    final last = _step == 2;
+    final body = _mode == null
+        ? _stepMode()
+        : !_pro
+            ? _stepSimple()
+            : _step == 0
+                ? _stepGoal()
+                : _step == 1
+                    ? _stepTimes()
+                    : _stepReminders();
+    final last = _mode != null && (!_pro || _step == 2);
     return Directionality(
       textDirection: l.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: SediGlass.blur(
@@ -452,22 +603,28 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l.stepTitle(_step, widget.nutrition),
+                              _mode == null
+                                  ? l.modeTitle
+                                  : !_pro
+                                      ? (widget.nutrition ? l.base.nutritionPlan : l.base.exercisePlan)
+                                      : l.stepTitle(_step, true),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: SediGlass.inkDeep,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              l.stepOf(_step),
-                              style: TextStyle(fontSize: 12.5, color: SediGlass.ink.withOpacity(0.7)),
-                            ),
+                            if (_pro) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                l.stepOf(_step),
+                                style: TextStyle(fontSize: 12.5, color: SediGlass.ink.withOpacity(0.7)),
+                              ),
+                            ],
                           ],
                         ),
                       ),
-                      _dots(),
+                      if (_pro) _dots(),
                     ],
                   ),
                   Flexible(
@@ -488,9 +645,10 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
                       ),
                     ),
                   const SizedBox(height: 14),
+                  if (_mode != null)
                   Row(
                     children: [
-                      if (_step > 0) ...[
+                      ...[
                         Expanded(
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
@@ -498,7 +656,16 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
                               foregroundColor: SediGlass.ink,
                               side: BorderSide(color: Colors.white.withOpacity(0.95)),
                             ),
-                            onPressed: _busy ? null : () => setState(() => _step -= 1),
+                            onPressed: _busy
+                                ? null
+                                : () => setState(() {
+                                      if (_pro && _step > 0) {
+                                        _step -= 1;
+                                      } else {
+                                        _mode = null;
+                                        _notice = null;
+                                      }
+                                    }),
                             child: Text(l.back),
                           ),
                         ),

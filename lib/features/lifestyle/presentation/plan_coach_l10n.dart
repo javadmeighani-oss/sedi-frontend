@@ -167,4 +167,35 @@ class PlanCoachL10n {
         fa: 'برای اینکه جواب‌هات رو یادم بمونه، حافظه باید توی پروفایلت روشن باشه.',
         ar: 'لأتذكر إجاباتك يجب تفعيل الذاكرة في ملفك.',
       );
+
+  // ---- choose the kind of plan, motivation panel, today's workout (pilot V1 screen 7) ----
+  String get modeTitle => _t(en: 'What kind of plan?', fa: 'برنامه‌ات چه‌جوری باشه؟', ar: 'أي نوع من الخطط؟');
+  String get modeSimple => _t(en: 'Simple', fa: 'ساده', ar: 'بسيطة');
+  String get modeSimpleHint => _t(
+        en: 'Pick the days and the time, I take care of the rest.',
+        fa: 'روزها و ساعت رو انتخاب کن، بقیه‌اش با من.',
+        ar: 'اختر الأيام والوقت وأتولى الباقي.',
+      );
+  String get modePro => _t(en: 'Professional, with a diet', fa: 'حرفه‌ای با رژیم غذایی', ar: 'احترافية مع نظام غذائي');
+  String get modeProHint => _t(
+        en: 'Goal, body and food together; your exercise and meals fit each other.',
+        fa: 'هدف، بدن و غذا با هم؛ ورزش و غذات هماهنگ می‌شه.',
+        ar: 'الهدف والجسم والغذاء معًا؛ يتناسق التمرين مع وجباتك.',
+      );
+  String get workoutDaysQuestion =>
+      _t(en: 'Which days shall we train?', fa: 'کدوم روزها تمرین کنیم؟', ar: 'في أي أيام نتمرن؟');
+  String streakLine(int weeks) => _t(
+        en: '${n(weeks)} week(s) in a row you are moving',
+        fa: '${n(weeks)} هفته پشت‌سرهم داری حرکت می‌کنی',
+        ar: '${n(weeks)} أسابيع متتالية وأنت تتحرك',
+      );
+  String get todayWorkoutDone => _t(
+        en: "Today's session is done. Well done!",
+        fa: 'تمرین امروزت انجام شد. دمت گرم!',
+        ar: 'تمت جلسة اليوم. أحسنت!',
+      );
+  String get restToday => _t(en: 'Today is a rest day.', fa: 'امروز روز استراحته.', ar: 'اليوم يوم راحة.');
+  String get markDoneShort => _t(en: 'Done', fa: 'انجام شد', ar: 'تم');
+  String get notToday => _t(en: "Can't today", fa: 'امروز نمی‌شه', ar: 'لا أستطيع اليوم');
+  String get nextDays => _t(en: 'Coming up', fa: 'روزهای بعد', ar: 'الأيام القادمة');
 }

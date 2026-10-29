@@ -48,6 +48,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
   LifestyleWeeklyPlanDto? _plan;
   PlanSettingsDto _settings = const PlanSettingsDto();
   WeeklyReviewDto? _review;
+  PlanProgressDto? _progress;
   bool _loading = true;
   bool _fetchFailed = false;
   String? _selectedDate;
@@ -75,12 +76,17 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
     final res = await _svc.fetchWeeklyPlan();
     PlanSettingsDto? settings;
     WeeklyReviewDto? review;
+    PlanProgressDto? progress;
     if (res.ok && res.data != null) {
       // Fail-open: the coach still works without them.
       final st = await _svc.fetchPlanSettings(_domainKey);
       if (st.ok) settings = st.data;
       final rv = await _svc.fetchWeeklyReview(_domainKey);
       if (rv.ok) review = rv.data;
+      if (!_isNutrition) {
+        final pr = await _svc.fetchPlanProgress(_domainKey);
+        if (pr.ok) progress = pr.data;
+      }
     }
     if (!mounted) return;
     setState(() {
@@ -90,6 +96,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         _fetchFailed = false;
         if (settings != null) _settings = settings;
         _review = review;
+        _progress = progress;
         final dates = res.data!.days.map((d) => d.localDate).toList();
         if (_selectedDate == null || !dates.contains(_selectedDate)) {
           final today = res.data!.todayLocal;
@@ -206,13 +213,21 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                       ),
                     )
                   else ...[
-                    _coachCard(l10n, coach, starter),
-                    if (_effectiveState == 'active' ||
-                        _effectiveState == 'review_due') ...[
+                    if (!_isNutrition && _effectiveState == 'active' && _progress != null) ...[
+                      // Pilot V1 screen 7: Sedi's motivation first, then today, then what is next.
+                      _motivationPanel(l10n, coach),
                       const SizedBox(height: 14),
-                      _weekStrip(l10n),
-                      const SizedBox(height: 14),
-                      _dayTimeline(l10n, coach),
+                      _todayWorkout(l10n, coach),
+                      ..._nextDaysList(l10n, coach),
+                    ] else ...[
+                      _coachCard(l10n, coach, starter),
+                      if (_effectiveState == 'active' ||
+                          _effectiveState == 'review_due') ...[
+                        const SizedBox(height: 14),
+                        _weekStrip(l10n),
+                        const SizedBox(height: 14),
+                        _dayTimeline(l10n, coach),
+                      ],
                     ],
                     if (_review != null && _review!.hasStory) ...[
                       const SizedBox(height: 14),
@@ -352,6 +367,257 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         ],
       ),
     );
+  }
+
+  // ------------------------------------------------------------------ exercise: motivation panel
+  Widget _motivationPanel(LifestyleL10n l10n, PlanCoachL10n coach) {
+    final p = _progress!;
+    final fraction = p.weekTotal <= 0 ? 0.0 : (p.weekDone / p.weekTotal).clamp(0.0, 1.0);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFDCE98F), Color(0xFFB8CB55)],
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.7)),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF6E8C28).withOpacity(0.30), blurRadius: 32, offset: const Offset(0, 16)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // R-035: the sphere is on the start side of Sedi's words.
+          Row(
+            children: [
+              SizedBox(
+                width: 78,
+                height: 78,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 78,
+                      height: 78,
+                      child: CircularProgressIndicator(
+                        value: fraction,
+                        strokeWidth: 7,
+                        backgroundColor: Colors.white.withOpacity(0.5),
+                        color: const Color(0xFF48551F),
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${coach.n(p.weekDone)}/${coach.n(p.weekTotal)}',
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1B2208)),
+                        ),
+                        Text(coach.weekTitle, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF2B3316))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  p.message,
+                  textAlign: TextAlign.justify,
+                  style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, height: 1.6, color: Color(0xFF1B2208)),
+                ),
+              ),
+            ],
+          ),
+          if (p.dayStates.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (final st in p.dayStates)
+                  Expanded(
+                    child: Container(
+                      height: 10,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: st == 'done' || st == 'today_done'
+                            ? const Color(0xFF48551F)
+                            : st == 'planned'
+                                ? const Color(0xFF48551F).withOpacity(0.35)
+                                : Colors.white.withOpacity(st == 'today' ? 0.95 : 0.5),
+                        border: st == 'today' ? Border.all(color: const Color(0xFF48551F), width: 2) : null,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (p.streakWeeks >= 1) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.local_fire_department_outlined, size: 20, color: Color(0xFF2B3316)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    coach.streakLine(p.streakWeeks),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2B3316)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ exercise: today + next days
+  List<LifestyleWeeklyActionDto> _timedActions(LifestyleWeeklyDayDto day) =>
+      _actionsFor(day).where((a) => a.localTime != null && a.localTime!.isNotEmpty).toList();
+
+  Widget _todayWorkout(LifestyleL10n l10n, PlanCoachL10n coach) {
+    final day = _todayDay();
+    final items = day == null ? const <LifestyleWeeklyActionDto>[] : _timedActions(day);
+    if (items.isEmpty) {
+      return _glass(child: Text(coach.restToday, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: SediGlass.inkDeep)));
+    }
+    final open = items.where((a) => (a.status ?? '').toUpperCase() == 'ACTIVE' && a.reviewOutcome == null).toList();
+    if (open.isEmpty) {
+      return _glass(
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, size: 30, color: AppTheme.gate2ButtonOlive),
+            const SizedBox(width: 12),
+            Expanded(child: Text(coach.todayWorkoutDone, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: SediGlass.inkDeep))),
+          ],
+        ),
+      );
+    }
+    final a = open.first;
+    final title = (a.title ?? a.activityTitle ?? '').trim();
+    final meta = <String>[
+      coach.n(a.localTime ?? ''),
+      if (a.durationMinutes != null) l10n.durationMinutes(a.durationMinutes!),
+    ].join(' · ');
+    return _glass(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              PlanDishArt(kind: PlanDishArt.kindFor(activityType: a.activityType), size: 60),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${l10n.todayLabel} · $meta',
+                      textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: SediGlass.ink.withOpacity(0.75)),
+                    ),
+                    Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.45, color: SediGlass.inkDeep)),
+                  ],
+                ),
+              ),
+              if (a.id != null)
+                IconButton(
+                  tooltip: l10n.editItem,
+                  icon: const Icon(Icons.more_horiz_rounded, color: AppTheme.gate2ButtonOlive),
+                  onPressed: () => _openItem(a, l10n, true),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    backgroundColor: AppTheme.ctaFill,
+                    foregroundColor: AppTheme.ctaText,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  onPressed: a.id == null || _reviewing.contains(a.id) ? null : () => _review(a, 'done'),
+                  icon: const Icon(Icons.check_rounded),
+                  label: Text(coach.markDoneShort),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    foregroundColor: SediGlass.ink,
+                    side: BorderSide(color: Colors.white.withOpacity(0.95)),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                  ),
+                  onPressed: a.id == null ? null : () => _openItem(a, l10n, true),
+                  child: Text(coach.notToday),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _nextDaysList(LifestyleL10n l10n, PlanCoachL10n coach) {
+    final today = _plan?.todayLocal ?? '';
+    final rows = <Widget>[];
+    for (final d in _plan?.days ?? const <LifestyleWeeklyDayDto>[]) {
+      if (d.localDate.compareTo(today) <= 0) continue;
+      final items = _timedActions(d);
+      if (items.isEmpty) continue;
+      final a = items.first;
+      final weekday = CalendarDateMath.weekdayFromIso(d.localDate);
+      final title = (a.title ?? a.activityTitle ?? '').trim();
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 70,
+                child: Text(
+                  weekday == null ? '' : l10n.weekdayShort(weekday),
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: SediGlass.ink),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  a.durationMinutes == null ? title : '$title · ${l10n.durationMinutes(a.durationMinutes!)}',
+                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, height: 1.4, color: SediGlass.inkDeep),
+                ),
+              ),
+              Text(
+                coach.n(a.localTime ?? ''),
+                textDirection: TextDirection.ltr,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: SediGlass.ink.withOpacity(0.75)),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (rows.length >= 3) break;
+    }
+    if (rows.isEmpty) return const [];
+    return [
+      const SizedBox(height: 14),
+      _glass(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Column(children: rows),
+      ),
+    ];
   }
 
   LifestyleWeeklyDayDto? _todayDay() {

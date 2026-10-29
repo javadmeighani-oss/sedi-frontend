@@ -44,7 +44,7 @@ void main() {
 
   test('the setup is three calm steps and meals need the allergy answer first', () {
     expect(sheet.contains('_step == 0'), isTrue);
-    expect(sheet.contains('last = _step == 2'), isTrue);
+    expect(sheet.contains('(!_pro || _step == 2)'), isTrue);
     expect(sheet.contains('_allergyOk'), isTrue);
     expect(sheet.contains('allergyNeeded'), isTrue);
     expect(sheet.contains('onSubmit(input)'), isTrue);
@@ -134,6 +134,60 @@ void main() {
     }
     expect(PlanCoachL10n('fa').isRtl, isTrue);
     expect(PlanCoachL10n('en').isRtl, isFalse);
+  });
+
+  test('exercise page opens with Sedi\'s motivation panel, then today, then what is next (screen 7)', () {
+    expect(view.indexOf('_motivationPanel(l10n, coach)'), lessThan(view.indexOf('_todayWorkout(l10n, coach)')));
+    expect(view.contains('_nextDaysList('), isTrue);
+    expect(view.contains('_svc.fetchPlanProgress'), isTrue);
+    expect(view.contains("coach.markDoneShort"), isTrue);
+    expect(view.contains("'/lifestyle/plan-progress'"), isFalse); // the URL lives in the service only
+    expect(svc.contains("'/lifestyle/plan-progress'"), isTrue);
+    // no controls for "how Sedi follows up": she always follows up and motivates, and learns from the reactions
+    expect(view.contains('followUp'), isFalse);
+    expect(sheet.contains('followUp'), isFalse);
+  });
+
+  test('the setup starts with the kind of plan: simple, or professional with a diet (both plans together)', () {
+    expect(sheet.contains('_stepMode()'), isTrue);
+    expect(sheet.contains("_mode = 'simple'"), isTrue);
+    expect(sheet.contains("_mode = 'pro'"), isTrue);
+    expect(sheet.contains("mode: 'pro'"), isTrue);
+    expect(sheet.contains('exerciseDays:'), isTrue);
+    final input = PlanSetupInput(domain: 'nutrition', mode: 'pro', exerciseDays: const [1, 3, 5]).toJson();
+    expect(input['mode'], 'pro');
+    expect(input['exercise_days'], [1, 3, 5]);
+    expect(const PlanSetupInput(domain: 'exercise').toJson()['mode'], 'simple');
+  });
+
+  test('progress parses the numbers and day marks the backend sends', () {
+    final p = PlanProgressDto.fromJson({
+      'state': 'active',
+      'week_done': 2,
+      'week_total': 4,
+      'streak_weeks': 3,
+      'total_done': 12,
+      'comeback': false,
+      'message': 'x',
+      'days': [
+        {'state': 'done'},
+        {'state': 'today'},
+        {'state': 'none'},
+      ],
+    });
+    expect(p.weekDone, 2);
+    expect(p.weekTotal, 4);
+    expect(p.streakWeeks, 3);
+    expect(p.dayStates, ['done', 'today', 'none']);
+    expect(p.hasPlan, isTrue);
+    expect(PlanProgressDto.fromJson({'state': 'empty'}).hasPlan, isFalse);
+    for (final lang in ['fa', 'ar', 'en']) {
+      final l = PlanCoachL10n(lang);
+      for (final s in [l.modeTitle, l.modeSimpleHint, l.modeProHint, l.workoutDaysQuestion, l.streakLine(3), l.todayWorkoutDone, l.restToday, l.notToday]) {
+        expect(s.trim(), isNotEmpty, reason: lang);
+        expect(s.contains('سدی'), isFalse, reason: lang);
+      }
+    }
   });
 
   test('the illustration key follows the meal slot or the activity', () {

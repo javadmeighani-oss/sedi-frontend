@@ -117,6 +117,15 @@ class LifestyleWeeklyPlanService {
     );
   }
 
+  /// The motivation panel: this week's sessions, day marks, streak and Sedi's line.
+  Future<ApiResponse<PlanProgressDto>> fetchPlanProgress(String domain) {
+    return _api.get<PlanProgressDto>(
+      '/lifestyle/plan-progress',
+      queryParams: <String, String>{'domain': domain},
+      parser: (data) => data is Map ? PlanProgressDto.fromJson(Map<String, dynamic>.from(data)) : null,
+    );
+  }
+
   /// How the current week went (from what the user marked).
   Future<ApiResponse<WeeklyReviewDto>> fetchWeeklyReview(String domain) {
     return _api.get<WeeklyReviewDto>(
