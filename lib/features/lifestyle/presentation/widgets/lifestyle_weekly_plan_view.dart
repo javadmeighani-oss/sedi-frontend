@@ -47,7 +47,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
       widget.service ?? LifestyleWeeklyPlanService();
   LifestyleWeeklyPlanDto? _plan;
   PlanSettingsDto _settings = const PlanSettingsDto();
-  WeeklyReviewDto? _review;
+  WeeklyReviewDto? _weekReview;
   PlanProgressDto? _progress;
   bool _loading = true;
   bool _fetchFailed = false;
@@ -95,7 +95,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
         _plan = res.data;
         _fetchFailed = false;
         if (settings != null) _settings = settings;
-        _review = review;
+        _weekReview = review;
         _progress = progress;
         final dates = res.data!.days.map((d) => d.localDate).toList();
         if (_selectedDate == null || !dates.contains(_selectedDate)) {
@@ -229,7 +229,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
                         _dayTimeline(l10n, coach),
                       ],
                     ],
-                    if (_review != null && _review!.hasStory) ...[
+                    if (_weekReview != null && _weekReview!.hasStory) ...[
                       const SizedBox(height: 14),
                       _reviewCard(l10n, coach),
                     ],
@@ -830,7 +830,7 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
 
   // ------------------------------------------------------------------ weekly review
   Widget _reviewCard(LifestyleL10n l10n, PlanCoachL10n coach) {
-    final r = _review!;
+    final r = _weekReview!;
     final best = r.bestWeekday;
     return _glass(
       child: Column(
