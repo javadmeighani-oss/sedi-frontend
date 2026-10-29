@@ -61,6 +61,26 @@ class SediGlass {
     );
   }
 
+  /// A soft glass card (profile cards, the memory row, the logout pill). [strong] is the identity card.
+  static BoxDecoration card(BorderRadius radius, {bool strong = false}) {
+    return BoxDecoration(
+      borderRadius: radius,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: strong ? [_white(0.52), _white(0.20)] : [_white(0.42), _white(0.14)],
+      ),
+      border: Border.all(color: _white(strong ? 0.78 : 0.70)),
+      boxShadow: [
+        BoxShadow(
+          color: _shadow.withOpacity(strong ? 0.16 : 0.13),
+          blurRadius: strong ? 34 : 30,
+          offset: const Offset(0, 14),
+        ),
+      ],
+    );
+  }
+
   /// The composer capsule and other large floating glass surfaces.
   static BoxDecoration capsule(BorderRadius radius) {
     return BoxDecoration(

@@ -7,17 +7,23 @@ import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
+import '../../../../core/theme/sedi_palette.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../auth_otp/presentation/a2_phone_e164.dart';
 import '../../../auth_otp/presentation/gate2_otp_input.dart';
+import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../gate3_memory_l10n.dart';
 import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
+import '../widgets/sedi_hologram_orb.dart';
+import '../widgets/sedi_scene_backdrop.dart';
 
 /// A3 Profile — user info, user summary, Memory & Privacy, Log out.
+/// Pilot V1 (R-034/R-035): one glass screen, icons before words, the Sedi sphere beside the title.
 class Gate3ProfilePage extends StatefulWidget {
   const Gate3ProfilePage({super.key});
 
@@ -197,255 +203,584 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   Widget build(BuildContext context) {
     final l10n = _l10n;
     final textDir = l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+    final top = MediaQuery.of(context).padding.top + kToolbarHeight + 8;
     return Directionality(
       textDirection: textDir,
       child: Scaffold(
         backgroundColor: A3DestinationSurface.canvas,
+        extendBodyBehindAppBar: true,
         appBar: A3PageAppBar(
-          title: Text(l10n.profileTitle),
-          backgroundColor: A3DestinationSurface.canvas,
+          // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 38,
+                showRings: false,
+                animate: false,
+                keyedLogo: false,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.profileTitle,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.transparent,
         ),
-        body: _loading
-            ? const Center(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SediSceneBackdrop(),
+            if (_loading)
+              const Center(
                 child: CircularProgressIndicator(
                   color: AppTheme.gate2ButtonOlive,
                 ),
               )
-            : RefreshIndicator(
+            else
+              RefreshIndicator(
                 color: AppTheme.gate2ButtonOlive,
                 onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-                  children: [
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: A3DestinationCard(
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(color: AppTheme.dangerRed),
-                          ),
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(16, top, 16, 20),
+                      child: ConstrainedBox(
+                        // Everything fits one screen; the scroll only exists for the keyboard and tiny screens.
+                        constraints: BoxConstraints(
+                          minHeight: (box.maxHeight - top - 20)
+                              .clamp(0.0, double.infinity)
+                              .toDouble(),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_error != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: A3DestinationCard(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(
+                                      color: AppTheme.dangerRed,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Semantics(
+                              container: true,
+                              label: l10n.userInformationSection,
+                              child: _glassCard(
+                                strong: true,
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // The name stands alone: no icon beside it.
+                                    Text(
+                                      _me?.name ?? '—',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      children: [
+                                        _factTile(
+                                          icon: Icons.cake_outlined,
+                                          label: l10n.profileDobLabel,
+                                          value: _formatDob(_me),
+                                          forceLtr: true,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _factTile(
+                                          icon: _sexIcon(_me?.sex),
+                                          label: l10n.profileSexLabel,
+                                          value: l10n.profileSexValue(_me?.sex),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _factTile(
+                                          icon: Icons.language_rounded,
+                                          label: l10n.profileLanguageLabel,
+                                          value: _formatLanguage(
+                                              _me?.preferredLanguage),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _phoneCard(l10n),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildSummaryCard(l10n),
+                            const SizedBox(height: 12),
+                            const Gate3ProfileMemoryControl(),
+                            const SizedBox(height: 12),
+                            _logoutButton(l10n),
+                          ],
                         ),
                       ),
-                    A3DestinationCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.userInformationSection,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          A3DestinationFact(
-                            label: l10n.profileNameLabel,
-                            value: _me?.name ?? '—',
-                          ),
-                          A3DestinationFact(
-                            label: l10n.profileDobLabel,
-                            value: _formatDob(_me),
-                          ),
-                          A3DestinationFact(
-                            label: l10n.profileSexLabel,
-                            value: l10n.profileSexValue(_me?.sex),
-                          ),
-                          A3DestinationFact(
-                            label: l10n.profileLanguageLabel,
-                            value: _formatLanguage(_me?.preferredLanguage),
-                          ),
-                          _phoneCard(l10n),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSummaryCard(l10n),
-                    const SizedBox(height: 16),
-                    const Gate3ProfileMemoryControl(),
-                    const SizedBox(height: 16),
-                    A3DestinationCard(
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed: () =>
-                              AuthHelper.performLogout(context: context),
-                          icon: const Icon(Icons.logout_rounded),
-                          label: Text(l10n.logoutApp),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.textPrimary,
-                            side: const BorderSide(
-                              color: AppTheme.gate2BorderSubtle,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
+          ],
+        ),
       ),
     );
   }
 
+  // ---- glass building blocks (pilot V1, R-034) ----
+
+  Widget _glassCard({
+    required Widget child,
+    required EdgeInsets padding,
+    bool strong = false,
+  }) {
+    final radius = BorderRadius.circular(30);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 18,
+      child: DecoratedBox(
+        decoration: SediGlass.card(radius, strong: strong),
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+  }
+
+  Widget _factTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool forceLtr = false,
+  }) {
+    return Expanded(
+      child: Semantics(
+        container: true,
+        label: '$label: $value',
+        excludeSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 12, 6, 10),
+          decoration: SediGlass.tile(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 28, color: SediGlass.ink),
+              const SizedBox(height: 7),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  textDirection: forceLtr ? TextDirection.ltr : null,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: SediGlass.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _sexIcon(String? sex) {
+    switch ((sex ?? '').toLowerCase()) {
+      case 'male':
+        return Icons.male_rounded;
+      case 'female':
+        return Icons.female_rounded;
+      default:
+        return Icons.transgender_rounded;
+    }
+  }
+
+  Widget _roundGlassButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+    double size = 40,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.78),
+                  Colors.white.withOpacity(0.30),
+                ],
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.9)),
+            ),
+            child: Icon(icon, size: 20, color: SediGlass.ink),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sphereButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+    bool busy = false,
+    double size = 46,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: busy ? null : onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: SediGlass.pistachioSphere(),
+            child: busy
+                ? const Padding(
+                    padding: EdgeInsets.all(13),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: SediGlass.inkDeep,
+                    ),
+                  )
+                : Icon(icon, size: 22, color: SediGlass.inkDeep),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The active (editing) look: a lit pistachio ring around the box.
+  BoxDecoration _activeBox() {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(26),
+      color: Colors.white.withOpacity(0.82),
+      border: Border.all(color: const Color(0xFF8FAE3E), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF8FAE3E).withOpacity(0.28),
+          spreadRadius: 4,
+        ),
+        BoxShadow(
+          color: const Color(0xFF48551F).withOpacity(0.14),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
+
+  Widget _logoutButton(Gate3Localization l10n) {
+    final radius = BorderRadius.circular(28);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 14,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => AuthHelper.performLogout(context: context),
+          borderRadius: radius,
+          child: Container(
+            height: 56,
+            decoration: SediGlass.card(radius),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.logout_rounded,
+                    size: 24, color: SediPalette.skin700),
+                const SizedBox(width: 10),
+                Text(
+                  l10n.logoutApp,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: SediPalette.skin700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---- phone: the number, then the edit box, then the code box under it ----
+
   Widget _phoneCard(Gate3Localization l10n) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        A3DestinationFact(
-          label: l10n.profilePhoneLabel,
-          value: _me?.phone ?? '—',
-          valueDirection: TextDirection.ltr,
+        if (!_changingPhone)
+          _phoneRow(l10n, number: _me?.phone ?? '—')
+        else if (!_otpSent)
+          _phoneEditBox(l10n)
+        else ...[
+          _phoneRow(l10n, number: _pendingNewPhone ?? '—', sent: true),
+          const SizedBox(height: 10),
+          _codeBox(l10n),
+        ],
+        if (_phoneFlowError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    size: 18, color: AppTheme.dangerRed),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _phoneFlowError!,
+                    style: const TextStyle(
+                      color: AppTheme.dangerRed,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_phoneFlowSuccess != null && !_changingPhone)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_outline_rounded,
+                    size: 18, color: SediGlass.ink),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _phoneFlowSuccess!,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The closed row: phone icon, the number (always left-to-right), and the pencil right beside it.
+  Widget _phoneRow(
+    Gate3Localization l10n, {
+    required String number,
+    bool sent = false,
+  }) {
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.62),
+            Colors.white.withOpacity(0.22),
+          ],
         ),
-        if (!_changingPhone) ...[
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: AppTheme.gate2ButtonOlive,
+        border: Border.all(color: Colors.white.withOpacity(0.85)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_outlined, size: 26, color: SediGlass.ink),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                number,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                  letterSpacing: 0.2,
+                ),
               ),
-              onPressed: () => setState(() {
+            ),
+          ),
+          if (sent)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.check_circle_outline_rounded,
+                  size: 24, color: Color(0xFF5F7B22)),
+            )
+          else
+            _sphereButton(
+              icon: Icons.edit_outlined,
+              tooltip: l10n.changePhone,
+              size: 44,
+              onTap: () => setState(() {
                 _changingPhone = true;
                 _phoneFlowError = null;
                 _phoneFlowSuccess = null;
                 _otpSent = false;
               }),
-              child: Text(l10n.changePhone),
-            ),
-          ),
-          if (_phoneFlowSuccess != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                _phoneFlowSuccess!,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 13,
-                ),
-              ),
             ),
         ],
-        if (_changingPhone) ..._phoneChangeWidgets(l10n),
-      ],
+      ),
     );
   }
 
-  List<Widget> _phoneChangeWidgets(Gate3Localization l10n) {
-    return [
-      const SizedBox(height: 6),
-      Text(
-        l10n.newPhoneLabel,
-        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-      ),
-      const SizedBox(height: 4),
-      Row(
+  void _cancelPhoneChange() {
+    setState(() {
+      _changingPhone = false;
+      _otpSent = false;
+      _pendingNewPhone = null;
+      _phoneFlowError = null;
+    });
+  }
+
+  /// The number box itself becomes the field (no panel): dial code + number, with cancel and send-code icons.
+  Widget _phoneEditBox(Gate3Localization l10n) {
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 7, 8, 7),
+      decoration: _activeBox(),
+      child: Row(
         children: [
-          DropdownButton<A2CountryDialCode>(
-            value: _dial,
-            items: A2PhoneE164.dialCodes
-                .map(
-                  (c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c.displayDial),
-                  ),
-                )
-                .toList(),
-            onChanged: _phoneBusy
-                ? null
-                : (v) {
-                    if (v != null) setState(() => _dial = v);
-                  },
-          ),
+          const Icon(Icons.phone_outlined, size: 26, color: SediGlass.ink),
           const SizedBox(width: 8),
           Expanded(
-            child: TextField(
-              controller: _phoneCtrl,
-              enabled: !_phoneBusy && !_otpSent,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                children: [
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<A2CountryDialCode>(
+                      value: _dial,
+                      isDense: true,
+                      icon: const Icon(Icons.expand_more_rounded,
+                          size: 18, color: SediGlass.ink),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                      items: A2PhoneE164.dialCodes
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c.displayDial),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: _phoneBusy
+                          ? null
+                          : (v) {
+                              if (v != null) setState(() => _dial = v);
+                            },
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: TextField(
+                      controller: _phoneCtrl,
+                      enabled: !_phoneBusy,
+                      autofocus: true,
+                      keyboardType: TextInputType.phone,
+                      cursorColor: SediGlass.ink,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+          _roundGlassButton(
+            icon: Icons.close_rounded,
+            tooltip: l10n.cancel,
+            onTap: _phoneBusy ? null : _cancelPhoneChange,
+          ),
+          const SizedBox(width: 6),
+          _sphereButton(
+            icon: Icons.send_rounded,
+            tooltip: l10n.sendPhoneOtp,
+            busy: _phoneBusy,
+            onTap: _requestPhoneOtp,
+          ),
         ],
       ),
-      if (_otpSent) ...[
-        const SizedBox(height: 10),
-        Text(
-          l10n.otpCodeLabel,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-        ),
-        const SizedBox(height: 4),
-        Gate2OtpInput(
-          controller: _otpCtrl,
-          focusNode: _otpFocus,
-          enabled: !_phoneBusy,
-        ),
-      ],
-      if (_phoneFlowError != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            _phoneFlowError!,
-            style: const TextStyle(color: AppTheme.dangerRed, fontSize: 13),
-          ),
-        ),
-      if (_phoneFlowSuccess != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            _phoneFlowSuccess!,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-          ),
-        ),
-      const SizedBox(height: 8),
-      Row(
+    );
+  }
+
+  /// The code box opens UNDER the number and closes after a successful verify (or cancel).
+  Widget _codeBox(Gate3Localization l10n) {
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 7, 8, 7),
+      decoration: _activeBox(),
+      child: Row(
         children: [
-          if (!_otpSent)
-            ElevatedButton(
-              onPressed: _phoneBusy ? null : _requestPhoneOtp,
-              child: _phoneBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.sendPhoneOtp),
-            )
-          else
-            ElevatedButton(
-              onPressed: _phoneBusy ? null : _verifyPhoneOtp,
-              child: _phoneBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.verifyPhoneOtp),
+          const Icon(Icons.verified_user_outlined,
+              size: 26, color: SediGlass.ink),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Tooltip(
+              message: l10n.otpCodeLabel,
+              child: Gate2OtpInput(
+                controller: _otpCtrl,
+                focusNode: _otpFocus,
+                enabled: !_phoneBusy,
+              ),
             ),
-          const SizedBox(width: 12),
-          TextButton(
-            onPressed: _phoneBusy
-                ? null
-                : () => setState(() {
-                      _changingPhone = false;
-                      _otpSent = false;
-                      _pendingNewPhone = null;
-                      _phoneFlowError = null;
-                    }),
-            child: Text(l10n.cancel),
+          ),
+          _roundGlassButton(
+            icon: Icons.close_rounded,
+            tooltip: l10n.cancel,
+            onTap: _phoneBusy ? null : _cancelPhoneChange,
+          ),
+          const SizedBox(width: 6),
+          _sphereButton(
+            icon: Icons.check_rounded,
+            tooltip: l10n.verifyPhoneOtp,
+            busy: _phoneBusy,
+            onTap: _verifyPhoneOtp,
           ),
         ],
       ),
-    ];
+    );
   }
 
   String _formatDob(MeProfileDto? me) {
@@ -479,43 +814,93 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     }
   }
 
+  /// Sedi's overall summary of the user: one short paragraph (4 lines at most, justified) and a Memory chip.
   Widget _buildSummaryCard(Gate3Localization l10n) {
     final text = _canonicalSummary.trim();
     final body = text.isEmpty ? l10n.userSummaryEmpty : text;
-    return A3DestinationCard(
+    return _glassCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.userSummarySection,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: SediGlass.tile(),
+                child: const Icon(Icons.auto_awesome_outlined,
+                    size: 21, color: SediGlass.ink),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.userSummarySection,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: SediGlass.inkDeep,
+                  ),
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const Gate3MemoryPage(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 40,
+                    padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 14, 0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.75),
+                          Colors.white.withOpacity(0.28),
+                        ],
+                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.9)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.history_rounded,
+                            size: 22, color: SediGlass.ink),
+                        const SizedBox(width: 7),
+                        Text(
+                          l10n.memoryOpen,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: SediGlass.inkDeep,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
             body,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.justify,
             style: const TextStyle(
               color: AppTheme.textSecondary,
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const Gate3MemoryPage(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.psychology_alt_outlined),
-              label: Text(l10n.memoryOpen),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              height: 1.75,
             ),
           ),
         ],
