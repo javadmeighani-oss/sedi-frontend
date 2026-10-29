@@ -6,6 +6,7 @@ import 'core/locale/sedi_locale_registry.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/notifications/notification_bootstrap.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/sedi_fonts.dart';
 import 'core/theme/sedi_palette.dart';
 import 'features/intro/presentation/pages/intro_page.dart';
 
@@ -102,7 +103,8 @@ class _SediAppState extends State<SediApp> with WidgetsBindingObserver {
           ),
         ),
         scaffoldBackgroundColor: AppTheme.background,
-        fontFamily: 'Vazirmatn', // R-041: bundled app font (fa / ar / en)
+        fontFamily: SediFonts.familyFor(_locale.languageCode), // R-041: the licensed font of the app language
+        fontFamilyFallback: SediFonts.fallbackFor(_locale.languageCode),
         textTheme: const TextTheme(bodyMedium: AppTheme.bodyPrimary),
         iconTheme: const IconThemeData(color: AppTheme.iconInactive),
         appBarTheme: const AppBarTheme(
