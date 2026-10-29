@@ -239,7 +239,7 @@ class LifestyleL10n {
   String get typeAppointment =>
       _t(en: 'Doctor visit', fa: 'نوبت دکتر', ar: 'موعد طبيب');
   String get typeMeeting => _t(en: 'Meeting', fa: 'جلسه', ar: 'اجتماع');
-  String get typeFree => _t(en: 'Other', fa: 'آزاد', ar: 'حر');
+  String get typeFree => _t(en: 'Reminder', fa: 'یادآور', ar: 'تذكير');
   String get medName =>
       _t(en: 'Medication name', fa: 'اسم دارو', ar: 'اسم الدواء');
   String get medTimes =>
@@ -297,6 +297,50 @@ class LifestyleL10n {
   /// Digits in the language's own numerals (Eastern digits for fa/ar).
   String digits(Object v) => _n(v);
 
+  // ---- pilot V1 (R-034): My Schedule speaks in short words ----
+  String get addAction => _t(en: 'Add', fa: 'افزودن', ar: 'إضافة');
+  String get titleField => _t(en: 'Title', fa: 'عنوان', ar: 'العنوان');
+  String get repeatOnce => _t(en: 'Once', fa: 'یک‌بار', ar: 'مرة');
+  String get repeatDaily => _t(en: 'Daily', fa: 'هر روز', ar: 'يوميًا');
+  String get repeatDays => _t(en: 'Days', fa: 'روزها', ar: 'أيام');
+  String get pickDays => _t(
+        en: 'Pick at least one day.',
+        fa: 'حداقل یک روز را انتخاب کن.',
+        ar: 'اختر يومًا واحدًا على الأقل.',
+      );
+
+  /// One letter per ISO weekday (1 = Monday ... 7 = Sunday).
+  String weekdayInitial(int isoWeekday) {
+    final i = (isoWeekday - 1).clamp(0, 6).toInt();
+    return _t(
+      en: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
+      fa: const ['د', 'س', 'چ', 'پ', 'ج', 'ش', 'ی'][i],
+      ar: const ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'][i],
+    );
+  }
+
+  /// Weekday order of the picker: Saturday first in fa/ar, Monday first in en.
+  List<int> get weekOrder =>
+      lang == 'en' ? const [1, 2, 3, 4, 5, 6, 7] : const [6, 7, 1, 2, 3, 4, 5];
+
+  /// Short "when to notify" chip label.
+  String presetShort(int? minutes) {
+    switch (minutes) {
+      case 0:
+        return _t(en: 'On time', fa: 'به‌موقع', ar: 'في الوقت');
+      case 15:
+        return _t(en: '15 m', fa: '${_n(15)} د', ar: '${_n(15)} د');
+      case 30:
+        return _t(en: '30 m', fa: '${_n(30)} د', ar: '${_n(30)} د');
+      case 60:
+        return _t(en: '1 h', fa: '${_n(1)} س', ar: '${_n(1)} س');
+      case 1440:
+        return _t(en: '1 day', fa: '${_n(1)} روز', ar: '${_n(1)} يوم');
+      default:
+        return reminderOff;
+    }
+  }
+
   /// Eastern digits for fa/ar.
   String _n(Object v) {
     final s = '$v';
@@ -343,8 +387,16 @@ class LifestyleL10n {
     }
     if (rule.contains('FREQ=WEEKLY')) {
       const codes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-      final match = RegExp(r'BYDAY=([A-Z]{2})').firstMatch(rule);
-      final i = match == null ? -1 : codes.indexOf(match.group(1)!);
+      final match = RegExp(r'BYDAY=([A-Z,]+)').firstMatch(rule);
+      final picked = match == null
+          ? const <String>[]
+          : match.group(1)!.split(',').where(codes.contains).toList();
+      if (picked.length > 1) {
+        // several weekdays at the same time: «شنبه، دوشنبه، چهارشنبه · ۲۱:۳۰»
+        final names = [for (final c in picked) weekdayShort(codes.indexOf(c) + 1)];
+        return '${names.join(_t(en: ', ', fa: '، ', ar: '، '))}$time';
+      }
+      final i = picked.isEmpty ? -1 : codes.indexOf(picked.first);
       if (i < 0) {
         return '${_t(en: 'Every week', fa: 'هر هفته', ar: 'كل أسبوع')}$time';
       }
