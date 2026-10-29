@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../domain/history_calendar.dart';
 import '../lifestyle_l10n.dart';
 
@@ -80,54 +80,106 @@ class _HistoryCalendarCardState extends State<HistoryCalendarCard> {
           child: Text(
             _weekdayLetter((weekStart - 1 + i) % 7 + 1),
             style: const TextStyle(
-              fontSize: 12.5,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textSecondary,
+              color: Color(0xFF6A7545),
             ),
           ),
         ),
       for (var i = 0; i < blanks; i++) const SizedBox.shrink(),
       for (var d = 1; d <= m.length; d++) _dayCell(m.isoOf(d), d),
     ];
-    return A3DestinationCard(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-      child: Column(
-        children: [
-          Row(
+    final radius = BorderRadius.circular(26);
+    return SediGlass.blur(
+      radius: radius,
+      sigma: 16,
+      child: DecoratedBox(
+        decoration: SediGlass.card(radius),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          child: Column(
             children: [
-              IconButton(
-                tooltip: l10n.nextMonth,
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                icon: Icon(rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded),
-                onPressed: () => _shift(1),
-              ),
-              Expanded(
-                child: Text(
-                  '${l10n.monthName(_calendar.name, m.month)} ${_digits(m.year)}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+              Row(
+                children: [
+                  _arrow(
+                    tooltip: l10n.nextMonth,
+                    icon: rtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                    onTap: () => _shift(1),
                   ),
-                ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            size: 17, color: SediGlass.ink),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${l10n.monthName(_calendar.name, m.month)} ${_digits(m.year)}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: SediGlass.inkDeep,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _arrow(
+                    tooltip: l10n.prevMonth,
+                    icon: rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+                    onTap: () => _shift(-1),
+                  ),
+                ],
               ),
-              IconButton(
-                tooltip: l10n.prevMonth,
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                icon: Icon(rtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded),
-                onPressed: () => _shift(-1),
+              const SizedBox(height: 4),
+              GridView.count(
+                crossAxisCount: 7,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 1.35,
+                children: cells,
               ),
             ],
           ),
-          GridView.count(
-            crossAxisCount: 7,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.05,
-            children: cells,
+        ),
+      ),
+    );
+  }
+
+  /// A small round glass arrow (44dp tap target around a 32dp disc).
+  Widget _arrow({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 24,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.82),
+                    Colors.white.withOpacity(0.32),
+                  ],
+                ),
+                border: Border.all(color: Colors.white.withOpacity(0.92)),
+              ),
+              child: Icon(icon, size: 19, color: SediGlass.ink),
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -140,15 +192,31 @@ class _HistoryCalendarCardState extends State<HistoryCalendarCard> {
       button: true,
       label: iso,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => widget.onPick(iso),
         child: Container(
           margin: const EdgeInsets.all(1.5),
           decoration: BoxDecoration(
-            color: selected ? AppTheme.gate2ButtonOlive : null,
-            borderRadius: BorderRadius.circular(14),
-            border: today && !selected
-                ? Border.all(color: AppTheme.gate2ButtonOlive, width: 1.5)
+            borderRadius: BorderRadius.circular(16),
+            gradient: selected || today
+                ? const RadialGradient(
+                    center: Alignment(-0.3, -0.6),
+                    radius: 1.6,
+                    colors: [
+                      Color(0xFFF6FBD6),
+                      Color(0xFFCFE27C),
+                      Color(0xFFA9C648),
+                    ],
+                  )
+                : null,
+            boxShadow: selected || today
+                ? const [
+                    BoxShadow(
+                      color: Color(0x4D608022),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ]
                 : null,
           ),
           child: Column(
@@ -157,21 +225,19 @@ class _HistoryCalendarCardState extends State<HistoryCalendarCard> {
               Text(
                 _digits(day),
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   height: 1,
-                  fontWeight: (selected || today) ? FontWeight.w700 : FontWeight.w600,
-                  color: selected ? Colors.white : AppTheme.textPrimary,
+                  fontWeight: (selected || today) ? FontWeight.w800 : FontWeight.w600,
+                  color: (selected || today) ? SediGlass.inkDeep : const Color(0xFF2B3416),
                 ),
               ),
               const SizedBox(height: 3),
               Container(
-                width: 5,
-                height: 5,
+                width: 4,
+                height: 4,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: has
-                      ? (selected ? AppTheme.pistachioGreen : AppTheme.gate2ButtonOlive)
-                      : Colors.transparent,
+                  color: has ? const Color(0xFF5F7B22) : Colors.transparent,
                 ),
               ),
             ],

@@ -83,11 +83,8 @@ void main() {
       'lib/features/lifestyle/presentation/pages/lifestyle_history_page.dart',
     ).readAsStringSync();
     expect(src.contains('/memory/history'), isTrue);
-    expect(src.contains('/memory/period-summary'), isTrue);
-    expect(src.contains('daily'), isTrue);
-    expect(src.contains('weekly'), isTrue);
-    expect(src.contains('monthly'), isTrue);
-    expect(src.contains('yearly'), isTrue);
+    expect(src.contains('/memory/period-summary'), isFalse); // pilot V1: no summaries card on My History
+    expect(src.contains("'group': 'daily'"), isTrue);
     expect(src.contains('historyExplain'), isTrue);
   });
 

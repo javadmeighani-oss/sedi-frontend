@@ -14,12 +14,11 @@ void main() {
     expect(src.contains('gate3PaleOliveBackground'), isFalse);
     expect(src.contains('A3DestinationCard'), isTrue);
     expect(src.contains('/memory/history'), isTrue);
-    expect(src.contains('/memory/period-summary'), isTrue);
+    // pilot V1 (Javad 2026-10-29): the «خلاصه‌های صدی» card (daily/weekly/monthly/yearly chips) is gone from this page
+    expect(src.contains('/memory/period-summary'), isFalse);
     expect(src.contains("'user_id'"), isFalse);
-    expect(src.contains('daily'), isTrue);
-    expect(src.contains('weekly'), isTrue);
-    expect(src.contains('monthly'), isTrue);
-    expect(src.contains('yearly'), isTrue);
+    expect(src.contains('_chip('), isFalse);
+    expect(src.contains('sediSummaries'), isFalse);
     expect(src.contains('openLifestyleChat'), isFalse);
     expect(src.contains('lifestyle_page.dart'), isFalse);
     expect(src.contains('l10n.openChat'), isFalse);

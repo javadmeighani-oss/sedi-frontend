@@ -102,9 +102,20 @@ class LifestyleL10n {
   String get sediSummaries =>
       _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدی');
   String get historyExplain => _t(
-        en: 'Search Sedi memory or pick a day. Conversations from the last 30 days can be read and corrected; older days show what Sedi remembers, not the chat text.',
-        fa: 'در حافظه‌ی صدی جست‌وجو کن یا یک روز را انتخاب کن. گفتگوهای ۳۰ روز گذشته قابل خواندن و اصلاح است؛ روزهای قدیمی‌تر فقط آنچه صدی یادش مانده را نشان می‌دهد.',
-        ar: 'ابحث في ذاكرة صدی أو اختر يوماً. يمكن قراءة وتصحيح محادثات الثلاثين يوماً الماضية؛ أما الأيام الأقدم فتعرض ما تتذكره صدی فقط.',
+        en: 'Chats from the last 30 days can be read and corrected; older days only show what Sedi remembers.',
+        fa: 'گفتگوهای ۳۰ روز گذشته قابل‌خواندن و اصلاح است؛ قدیمی‌تر را فقط یادآوری می‌کنم.',
+        ar: 'يمكن قراءة وتصحيح محادثات آخر ٣٠ يومًا؛ الأقدم تُعرض كذكرى فقط.',
+      );
+  // The note / correction box that exists only inside an opened day (pilot V1, R-034).
+  String get dayNoteBox => _t(
+        en: 'A note or correction for this day…',
+        fa: 'یادداشت یا اصلاح برای این روز…',
+        ar: 'ملاحظة أو تصحيح لهذا اليوم…',
+      );
+  String get dayCorrectionBox => _t(
+        en: 'Correct this day…',
+        fa: 'اصلاح برای این روز…',
+        ar: 'تصحيح لهذا اليوم…',
       );
   String get conversationsLast30Days => _t(
         en: 'Conversations from the last 30 days',
