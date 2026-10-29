@@ -18,7 +18,7 @@ void main() {
     expect(src.contains('_phoneCard'), isTrue);
     expect(src.contains('TextDirection.ltr'), isTrue);
     expect(src.contains('A2PhoneE164'), isTrue);
-    expect(src.contains('Gate2OtpInput'), isTrue);
+    expect(src.contains('OtpInputHelper'), isTrue); // pilot V1: one code field, same digit rules
     expect(src.contains('/auth/me/profile-summary'), isTrue);
     expect(src.contains('fetchMe'), isTrue);
     expect(src.contains('requestPhoneChangeOtp'), isTrue);

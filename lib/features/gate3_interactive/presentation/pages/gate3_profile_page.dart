@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/auth/auth_otp_service.dart';
@@ -759,11 +760,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
           Expanded(
             child: Tooltip(
               message: l10n.otpCodeLabel,
-              child: Gate2OtpInput(
-                controller: _otpCtrl,
-                focusNode: _otpFocus,
-                enabled: !_phoneBusy,
-              ),
+              child: _codeField(),
             ),
           ),
           _roundGlassButton(
@@ -779,6 +776,51 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
             onTap: _verifyPhoneOtp,
           ),
         ],
+      ),
+    );
+  }
+
+  /// One field for the 6-digit code (digits only, autofill-ready), shown as a row of dots until typed.
+  Widget _codeField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextField(
+        controller: _otpCtrl,
+        focusNode: _otpFocus,
+        enabled: !_phoneBusy,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        autofillHints: const [AutofillHints.oneTimeCode],
+        cursorColor: SediGlass.ink,
+        inputFormatters: [
+          // ASCII, Persian and Arabic-Indic digits all become ASCII, capped at the code length.
+          TextInputFormatter.withFunction((oldValue, newValue) {
+            final digits = OtpInputHelper.sanitize(newValue.text);
+            return TextEditingValue(
+              text: digits,
+              selection: TextSelection.collapsed(offset: digits.length),
+            );
+          }),
+        ],
+        style: const TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 10,
+          color: AppTheme.textPrimary,
+        ),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          hintText: '\u2022\u2022\u2022\u2022\u2022\u2022',
+          hintStyle: TextStyle(
+            fontSize: 22,
+            letterSpacing: 10,
+            color: Color(0x5948551F),
+          ),
+          contentPadding: EdgeInsets.symmetric(vertical: 12),
+        ),
+        onSubmitted: (_) => _verifyPhoneOtp(),
       ),
     );
   }

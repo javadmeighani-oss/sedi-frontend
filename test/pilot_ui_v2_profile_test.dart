@@ -43,7 +43,9 @@ void main() {
     final codeBox = page.indexOf('_codeBox(l10n)', sentRow);
     expect(sentRow, greaterThan(0));
     expect(codeBox, greaterThan(sentRow));
-    expect(page.contains('Gate2OtpInput('), isTrue);
+    expect(page.contains('Widget _codeField()'), isTrue); // one field, not six slots
+    expect(page.contains('OtpInputHelper.sanitize'), isTrue);
+    expect(page.contains('Gate2OtpInput('), isFalse);
     expect(page.contains('void _cancelPhoneChange()'), isTrue);
     // verify success resets the flow (the box closes)
     expect(page.contains('_changingPhone = false;'), isTrue);
