@@ -16,6 +16,7 @@ import '../../../auth_otp/presentation/gate2_otp_input.dart';
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../gate3_memory_l10n.dart';
+import '../profile_language_change.dart';
 import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
@@ -316,6 +317,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                                           label: l10n.profileLanguageLabel,
                                           value: _formatLanguage(
                                               _me?.preferredLanguage),
+                                          onTap: _chooseLanguage,
                                         ),
                                       ],
                                     ),
@@ -367,23 +369,22 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     required String label,
     required String value,
     bool forceLtr = false,
+    VoidCallback? onTap,
   }) {
-    return Expanded(
-      child: Semantics(
-        container: true,
-        label: '$label: $value',
-        excludeSemantics: true,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(6, 12, 6, 10),
-          decoration: SediGlass.tile(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 28, color: SediGlass.ink),
-              const SizedBox(height: 7),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
+    final tile = Container(
+      padding: const EdgeInsets.fromLTRB(6, 12, 6, 10),
+      decoration: SediGlass.tile(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 28, color: SediGlass.ink),
+          const SizedBox(height: 7),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
                   value,
                   maxLines: 1,
                   textDirection: forceLtr ? TextDirection.ltr : null,
@@ -393,12 +394,75 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                     color: SediGlass.ink,
                   ),
                 ),
-              ),
-            ],
+                if (onTap != null)
+                  const Icon(Icons.expand_more_rounded,
+                      size: 18, color: SediGlass.ink),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
+    return Expanded(
+      child: Semantics(
+        container: true,
+        button: onTap != null,
+        label: '$label: $value',
+        excludeSemantics: true,
+        onTap: onTap,
+        child: onTap == null
+            ? tile
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: tile,
+              ),
+      ),
+    );
+  }
+
+  Future<void> _chooseLanguage() async {
+    final l10n = _l10n;
+    final current = (_me?.preferredLanguage ??
+            SediLocaleController.instance.languageCode)
+        .toLowerCase();
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.profileLanguageChooseTitle),
+        children: [
+          for (final code in const ['fa', 'ar', 'en'])
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(code),
+              child: Row(
+                children: [
+                  Expanded(child: Text(_formatLanguage(code))),
+                  if (code == current)
+                    const Icon(Icons.check_rounded, size: 20),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final outcome = await ProfileLanguageChange.apply(
+      current: current,
+      selected: picked,
+      patch: (u) => _profile.patchMe(u, recoverSessionOn401: true),
+      locale: SediLocaleController.instance,
+    );
+    if (!mounted) return;
+    if (outcome == ProfileLanguageOutcome.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_l10n.profileLanguageChangeFailed)),
+      );
+      return;
+    }
+    if (outcome == ProfileLanguageOutcome.changed) {
+      // The summary card is text Sedi writes in the account language: fetch it again.
+      await _load();
+    }
   }
 
   IconData _sexIcon(String? sex) {
