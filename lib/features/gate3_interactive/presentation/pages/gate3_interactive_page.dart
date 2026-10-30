@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,7 @@ import '../../../../services/notifications/notifications_service.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
+import '../../../lifestyle/logic/lifestyle_summary_cache.dart';
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notifications/presentation/notification_inbox_l10n.dart';
 import '../../../notifications/presentation/pages/notification_inbox_page.dart';
@@ -87,6 +89,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   StreamSubscription<void>? _inboxRefreshSub;
 
   bool _topTrayExpanded = false;
+  bool _keyboardWasOpen = false;
 
   @override
   void initState() {
@@ -119,6 +122,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       _controller.sendUserMessage(text);
     });
     _refreshUnreadBadge();
+    // The Lifestyle hub's "today" is read in the background so that it is already there when the hub opens.
+    if (Platform.environment['FLUTTER_TEST'] != 'true') {
+      Future<void>.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) LifestyleSummaryCache.refresh();
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
     // A1->A3 speed: the subject list and the chat start-up (history + Sedi's opener) do not depend on each
     // other, so they load together. The first subject load is not a "switch" and must not clear the chat.
@@ -176,11 +185,26 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     setState(() {});
   }
 
+  DateTime? _pausedAt;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _pausedAt ??= DateTime.now();
+    }
     if (state == AppLifecycleState.resumed) {
       _refreshUnreadBadge();
       _askPendingDislikeReason();
+      // Back after being away (2 min+): a new day starts clean, the same day collapses into a summary.
+      final away = _pausedAt;
+      _pausedAt = null;
+      if (away != null) {
+        _controller.handleReturn(pausedAt: away).then((_) {
+          if (!mounted) return;
+          setState(() => _earlierTodayExpanded = false);
+          _scrollToBottom();
+        });
+      }
     }
   }
 
@@ -380,6 +404,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     // Root A3 (no previous route) keeps the existing double-back exit policy.
     final routeCanPop = ModalRoute.of(context)?.canPop ?? false;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // The tray panel eats half the room the keyboard leaves: when the keyboard opens the panel folds away.
+    if (keyboardOpen && !_keyboardWasOpen && _topTrayExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _topTrayExpanded) setState(() => _topTrayExpanded = false);
+      });
+    }
+    _keyboardWasOpen = keyboardOpen;
 
     final content = PopScope(
       canPop: routeCanPop,
@@ -408,6 +439,20 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       final heroSize =
                           math.min(300.0, box.maxHeight * 0.34).toDouble();
                       const chatTopPad = 8.0;
+                      // The text area never needs more than what the header, the resonance and the buttons leave
+                      // (keyboard open, long text): it scrolls inside the field and the buttons stay in view.
+                      // With the keyboard open the resonance steps aside (it is decoration; the room is for typing).
+                      final fit = Gate3ComposerFit.plan(
+                        available: box.maxHeight,
+                        trayExtra:
+                            _topTrayExpanded ? Gate3TopNavigationTray.expandedExtraHeight : 0.0,
+                        echoHeight: SediLivingEcho.heightFor(compact: compact, heroSize: heroSize),
+                        dockHeight: keyboardOpen ? 0.0 : SediResonanceDock.height + 10,
+                        bannerHeight: _editingLocalId != null ? 48.0 : 0.0,
+                      );
+                      final maxFieldHeight = fit.maxField;
+                      // A very small screen: the header gives way before anything is cut off.
+                      final hideEcho = fit.hideEcho;
                       return Stack(
                         children: [
                           Positioned.fill(
@@ -421,11 +466,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                       ? Gate3TopNavigationTray.expandedExtraHeight
                                       : 0,
                                 ),
-                                SediLivingEcho(
-                                  state: _orbState(),
-                                  compact: compact,
-                                  heroSize: heroSize,
-                                ),
+                                if (!hideEcho)
+                                  SediLivingEcho(
+                                    state: _orbState(),
+                                    compact: compact,
+                                    heroSize: heroSize,
+                                  ),
                                 Expanded(
                                   child: Stack(
                                     children: [
@@ -473,11 +519,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                     onCancel: _cancelEdit,
                                   ),
                                 // Resonance docked just above the composer, about half the screen width (D-102).
-                                SediResonanceDock(state: _orbState()),
+                                if (!keyboardOpen) SediResonanceDock(state: _orbState()),
                                 Gate3Composer(
                                   key: ValueKey(
                                       'gate3-composer-$_composerDraftToken'),
                                   placeholder: l10n.composerPlaceholder,
+                                  maxFieldHeight: maxFieldHeight,
                                   lang: presentationLang,
                                   isRtl: isRtl,
                                   initialText:

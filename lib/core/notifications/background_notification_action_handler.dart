@@ -44,6 +44,16 @@ class BackgroundNotificationActionHandler {
     'not_feeling_well',
   ];
 
+  /// The expanded text of a notification that asks "why?": what it said, then a blank line, the question and the hint.
+  static String growWithQuestion({
+    required String originalBody,
+    required String question,
+    required String hint,
+  }) {
+    final body = originalBody.trim();
+    return body.isEmpty ? '$question\n$hint' : '$body\n\n$question\n$hint';
+  }
+
   /// Isolate-local in-flight lock (dedupeKey) — reject duplicate taps.
   static final Set<String> _inFlightKeys = <String>{};
 
@@ -101,17 +111,8 @@ class BackgroundNotificationActionHandler {
         return;
       }
 
-      final ok = await _attemptLikeDislikeAck(
-        notificationId: id,
-        actionId: action,
-        clientTs: clientTs,
-      );
-      if (!ok) {
-        // keep pending for resume drain — tray already dismissed; no restore.
-        debugPrint('[FCM-bg] keep pending for resume drain');
-      }
-      // The reason is asked inside a fresh notification (3 buttons); only when it cannot be shown does the chat page
-      // ask later (fallback).
+      // The question opens INSIDE the same notification at once (before any network round trip); only when it cannot
+      // be shown does the chat page ask later (fallback).
       if (action == planNotDoneAction) {
         final shown = await _showPlanReasonPrompt(notificationId: id, payload: payload);
         if (!shown) await _dismissTrayIsolated(id);
@@ -126,6 +127,16 @@ class BackgroundNotificationActionHandler {
             debugPrint('[FCM-bg] pending dislike reason not stored: $e');
           }
         }
+      }
+
+      final ok = await _attemptLikeDislikeAck(
+        notificationId: id,
+        actionId: action,
+        clientTs: clientTs,
+      );
+      if (!ok) {
+        // keep pending for resume drain — tray already dismissed; no restore.
+        debugPrint('[FCM-bg] keep pending for resume drain');
       }
     } finally {
       _inFlightKeys.remove(key);
@@ -206,10 +217,18 @@ class BackgroundNotificationActionHandler {
             cancelNotification: true,
           ),
       ];
+      // The SAME notification keeps its own title and text; the question opens below them (Javad 2026-10-30).
+      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
+      final expanded = growWithQuestion(
+        originalBody: original?.body ?? '',
+        question: l10n.dislikeReasonTitle,
+        hint: l10n.dislikeReasonHint,
+      );
       await plugin.show(
         _notificationIdToInt(notificationId),
+        title,
         l10n.dislikeReasonTitle,
-        l10n.dislikeReasonHint,
         NotificationDetails(
           android: AndroidNotificationDetails(
             channelId,
@@ -225,8 +244,8 @@ class BackgroundNotificationActionHandler {
             timeoutAfter: 90000,
             // R-039: the same notification, bigger: the question and what it is for, then the three answers.
             styleInformation: BigTextStyleInformation(
-              l10n.dislikeReasonHint,
-              contentTitle: l10n.dislikeReasonTitle,
+              expanded,
+              contentTitle: title,
             ),
             actions: actions,
           ),
@@ -263,10 +282,17 @@ class BackgroundNotificationActionHandler {
       );
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final channelId = resolveAndroidChannelId(channelRaw);
+      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.planNotDoneTitle;
+      final expanded = growWithQuestion(
+        originalBody: original?.body ?? '',
+        question: l10n.planNotDoneTitle,
+        hint: l10n.planNotDoneHint,
+      );
       await plugin.show(
         _notificationIdToInt(notificationId),
+        title,
         l10n.planNotDoneTitle,
-        l10n.planNotDoneHint,
         NotificationDetails(
           android: AndroidNotificationDetails(
             channelId,
@@ -281,8 +307,8 @@ class BackgroundNotificationActionHandler {
             autoCancel: true,
             timeoutAfter: 90000,
             styleInformation: BigTextStyleInformation(
-              l10n.planNotDoneHint,
-              contentTitle: l10n.planNotDoneTitle,
+              expanded,
+              contentTitle: title,
             ),
             actions: <AndroidNotificationAction>[
               for (final r in planNotDoneReasons)

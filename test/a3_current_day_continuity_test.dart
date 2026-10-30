@@ -161,7 +161,7 @@ void main() {
       );
       // A1->A3 speed: the opener request is STARTED before history loads (no initial message only) ...
       expect(
-        src.indexOf('initialMessage == null ? _openSessionSoft() : null'),
+        src.indexOf('initialMessage == null ? (A3SessionPrefetch.take() ?? _openSessionSoft()) : null'),
         lessThan(src.indexOf('await _restoreCurrentDayTranscript();')),
       );
       // ... but its text is added only after the restore finished, so the order of messages is unchanged.
@@ -181,7 +181,6 @@ void main() {
       expect(src.contains('user_id'), isFalse);
       expect(src.contains('currentDayMessagesFromHistory'), isTrue);
       expect(src.contains('messages.addAll(restored)'), isTrue);
-      expect(src.contains('messages.clear()'), isFalse);
       expect(src.contains('_restoreCurrentDayTranscript'), isTrue);
       expect(src.contains('current-day history restore failed'), isTrue);
       final restoreBlock = src.substring(
@@ -189,6 +188,7 @@ void main() {
         src.indexOf('Future<void> sendUserMessage'),
       );
       expect(restoreBlock.contains('DateTime.now()'), isFalse);
+      expect(restoreBlock.contains('messages.clear()'), isFalse); // the restore only adds; a new day is handled on return
       expect(restoreBlock.contains('YYYY'), isFalse);
       expect(src.contains('SharedPreferences'), isFalse);
       expect(src.contains('openSession'), isTrue);

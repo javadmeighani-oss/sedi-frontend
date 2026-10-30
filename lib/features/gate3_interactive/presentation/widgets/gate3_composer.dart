@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/sedi_glass.dart';
@@ -5,6 +7,38 @@ import '../../../../core/theme/sedi_palette.dart';
 import 'gate3_attachment_flow.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
+
+/// The room maths of the chat page (kept pure so it can be tested): how tall may the text area be so that the tray
+/// spacer, the header, the resonance and the composer still fit above the keyboard?
+class Gate3ComposerFit {
+  Gate3ComposerFit._();
+
+  /// Outer padding 18 + inner padding 16 + the button row 52.
+  static const double chrome = 86;
+
+  /// Estimation error we never want to pay for with a yellow overflow bar.
+  static const double safety = 8;
+
+  static const double minField = 44;
+
+  /// Largest text-area height that keeps everything in view; below [minField] the page must make room first.
+  static double maxField({required double available, required double above}) =>
+      available - above - chrome - safety;
+
+  /// The whole decision: the text-area cap and whether the header must give way on a very small screen.
+  static ({double maxField, bool hideEcho}) plan({
+    required double available,
+    required double trayExtra,
+    required double echoHeight,
+    required double dockHeight,
+    required double bannerHeight,
+  }) {
+    final withoutEcho = trayExtra + dockHeight + bannerHeight;
+    final withEcho = maxField(available: available, above: withoutEcho + echoHeight);
+    if (withEcho >= minField) return (maxField: withEcho, hideEcho: false);
+    return (maxField: maxField(available: available, above: withoutEcho), hideEcho: true);
+  }
+}
 
 /// Gate 3 composer. Pilot V1 (R-034): a liquid-glass capsule [attach] [text field] [mic / send / stop] with a
 /// round pistachio 3D mic and a bare thin-line attach icon. Behaviour is unchanged.
@@ -21,6 +55,10 @@ class Gate3Composer extends StatefulWidget {
   /// Populates the text field only. Does not send or insert transcript.
   final String? initialText;
 
+  /// The most height the text area may take (the page knows what the keyboard and the header leave). The text then
+  /// scrolls inside the field while the buttons stay in view. Null = the six-line cap only.
+  final double? maxFieldHeight;
+
   const Gate3Composer({
     super.key,
     required this.onSendText,
@@ -33,6 +71,7 @@ class Gate3Composer extends StatefulWidget {
     required this.isRtl,
     this.onListeningChanged,
     this.initialText,
+    this.maxFieldHeight,
   });
 
   @override
@@ -42,6 +81,7 @@ class Gate3Composer extends StatefulWidget {
 class _Gate3ComposerState extends State<Gate3Composer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final ScrollController _fieldScroll = ScrollController();
   // Keeps the TextField's element alive when the layout flips between the one-line row and the wide column;
   // without it the field is rebuilt, the input connection drops and the keyboard closes/opens while typing.
   final GlobalKey _fieldKey = GlobalKey(debugLabel: 'gate3ComposerField');
@@ -49,7 +89,11 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   final GlobalKey _attachKey = GlobalKey(debugLabel: 'gate3ComposerAttach');
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
-  static const double _maxTextHeight = 168;
+  // eight lines of the field style: 2 x 11 content padding + 8 x (16.2 x 1.35); then the text scrolls (with a scrollbar)
+  static const double _maxTextHeight = 197;
+
+  /// How visible the placeholder is (1 = like typed text).
+  static const double hintVisibility = 0.40;
   static const double _minTextHeight = 44;
   static const double _capsuleRadius = 34;
   static const double _primarySize = 52;
@@ -86,6 +130,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     _focusNode.removeListener(_notifyListening);
     _controller.dispose();
     _focusNode.dispose();
+    _fieldScroll.dispose();
     super.dispose();
   }
 
@@ -96,6 +141,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _notifyListening();
+      setState(() {}); // the scroll thumb reads the field's extents, known only after layout
     });
   }
 
@@ -158,14 +204,23 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     // The button row is forced left-to-right (paperclip left, mic right), but the field keeps the
     // language's own direction: the placeholder is laid out with the AMBIENT direction, so without this
     // it jumped to the left in Persian/Arabic instead of sitting where typing starts.
+    final cap = math.max(
+      _minTextHeight,
+      math.min(_maxTextHeight, widget.maxFieldHeight ?? _maxTextHeight),
+    );
     return Directionality(
       textDirection: textDirection,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
+        constraints: BoxConstraints(
           minHeight: _minTextHeight,
-          maxHeight: _maxTextHeight,
+          maxHeight: cap,
         ),
-        child: TextField(
+        // a thin, short scroll thumb appears beside the text as soon as it is longer than the box
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            TextField(
+          scrollController: _fieldScroll,
           controller: _controller,
           focusNode: _focusNode,
           enabled: !widget.isRecording,
@@ -180,19 +235,29 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           cursorColor: SediPalette.pistachio700,
           decoration: InputDecoration(
             isCollapsed: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 11),
+            contentPadding: const EdgeInsetsDirectional.fromSTEB(0, 11, 8, 11),
             border: InputBorder.none,
             hintText: widget.placeholder,
             hintTextDirection: textDirection,
+            // same size as the typed text, but only 40% visible (Javad 2026-10-30): it hints, it does not compete
             hintStyle: TextStyle(
-              color: SediPalette.sageMuted,
-              fontSize: 12.8,
+              color: SediPalette.sageMuted.withOpacity(hintVisibility),
+              fontSize: 16.2,
               height: 1.35,
             ),
             alignLabelWithHint: true,
           ),
           style: _fieldStyle,
           onSubmitted: (_) => _send(),
+            ),
+            PositionedDirectional(
+              end: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              child: IgnorePointer(child: _FieldScrollThumb(controller: _fieldScroll)),
+            ),
+          ],
         ),
       ),
     );
@@ -264,6 +329,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   @override
   Widget build(BuildContext context) {
     final hasText = _controller.text.trim().isNotEmpty;
+    // From the first typed character the buttons sit BELOW the text, for any number of lines (Javad 2026-10-30).
+    final buttonsBelow = !widget.isRecording && _controller.text.isNotEmpty;
     final textDirection =
         widget.isRtl ? TextDirection.rtl : TextDirection.ltr;
     // Typed lines are justified like the chat text: every wrapped line the same width.
@@ -279,7 +346,11 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           decoration: SediGlass.capsule(radius),
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: LayoutBuilder(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.bottomCenter,
+              child: LayoutBuilder(
               builder: (context, box) {
                 final field = KeyedSubtree(
                   key: _fieldKey,
@@ -290,10 +361,9 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                           textAlign: textAlign,
                         ),
                 );
-                // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
-                // instead of the text wrapping early between two buttons (Javad 2026-10-28).
-                if (!widget.isRecording &&
-                    _needsWideField(box.maxWidth, textDirection)) {
+                // Typing: the field sits on top with the WHOLE width and the buttons move below it - never the text
+                // wrapping early between two buttons (Javad 2026-10-28, 2026-10-30).
+                if (buttonsBelow) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,7 +389,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 return Directionality(
                   textDirection: TextDirection.ltr,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    // empty box: the placeholder is level with the paperclip and the mic
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       _buildAttachButton(),
                       Expanded(
@@ -334,6 +405,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 );
               },
             ),
+            ),
           ),
         ),
       ),
@@ -345,19 +417,55 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     fontSize: 16.2,
     height: 1.35,
   );
+}
 
-  /// True when the current text does not fit one line between the two buttons (or has a line break).
-  bool _needsWideField(double rowWidth, TextDirection direction) {
-    final text = _controller.text;
-    if (text.trim().isEmpty) return false;
-    if (text.contains('\n')) return true;
-    // the attach and primary buttons + the field's horizontal padding
-    final narrow = rowWidth - (_attachSize + _primarySize) - 20;
-    if (narrow <= 0) return false;
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: _fieldStyle),
-      textDirection: direction,
-    )..layout(maxWidth: narrow);
-    return painter.computeLineMetrics().length > 1;
+
+/// The scroll thumb of the text area: a thin pistachio-dark pill, 40% of the length Flutter's own thumb would have
+/// (Javad 2026-10-30), drawn only while the text is longer than the box.
+class _FieldScrollThumb extends StatelessWidget {
+  final ScrollController controller;
+
+  const _FieldScrollThumb({required this.controller});
+
+  /// Share of the usual thumb length.
+  static const double lengthShare = 0.4;
+  static const double minLength = 14;
+
+  /// The field's own vertical content padding (the scroll viewport sits inside it).
+  static const double inset = 11;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        if (!controller.hasClients) return const SizedBox.shrink();
+        final position = controller.position;
+        if (!position.hasContentDimensions) return const SizedBox.shrink();
+        final max = position.maxScrollExtent;
+        if (max <= 0.5) return const SizedBox.shrink();
+        final viewport = position.viewportDimension;
+        final natural = viewport * viewport / (viewport + max);
+        final length = math.max(minLength, natural * lengthShare);
+        final fraction = (position.pixels / max).clamp(0.0, 1.0);
+        return Stack(
+          children: [
+            Positioned(
+              top: inset + (viewport - length) * fraction,
+              left: 0,
+              right: 0,
+              height: length,
+              child: DecoratedBox(
+                key: const ValueKey('composerScrollThumb'),
+                decoration: BoxDecoration(
+                  color: const Color(0x8048551F),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

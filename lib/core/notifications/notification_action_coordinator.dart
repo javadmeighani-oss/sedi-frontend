@@ -3,14 +3,18 @@
 /// Shared by Android tray actions, body taps, and Inbox detail recovery.
 /// Contract: persist pending → dismiss tray immediately → authenticated
 /// backend feedback (silent retry). On ACK: remove pending, refresh
-/// Inbox/badge, and (for open_chat) navigate to A3 once. On failure keep
-/// pending and never restore the tray. open_chat navigation remains
-/// ACK-before-nav.
+/// Inbox/badge. On failure keep pending and never restore the tray.
+/// open_chat (Javad 2026-10-30): the user said "let's talk", so the chat opens AT ONCE (from the local token, no network
+/// gate, retried until the navigator is ready); the reaction reaches the backend right after through the pending queue.
+
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../data/repositories/notification_repository.dart';
 import '../../services/notifications/inbox_refresh_bus.dart';
+import '../auth/auth_service.dart';
 import '../navigation/app_gate_router.dart';
 import '../navigation/app_navigator.dart';
 import '../navigation/session_gate_resolver.dart';
@@ -64,6 +68,11 @@ class NotificationActionCoordinator {
         notificationId,
       );
 
+      // "Talk to Sedi": open the chat now - not after a network round trip that may be slow or fail.
+      if (navigateOnOpenChat && action == 'open_chat') {
+        unawaited(openChatNow(notificationId: notificationId));
+      }
+
       final hasSession = await SessionGateResolver.hasValidSession();
       if (!hasSession) {
         // Pending retained; tray already dismissed; no restore.
@@ -75,7 +84,7 @@ class NotificationActionCoordinator {
         actionId: action,
         clientTs: ts,
       );
-      return await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+      return await _ackOne(item, navigateOnOpenChat: false);
     } catch (e) {
       debugPrint('[FCM] submit error: $e');
       // Pending retained; tray already dismissed; no restore.
@@ -92,6 +101,16 @@ class NotificationActionCoordinator {
     if (_draining) return;
     _draining = true;
     try {
+      if (navigateOnOpenChat) {
+        // A tap from the tray while the app was closed: it is waiting in the queue - open the chat first.
+        final queued = await PendingNotificationActions.load();
+        for (final item in queued) {
+          if (item.actionId == 'open_chat' && isFreshTap(item.clientTs, DateTime.now())) {
+            unawaited(openChatNow(notificationId: item.notificationId));
+            break;
+          }
+        }
+      }
       final hasSession = await SessionGateResolver.hasValidSession();
       if (!hasSession) return;
 
@@ -100,7 +119,7 @@ class NotificationActionCoordinator {
         if (_inFlightKeys.contains(key)) return false;
         _inFlightKeys.add(key);
         try {
-          return await _ackOne(item, navigateOnOpenChat: navigateOnOpenChat);
+          return await _ackOne(item, navigateOnOpenChat: false);
         } finally {
           _inFlightKeys.remove(key);
         }
@@ -135,7 +154,7 @@ class NotificationActionCoordinator {
       );
       InboxRefreshBus.instance.triggerDebounced();
       if (navigateOnOpenChat && item.actionId == 'open_chat') {
-        await navigateToChatAfterAck(notificationId: item.notificationId);
+        unawaited(openChatNow(notificationId: item.notificationId)); // deduped: a no-op when the tap already opened it
       }
       return true;
     } catch (e) {
@@ -144,22 +163,40 @@ class NotificationActionCoordinator {
     }
   }
 
-  static Future<void> navigateToChatAfterAck({int? notificationId}) async {
-    if (notificationId != null && notificationId > 0) {
-      if (_openChatNavigatedIds.contains(notificationId)) return;
-      _openChatNavigatedIds.add(notificationId);
+  /// A tap younger than this is "the user just pressed Talk to Sedi"; an older queued one is only a late feedback retry
+  /// and must never throw the user into the chat.
+  static const Duration freshTapWindow = Duration(minutes: 2);
+
+  static bool isFreshTap(String clientTs, DateTime now) {
+    final at = DateTime.tryParse(clientTs);
+    if (at == null) return false;
+    final age = now.toUtc().difference(at.toUtc());
+    return age >= Duration.zero ? age <= freshTapWindow : age.abs() <= freshTapWindow;
+  }
+
+  /// Kept for the A4 contract and its tests: the chat opens as soon as the user asks for it.
+  static Future<void> navigateToChatAfterAck({int? notificationId}) => openChatNow(notificationId: notificationId);
+
+  /// Opens A3 for a notification-origin chat. Uses the LOCAL token (no network gate: A3's own requests recover the
+  /// session), waits for the navigator when the app is still starting, and counts the notification as handled only
+  /// once the chat really opened.
+  static Future<void> openChatNow({int? notificationId}) async {
+    final id = notificationId != null && notificationId > 0 ? notificationId : null;
+    if (id != null && _openChatNavigatedIds.contains(id)) return;
+
+    final context = await _navigatorContext();
+    if (context == null || !context.mounted) return;
+    final hasToken = await AuthService.hasToken();
+    if (!context.mounted) return;
+    if (id != null) {
+      if (_openChatNavigatedIds.contains(id)) return; // another path got there while we waited
+      _openChatNavigatedIds.add(id);
       if (_openChatNavigatedIds.length > _maxNavDedup) {
         _openChatNavigatedIds.remove(_openChatNavigatedIds.first);
       }
     }
 
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    final hasSession = await SessionGateResolver.hasValidSession();
-    if (!context.mounted) return;
-
-    if (!hasSession) {
+    if (!hasToken) {
       AppGateRouter.goToLogin(context);
       return;
     }
@@ -167,8 +204,18 @@ class NotificationActionCoordinator {
     AppGateRouter.goToHeart(
       context,
       fromNotification: true,
-      notificationId: notificationId,
+      notificationId: id,
     );
+  }
+
+  static Future<BuildContext?> _navigatorContext({Duration timeout = const Duration(seconds: 10)}) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final context = navigatorKey.currentContext;
+      if (context != null) return context;
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    return navigatorKey.currentContext;
   }
 
   @visibleForTesting

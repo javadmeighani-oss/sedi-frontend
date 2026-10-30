@@ -32,7 +32,8 @@ void main() {
 
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontSize, 16.2);
-    expect(field.decoration?.hintStyle?.fontSize, 12.8);
+    expect(field.decoration?.hintStyle?.fontSize, 16.2); // the placeholder is as big as the typed text
+    expect(field.style?.fontSize, field.decoration?.hintStyle?.fontSize);
     expect(field.textAlignVertical, TextAlignVertical.center);
     expect(field.minLines, 1);
     expect(field.maxLines, isNull);
@@ -44,7 +45,7 @@ void main() {
       ).first,
     );
     expect(textBox.constraints.minHeight, 44);
-    expect(textBox.constraints.maxHeight, 168);
+    expect(textBox.constraints.maxHeight, 197); // eight lines, then the text scrolls (with a scrollbar)
 
     final add = tester.widget<Gate3ComposerActionButton>(
       find.widgetWithIcon(Gate3ComposerActionButton, Icons.attach_file_rounded),
@@ -66,7 +67,8 @@ void main() {
         matching: find.byType(Row),
       ).first,
     );
-    expect(row.crossAxisAlignment, CrossAxisAlignment.end);
+    // the empty box: the placeholder is level with the paperclip and the mic
+    expect(row.crossAxisAlignment, CrossAxisAlignment.center);
     expect(find.byType(TextField), findsOneWidget);
   });
 }

@@ -21,6 +21,7 @@ import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
+import '../widgets/profile_language_picker.dart';
 import '../widgets/sedi_hologram_orb.dart';
 import '../widgets/sedi_scene_backdrop.dart';
 
@@ -313,7 +314,11 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                                         ),
                                         const SizedBox(width: 10),
                                         _factTile(
-                                          icon: Icons.language_rounded,
+                                          leading: SediLanguageBadge(
+                                            code: _me?.preferredLanguage ??
+                                                SediLocaleController.instance.languageCode,
+                                            size: 34,
+                                          ),
                                           label: l10n.profileLanguageLabel,
                                           value: _formatLanguage(
                                               _me?.preferredLanguage),
@@ -365,7 +370,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   }
 
   Widget _factTile({
-    required IconData icon,
+    IconData? icon,
+    Widget? leading,
     required String label,
     required String value,
     bool forceLtr = false,
@@ -377,7 +383,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 28, color: SediGlass.ink),
+          leading ?? Icon(icon, size: 28, color: SediGlass.ink),
           const SizedBox(height: 7),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -422,29 +428,10 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   }
 
   Future<void> _chooseLanguage() async {
-    final l10n = _l10n;
     final current = (_me?.preferredLanguage ??
             SediLocaleController.instance.languageCode)
         .toLowerCase();
-    final picked = await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l10n.profileLanguageChooseTitle),
-        children: [
-          for (final code in const ['fa', 'ar', 'en'])
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(code),
-              child: Row(
-                children: [
-                  Expanded(child: Text(_formatLanguage(code))),
-                  if (code == current)
-                    const Icon(Icons.check_rounded, size: 20),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
+    final picked = await ProfileLanguagePicker.show(context, current: current);
     if (picked == null || !mounted) return;
     final outcome = await ProfileLanguageChange.apply(
       current: current,

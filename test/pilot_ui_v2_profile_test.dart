@@ -27,7 +27,9 @@ void main() {
   test('birthday, sex and language are icon tiles', () {
     expect(page.contains('Icons.cake_outlined'), isTrue);
     expect(page.contains('Icons.male_rounded'), isTrue);
-    expect(page.contains('Icons.language_rounded'), isTrue);
+    // 2026-10-30: the language tile carries the glass letter badge (ف / ع / A) instead of the globe icon
+    expect(page.contains('SediLanguageBadge('), isTrue);
+    expect(page.contains('Icons.language_rounded'), isFalse);
     expect(page.contains('Widget _factTile('), isTrue);
   });
 

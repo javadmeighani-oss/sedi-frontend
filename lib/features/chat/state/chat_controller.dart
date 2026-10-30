@@ -23,7 +23,9 @@ import '../../../services/chat/chat_service.dart' as v1chat;
 import '../../../services/chat/chat_stream_client.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
+import 'a3_session_prefetch.dart';
 import 'assistant_stream_pacer.dart';
+import 'chat_return_policy.dart';
 import 'natural_reveal.dart';
 
 /// Current-day raw turns only. Backend [HistoryResponse.currentGroupKey] is day authority.
@@ -186,7 +188,11 @@ class ChatController extends ChangeNotifier {
 
     // A1->A3 speed: the opener request does not depend on the restored transcript, so it is already in
     // flight while history loads. Its text is still added AFTER the restored messages (order unchanged).
-    final openFuture = initialMessage == null ? _openSessionSoft() : null;
+    // (A1 may already have started that very request while its logo moved: A3SessionPrefetch.)
+    _threadDay = ChatReturnPolicy.dayKey(DateTime.now());
+    // A chat opened from a notification asks for ITS opener (source id): the plain prefetched one is dropped.
+    if (sourceNotificationId != null) A3SessionPrefetch.take();
+    final openFuture = initialMessage == null ? (A3SessionPrefetch.take() ?? _openSessionSoft()) : null;
 
     await _restoreCurrentDayTranscript();
 
@@ -213,7 +219,7 @@ class ChatController extends ChangeNotifier {
             ? data.message
             : (data.proactiveOpener ?? '').trim();
         if (text.isNotEmpty) {
-          _addSediMessage(text);
+          _addSediMessage(text, maxReveal: openerMaxReveal);
           // The recap opener replaces the long transcript at the top of the window.
           earlierTodayCollapsed = restoredTodayCount > 0;
         }
@@ -240,6 +246,57 @@ class ChatController extends ChangeNotifier {
         debugPrint('[ChatController] session/open failed: $e');
       }
       return null;
+    }
+  }
+
+  /// Sedi's opener when the app opens or the user comes back is revealed in about three seconds at most.
+  static const Duration openerMaxReveal = Duration(seconds: 3);
+
+  /// The calendar day the thread on screen belongs to (device time).
+  String? _threadDay;
+  bool _returning = false;
+
+  /// The user comes back after being away: a new day starts clean with one welcome; the same day collapses into the
+  /// "earlier today" card with a one-sentence summary. Fail-open: any problem leaves the chat as it is.
+  Future<void> handleReturn({required DateTime? pausedAt}) async {
+    if (!_initialized || _returning) return;
+    final now = DateTime.now();
+    final action = ChatReturnPolicy.decide(
+      now: now,
+      pausedAt: pausedAt,
+      threadDay: _threadDay,
+      hasUserMessages: messages.any((m) => m.role == ChatRole.user),
+      busy: conversationState == ConversationState.initializing || isThinking || isRecording,
+    );
+    if (action == ChatReturnAction.none) return;
+    _returning = true;
+    try {
+      currentLanguage = SediLocaleController.instance.languageCode;
+      final open = await _openSessionSoft();
+      final text = open != null && open.ok && open.data != null
+          ? (open.data!.message.trim().isNotEmpty ? open.data!.message : (open.data!.proactiveOpener ?? '').trim())
+          : '';
+      if (action == ChatReturnAction.freshDay) {
+        _finishRevealNow();
+        messages.clear();
+        restoredTodayCount = 0;
+        earlierTodayCollapsed = false;
+        _threadDay = ChatReturnPolicy.dayKey(now);
+        if (text.isNotEmpty) _addSediMessage(text, maxReveal: openerMaxReveal);
+        notifyListeners();
+        return;
+      }
+      // Same day: only when Sedi has her summary; everything said so far goes behind the card.
+      if (text.isEmpty) return;
+      _finishRevealNow();
+      restoredTodayCount = messages.length;
+      _addSediMessage(text, maxReveal: openerMaxReveal);
+      earlierTodayCollapsed = restoredTodayCount > 0;
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[ChatController] return handling failed: $e');
+    } finally {
+      _returning = false;
     }
   }
 
@@ -466,7 +523,7 @@ class ChatController extends ChangeNotifier {
   // Sedi Message (Display Only)
   // ===============================
 
-  void _addSediMessage(String text) {
+  void _addSediMessage(String text, {Duration? maxReveal}) {
     isThinking = false;
     _finishRevealNow();
     final tokens = NaturalReveal.tokens(text);
@@ -486,7 +543,9 @@ class ChatController extends ChangeNotifier {
     _revealFull = text;
     isSpeaking = true;
     var shown = false;
-    for (final token in tokens) {
+    final gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
+    for (var i = 0; i < tokens.length; i++) {
+      final token = tokens[i];
       pacer.enqueue(
         token,
         (chunk) {
@@ -501,7 +560,7 @@ class ChatController extends ChangeNotifier {
           }
           notifyListeners();
         },
-        gap: NaturalReveal.gapFor(token, total: tokens.length),
+        gap: gaps[i],
       );
     }
     pacer.whenIdle.then((_) {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Natural, slow word-by-word reveal of Sedi's text (Javad 2026-10-29: "stream the text, very slow and natural").
 ///
 /// UI-only: it never changes what the backend sent, only WHEN each word appears. A pause follows every word, a little
@@ -33,5 +35,16 @@ class NaturalReveal {
       ms = (ms * 0.7).round();
     }
     return Duration(milliseconds: ms < 60 ? 60 : ms);
+  }
+
+  /// The pause after each of [tokens]. With [maxTotal] the whole reveal is sped up proportionally (never below 30 ms a
+  /// word) so that it takes at most that long: used for Sedi's opener when the app opens (Javad 2026-10-30: about 3 s).
+  static List<Duration> gapsFor(List<String> tokens, {Duration? maxTotal}) {
+    final gaps = [for (final t in tokens) gapFor(t, total: tokens.length)];
+    if (maxTotal == null) return gaps;
+    final sum = gaps.fold<int>(0, (a, g) => a + g.inMilliseconds);
+    if (sum == 0 || sum <= maxTotal.inMilliseconds) return gaps;
+    final k = maxTotal.inMilliseconds / sum;
+    return [for (final g in gaps) Duration(milliseconds: math.max(30, (g.inMilliseconds * k).round()))];
   }
 }

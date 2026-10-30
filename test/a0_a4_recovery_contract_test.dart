@@ -166,7 +166,7 @@ void main() {
     expect(find.byIcon(Icons.image_outlined), findsNothing);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontSize, 16.2);
-    expect(field.decoration?.hintStyle?.fontSize, 12.8);
+    expect(field.decoration?.hintStyle?.fontSize, 16.2); // the placeholder is as big as the typed text
   });
 
   testWidgets('user bubble collapses long text but assistant stays full',
