@@ -135,6 +135,18 @@ class Gate3Localization {
   String get profileLanguageLabel =>
       _t(en: 'Preferred language', fa: 'زبان ترجیحی', ar: 'اللغة المفضلة');
 
+  String get profileLanguageChooseTitle => _t(
+        en: 'Choose your language',
+        fa: 'زبان خود را انتخاب کنید',
+        ar: 'اختر لغتك',
+      );
+
+  String get profileLanguageChangeFailed => _t(
+        en: 'The language could not be changed. Please check your connection and try again.',
+        fa: 'زبان تغییر نکرد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.',
+        ar: 'تعذّر تغيير اللغة. تحقق من الاتصال وحاول مرة أخرى.',
+      );
+
   String get logout => _t(en: 'Log out', fa: 'خروج', ar: 'تسجيل الخروج');
 
   String get logoutApp => _t(
