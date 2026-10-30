@@ -265,7 +265,8 @@ jobs:
             test/a3_composer_vertical_balance_test.dart \
             test/ux_fixes_2_test.dart \
             test/chat_return_and_prefetch_test.dart \
-            test/lifestyle_hub_today_test.dart
+            test/lifestyle_hub_today_test.dart \
+            test/notification_tap_flow_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:

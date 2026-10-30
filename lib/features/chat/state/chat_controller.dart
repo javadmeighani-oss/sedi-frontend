@@ -190,6 +190,8 @@ class ChatController extends ChangeNotifier {
     // flight while history loads. Its text is still added AFTER the restored messages (order unchanged).
     // (A1 may already have started that very request while its logo moved: A3SessionPrefetch.)
     _threadDay = ChatReturnPolicy.dayKey(DateTime.now());
+    // A chat opened from a notification asks for ITS opener (source id): the plain prefetched one is dropped.
+    if (sourceNotificationId != null) A3SessionPrefetch.take();
     final openFuture = initialMessage == null ? (A3SessionPrefetch.take() ?? _openSessionSoft()) : null;
 
     await _restoreCurrentDayTranscript();

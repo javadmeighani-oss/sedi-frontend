@@ -285,7 +285,7 @@ void main() {
   });
 
   group('bootstrap continuity', () {
-    test('open_chat navigates once after ACK; source id reaches A3; no fake user/raw body', () {
+    test('open_chat opens the chat once, at once (2026-10-30); source id reaches A3; no fake user/raw body', () {
       final boot = _read('lib/core/notifications/notification_bootstrap.dart');
       final coord =
           _read('lib/core/notifications/notification_action_coordinator.dart');
@@ -295,7 +295,7 @@ void main() {
       expect(boot.contains('drainPendingActions'), isTrue);
       expect(boot.contains("actionId: 'open_chat'"), isTrue);
       expect(boot.contains('NotificationActionCoordinator'), isTrue);
-      // Navigate ONLY after ACK — bootstrap must not call goToHeart directly.
+      // The coordinator owns navigation (not the bootstrap) - it opens the chat at once and ACKs right after.
       expect(boot.contains('goToHeart'), isFalse);
       expect(coord.contains('goToHeart'), isTrue);
       expect(coord.contains('navigateToChatAfterAck'), isTrue);
