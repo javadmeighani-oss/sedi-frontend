@@ -100,17 +100,30 @@ void main() {
     expect(tester.getCenter(_clip()).dy, closeTo(tester.getCenter(_mic()).dy, 1));
   });
 
-  testWidgets('long text shows a scrollbar beside the text; short text does not', (tester) async {
+  testWidgets('long text shows a short scroll thumb beside the text; short text shows none', (tester) async {
     await _pump(tester, _composer(rtl: true));
+    const thumb = ValueKey('composerScrollThumb');
     await tester.enterText(find.byType(TextField), 'سلام');
     await tester.pumpAndSettle();
-    expect(find.byType(Scrollbar), findsOneWidget);
-    final controller = tester.widget<TextField>(find.byType(TextField)).scrollController!;
-    expect(controller.position.maxScrollExtent, 0); // nothing to scroll: the thumb stays hidden
+    expect(find.byKey(thumb), findsNothing);
 
-    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('\n'));
+    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('
+'));
     await tester.pumpAndSettle();
-    expect(controller.position.maxScrollExtent, greaterThan(0)); // longer than the box: the thumb is drawn
+    expect(find.byKey(thumb), findsOneWidget);
+    final controller = tester.widget<TextField>(find.byType(TextField)).scrollController!;
+    final viewport = controller.position.viewportDimension;
+    final natural = viewport * viewport / (viewport + controller.position.maxScrollExtent);
+    final length = tester.getSize(find.byKey(thumb)).height;
+    expect(length, lessThanOrEqualTo(natural * 0.4 + 1)); // 40% of the usual thumb
+    expect(length, greaterThanOrEqualTo(14));
+  });
+
+  testWidgets('the placeholder is 40% visible', (tester) async {
+    await _pump(tester, _composer(rtl: false));
+    final hint = tester.widget<TextField>(find.byType(TextField)).decoration!.hintStyle!;
+    expect(hint.color!.opacity, closeTo(0.40, 0.01));
+    expect(hint.fontSize, 16.2);
   });
 
   group('room maths (keyboard open, 409dp of height, the real numbers of the phone test)', () {

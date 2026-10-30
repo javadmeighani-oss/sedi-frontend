@@ -161,7 +161,7 @@ void main() {
       );
       // A1->A3 speed: the opener request is STARTED before history loads (no initial message only) ...
       expect(
-        src.indexOf('initialMessage == null ? _openSessionSoft() : null'),
+        src.indexOf('initialMessage == null ? (A3SessionPrefetch.take() ?? _openSessionSoft()) : null'),
         lessThan(src.indexOf('await _restoreCurrentDayTranscript();')),
       );
       // ... but its text is added only after the restore finished, so the order of messages is unchanged.

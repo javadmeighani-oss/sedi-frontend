@@ -5,6 +5,8 @@ import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/navigation/session_gate_resolver.dart';
 import '../../../../core/network/backend_availability.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../features/chat/state/a3_session_prefetch.dart';
 import '../../../../services/push/push_service.dart';
 
 /// A1 — Sedi platform intro shown on every app open ("Birth of Sedi").
@@ -52,6 +54,13 @@ class _IntroPageState extends State<IntroPage>
 
     _sessionFuture = SessionGateResolver.resolveColdStart();
     _healthFuture = BackendAvailability.probeHealthz();
+    // The logo plays for three seconds anyway: as soon as the session is known to be valid, Sedi's opener is asked for,
+    // so A3 does not open on an empty chat while the server prepares it.
+    _sessionFuture.then((s) {
+      if (s.isAuthenticated) {
+        A3SessionPrefetch.start(language: SediLocaleController.instance.languageCode);
+      }
+    }, onError: (_) {});
 
     _masterController = AnimationController(
       vsync: this,

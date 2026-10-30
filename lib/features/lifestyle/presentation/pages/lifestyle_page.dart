@@ -7,13 +7,13 @@ import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
-import '../../../../services/lifestyle/lifestyle_schedule_service.dart';
 import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/gate3_assistant_starter_bus.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../domain/schedule_today.dart';
+import '../../logic/lifestyle_summary_cache.dart';
 import '../lifestyle_l10n.dart';
 import 'lifestyle_exercise_page.dart';
 import 'lifestyle_health_page.dart';
@@ -36,34 +36,31 @@ class _LifestylePageState extends State<LifestylePage> {
   static const double _todayHeight = 140;
   static const double _gap = 12;
 
-  /// Live one-line summary of today (R-031); null until loaded or when it cannot be read.
-  ScheduleDaySummary? _summary;
+  /// Live one-line summary of today (R-031): the one loaded earlier today (A3 asks for it in the background) or the
+  /// fresh one; null when it cannot be read.
+  ScheduleDaySummary? _summary = LifestyleSummaryCache.today();
+
+  /// True while the first read is on its way and there is nothing to show yet: the card's place is kept (a skeleton)
+  /// so the hub never jumps when the answer arrives.
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
     // Under `flutter test` there is no backend: the hub keeps its static subtitles.
-    if (Platform.environment['FLUTTER_TEST'] != 'true') _loadSummary();
+    if (Platform.environment['FLUTTER_TEST'] != 'true') {
+      _loading = _summary == null;
+      _loadSummary();
+    }
   }
 
   Future<void> _loadSummary() async {
-    try {
-      final svc = LifestyleScheduleService();
-      final now = DateTime.now();
-      final ev = await svc.listEvents();
-      final md = await svc.listMedications();
-      final dn = await svc.listDone(isoDay(now));
-      if (!mounted || !ev.ok) return;
-      final items = buildToday(
-        events: ev.data ?? const [],
-        medications: md.data ?? const [],
-        doneIds: dn.data ?? <String>{},
-        today: now,
-      );
-      setState(() => _summary = summarize(items, now));
-    } catch (_) {
-      // fail-open: the static hub stays
-    }
+    final fresh = await LifestyleSummaryCache.refresh(); // fail-open: null keeps the static hub
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (fresh != null) _summary = fresh;
+    });
   }
 
   @override
@@ -88,7 +85,8 @@ class _LifestylePageState extends State<LifestylePage> {
     );
     final schedule = _HubCard(
       l10n.mySchedule,
-      summary == null
+      // nothing planned today: the plain subtitle (never "everything is done" next to "no plan today")
+      summary == null || summary.total == 0
           ? l10n.scheduleSubtitle
           : l10n.hubScheduleLine(summary.total - summary.done),
       Icons.event_available_outlined,
@@ -158,6 +156,12 @@ class _LifestylePageState extends State<LifestylePage> {
                             SizedBox(
                               height: _todayHeight,
                               child: _hubTodayCard(summary, l10n),
+                            ),
+                            const SizedBox(height: _gap),
+                          ] else if (_loading) ...[
+                            const SizedBox(
+                              height: _todayHeight,
+                              child: _HubTodaySkeleton(),
                             ),
                             const SizedBox(height: _gap),
                           ],
@@ -391,8 +395,17 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The card lives in a share of the screen that gets smaller when the today card is on top: it adapts instead of
+    // overflowing by a fraction of a pixel (phone test 2026-10-30).
+    return LayoutBuilder(builder: (context, box) => _build(context, box.maxHeight));
+  }
+
+  Widget _build(BuildContext context, double height) {
     final radius = BorderRadius.circular(30);
-    final tile = tall ? 58.0 : 50.0;
+    final snug = !tall && height < 150;
+    final tight = !tall && height < 128;
+    final tile = tall ? 58.0 : (snug ? 40.0 : 50.0);
+    final pad = snug ? 12.0 : 14.0;
     return Semantics(
       container: true,
       button: true,
@@ -426,7 +439,7 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
                 MaterialPageRoute<void>(builder: (_) => card.page),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(pad),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -457,7 +470,7 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       card.subtitle,
-                      maxLines: 3,
+                      maxLines: tight ? 1 : (snug ? 2 : 3),
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
@@ -559,4 +572,68 @@ void openLifestyleChat(BuildContext context, {String? starterMessage}) {
     Gate3AssistantStarterBus.instance.publish(starter);
   }
   Navigator.of(context).popUntil((route) => route.isFirst);
+}
+
+
+/// The place of the "today" card while its data is on the way: the same glass, two soft bars, a slow pulse.
+class _HubTodaySkeleton extends StatefulWidget {
+  const _HubTodaySkeleton();
+
+  @override
+  State<_HubTodaySkeleton> createState() => _HubTodaySkeletonState();
+}
+
+class _HubTodaySkeletonState extends State<_HubTodaySkeleton> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(34);
+    Widget bar(double w, double h) => Container(
+          width: w,
+          height: h,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(h / 2),
+          ),
+        );
+    return Semantics(
+      container: true,
+      label: 'loading',
+      child: SediGlass.blur(
+        radius: radius,
+        sigma: 16,
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, _) => Opacity(
+            opacity: 0.55 + 0.45 * _pulse.value,
+            child: DecoratedBox(
+              decoration: SediGlass.card(radius),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    Container(width: 64, height: 64, decoration: SediGlass.lightRing()),
+                    const SizedBox(width: 18),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [bar(120, 12), const SizedBox(height: 14), bar(180, 18)],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

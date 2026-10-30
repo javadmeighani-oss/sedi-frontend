@@ -91,6 +91,9 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   // eight lines of the field style: 2 x 11 content padding + 8 x (16.2 x 1.35); then the text scrolls (with a scrollbar)
   static const double _maxTextHeight = 197;
+
+  /// How visible the placeholder is (1 = like typed text).
+  static const double hintVisibility = 0.40;
   static const double _minTextHeight = 44;
   static const double _capsuleRadius = 34;
   static const double _primarySize = 52;
@@ -138,6 +141,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _notifyListening();
+      setState(() {}); // the scroll thumb reads the field's extents, known only after layout
     });
   }
 
@@ -211,13 +215,11 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           minHeight: _minTextHeight,
           maxHeight: cap,
         ),
-        // a thin scrollbar appears beside the text as soon as it is longer than the box
-        child: Scrollbar(
-          controller: _fieldScroll,
-          thumbVisibility: true,
-          thickness: 3,
-          radius: const Radius.circular(3),
-          child: TextField(
+        // a thin, short scroll thumb appears beside the text as soon as it is longer than the box
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            TextField(
           scrollController: _fieldScroll,
           controller: _controller,
           focusNode: _focusNode,
@@ -233,13 +235,13 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           cursorColor: SediPalette.pistachio700,
           decoration: InputDecoration(
             isCollapsed: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 11),
+            contentPadding: const EdgeInsetsDirectional.fromSTEB(0, 11, 8, 11),
             border: InputBorder.none,
             hintText: widget.placeholder,
             hintTextDirection: textDirection,
-            // same size as the typed text: the placeholder lines up with the mic and the paperclip
-            hintStyle: const TextStyle(
-              color: SediPalette.sageMuted,
+            // same size as the typed text, but only 40% visible (Javad 2026-10-30): it hints, it does not compete
+            hintStyle: TextStyle(
+              color: SediPalette.sageMuted.withOpacity(hintVisibility),
               fontSize: 16.2,
               height: 1.35,
             ),
@@ -247,7 +249,15 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           ),
           style: _fieldStyle,
           onSubmitted: (_) => _send(),
-        ),
+            ),
+            PositionedDirectional(
+              end: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              child: IgnorePointer(child: _FieldScrollThumb(controller: _fieldScroll)),
+            ),
+          ],
         ),
       ),
     );
@@ -407,4 +417,55 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     fontSize: 16.2,
     height: 1.35,
   );
+}
+
+
+/// The scroll thumb of the text area: a thin pistachio-dark pill, 40% of the length Flutter's own thumb would have
+/// (Javad 2026-10-30), drawn only while the text is longer than the box.
+class _FieldScrollThumb extends StatelessWidget {
+  final ScrollController controller;
+
+  const _FieldScrollThumb({required this.controller});
+
+  /// Share of the usual thumb length.
+  static const double lengthShare = 0.4;
+  static const double minLength = 14;
+
+  /// The field's own vertical content padding (the scroll viewport sits inside it).
+  static const double inset = 11;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        if (!controller.hasClients) return const SizedBox.shrink();
+        final position = controller.position;
+        if (!position.hasContentDimensions) return const SizedBox.shrink();
+        final max = position.maxScrollExtent;
+        if (max <= 0.5) return const SizedBox.shrink();
+        final viewport = position.viewportDimension;
+        final natural = viewport * viewport / (viewport + max);
+        final length = math.max(minLength, natural * lengthShare);
+        final fraction = (position.pixels / max).clamp(0.0, 1.0);
+        return Stack(
+          children: [
+            Positioned(
+              top: inset + (viewport - length) * fraction,
+              left: 0,
+              right: 0,
+              height: length,
+              child: DecoratedBox(
+                key: const ValueKey('composerScrollThumb'),
+                decoration: BoxDecoration(
+                  color: const Color(0x8048551F),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
