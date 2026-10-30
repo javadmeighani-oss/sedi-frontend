@@ -418,16 +418,18 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       const chatTopPad = 8.0;
                       // The text area never needs more than what the header, the resonance and the buttons leave
                       // (keyboard open, long text): it scrolls inside the field and the buttons stay in view.
-                      final fixedAbove =
-                          (_topTrayExpanded ? Gate3TopNavigationTray.expandedExtraHeight : 0.0) +
-                              SediLivingEcho.heightFor(compact: compact, heroSize: heroSize) +
-                              SediResonanceDock.height +
-                              10 + // the dock's own padding
-                              (_editingLocalId != null ? 48.0 : 0.0);
-                      const composerChrome = 90.0; // outer 18 + inner 16 + buttons 52 + gap 4
-                      const minChatRoom = 48.0;
-                      final maxFieldHeight =
-                          box.maxHeight - fixedAbove - composerChrome - minChatRoom;
+                      // With the keyboard open the resonance steps aside (it is decoration; the room is for typing).
+                      final fit = Gate3ComposerFit.plan(
+                        available: box.maxHeight,
+                        trayExtra:
+                            _topTrayExpanded ? Gate3TopNavigationTray.expandedExtraHeight : 0.0,
+                        echoHeight: SediLivingEcho.heightFor(compact: compact, heroSize: heroSize),
+                        dockHeight: keyboardOpen ? 0.0 : SediResonanceDock.height + 10,
+                        bannerHeight: _editingLocalId != null ? 48.0 : 0.0,
+                      );
+                      final maxFieldHeight = fit.maxField;
+                      // A very small screen: the header gives way before anything is cut off.
+                      final hideEcho = fit.hideEcho;
                       return Stack(
                         children: [
                           Positioned.fill(
@@ -441,11 +443,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                       ? Gate3TopNavigationTray.expandedExtraHeight
                                       : 0,
                                 ),
-                                SediLivingEcho(
-                                  state: _orbState(),
-                                  compact: compact,
-                                  heroSize: heroSize,
-                                ),
+                                if (!hideEcho)
+                                  SediLivingEcho(
+                                    state: _orbState(),
+                                    compact: compact,
+                                    heroSize: heroSize,
+                                  ),
                                 Expanded(
                                   child: Stack(
                                     children: [
@@ -493,7 +496,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                     onCancel: _cancelEdit,
                                   ),
                                 // Resonance docked just above the composer, about half the screen width (D-102).
-                                SediResonanceDock(state: _orbState()),
+                                if (!keyboardOpen) SediResonanceDock(state: _orbState()),
                                 Gate3Composer(
                                   key: ValueKey(
                                       'gate3-composer-$_composerDraftToken'),

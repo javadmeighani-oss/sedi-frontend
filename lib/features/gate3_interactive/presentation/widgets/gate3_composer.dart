@@ -8,6 +8,38 @@ import 'gate3_attachment_flow.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
 
+/// The room maths of the chat page (kept pure so it can be tested): how tall may the text area be so that the tray
+/// spacer, the header, the resonance and the composer still fit above the keyboard?
+class Gate3ComposerFit {
+  Gate3ComposerFit._();
+
+  /// Outer padding 18 + inner padding 16 + the button row 52.
+  static const double chrome = 86;
+
+  /// Estimation error we never want to pay for with a yellow overflow bar.
+  static const double safety = 8;
+
+  static const double minField = 44;
+
+  /// Largest text-area height that keeps everything in view; below [minField] the page must make room first.
+  static double maxField({required double available, required double above}) =>
+      available - above - chrome - safety;
+
+  /// The whole decision: the text-area cap and whether the header must give way on a very small screen.
+  static ({double maxField, bool hideEcho}) plan({
+    required double available,
+    required double trayExtra,
+    required double echoHeight,
+    required double dockHeight,
+    required double bannerHeight,
+  }) {
+    final withoutEcho = trayExtra + dockHeight + bannerHeight;
+    final withEcho = maxField(available: available, above: withoutEcho + echoHeight);
+    if (withEcho >= minField) return (maxField: withEcho, hideEcho: false);
+    return (maxField: maxField(available: available, above: withoutEcho), hideEcho: true);
+  }
+}
+
 /// Gate 3 composer. Pilot V1 (R-034): a liquid-glass capsule [attach] [text field] [mic / send / stop] with a
 /// round pistachio 3D mic and a bare thin-line attach icon. Behaviour is unchanged.
 class Gate3Composer extends StatefulWidget {
@@ -49,6 +81,7 @@ class Gate3Composer extends StatefulWidget {
 class _Gate3ComposerState extends State<Gate3Composer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final ScrollController _fieldScroll = ScrollController();
   // Keeps the TextField's element alive when the layout flips between the one-line row and the wide column;
   // without it the field is rebuilt, the input connection drops and the keyboard closes/opens while typing.
   final GlobalKey _fieldKey = GlobalKey(debugLabel: 'gate3ComposerField');
@@ -56,8 +89,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   final GlobalKey _attachKey = GlobalKey(debugLabel: 'gate3ComposerAttach');
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
-  // six lines of the field style: 2 x 11 content padding + 6 x (16.2 x 1.35)
-  static const double _maxTextHeight = 154;
+  // eight lines of the field style: 2 x 11 content padding + 8 x (16.2 x 1.35); then the text scrolls (with a scrollbar)
+  static const double _maxTextHeight = 197;
   static const double _minTextHeight = 44;
   static const double _capsuleRadius = 34;
   static const double _primarySize = 52;
@@ -94,6 +127,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     _focusNode.removeListener(_notifyListening);
     _controller.dispose();
     _focusNode.dispose();
+    _fieldScroll.dispose();
     super.dispose();
   }
 
@@ -177,7 +211,14 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           minHeight: _minTextHeight,
           maxHeight: cap,
         ),
-        child: TextField(
+        // a thin scrollbar appears beside the text as soon as it is longer than the box
+        child: Scrollbar(
+          controller: _fieldScroll,
+          thumbVisibility: true,
+          thickness: 3,
+          radius: const Radius.circular(3),
+          child: TextField(
+          scrollController: _fieldScroll,
           controller: _controller,
           focusNode: _focusNode,
           enabled: !widget.isRecording,
@@ -206,6 +247,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           ),
           style: _fieldStyle,
           onSubmitted: (_) => _send(),
+        ),
         ),
       ),
     );

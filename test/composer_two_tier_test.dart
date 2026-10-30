@@ -60,12 +60,12 @@ void main() {
       expect(tester.getCenter(_clip()).dx, lessThan(tester.getCenter(_send()).dx));
     });
 
-    testWidgets('$tag many lines: the field stops at six lines and the buttons stay in view', (tester) async {
+    testWidgets('$tag many lines: the field stops at eight lines and the buttons stay in view', (tester) async {
       await _pump(tester, _composer(rtl: rtl));
       await tester.enterText(find.byType(TextField), List.filled(14, 'x').join('\n'));
       await tester.pumpAndSettle();
       final field = tester.getRect(find.byType(TextField));
-      expect(field.height, lessThanOrEqualTo(154));
+      expect(field.height, lessThanOrEqualTo(197));
       expect(tester.getCenter(_send()).dy, greaterThan(field.bottom - 1));
       expect(tester.getRect(find.byType(Gate3Composer)).bottom, lessThanOrEqualTo(700));
     });
@@ -98,5 +98,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(_mic(), findsOneWidget);
     expect(tester.getCenter(_clip()).dy, closeTo(tester.getCenter(_mic()).dy, 1));
+  });
+
+  testWidgets('long text shows a scrollbar beside the text; short text does not', (tester) async {
+    await _pump(tester, _composer(rtl: true));
+    await tester.enterText(find.byType(TextField), 'سلام');
+    await tester.pumpAndSettle();
+    expect(find.byType(Scrollbar), findsOneWidget);
+    final controller = tester.widget<TextField>(find.byType(TextField)).scrollController!;
+    expect(controller.position.maxScrollExtent, 0); // nothing to scroll: the thumb stays hidden
+
+    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('
+'));
+    await tester.pumpAndSettle();
+    expect(controller.position.maxScrollExtent, greaterThan(0)); // longer than the box: the thumb is drawn
+  });
+
+  group('room maths (keyboard open, 409dp of height, the real numbers of the phone test)', () {
+    const echoCompact = 44 + 96; // SediLivingEcho.topInset + compactCanvas
+    const tray = 88.0;
+
+    ({double maxField, bool hideEcho}) plan({required bool trayOpen, required double available}) =>
+        Gate3ComposerFit.plan(
+          available: available,
+          trayExtra: trayOpen ? tray : 0,
+          echoHeight: echoCompact.toDouble(),
+          dockHeight: 0, // the resonance steps aside while the keyboard is open
+          bannerHeight: 0,
+        );
+
+    // the composer needs chrome + at least one line; everything above it plus that must fit
+    bool fits(double available, bool trayOpen, ({double maxField, bool hideEcho}) p) {
+      final field = p.maxField < Gate3ComposerFit.minField ? Gate3ComposerFit.minField : p.maxField;
+      final above = (trayOpen ? tray : 0) + (p.hideEcho ? 0 : echoCompact);
+      return above + field + Gate3ComposerFit.chrome <= available;
+    }
+
+    test('tray open or closed, nothing overflows and the text area keeps real room', () {
+      for (final trayOpen in [false, true]) {
+        final p = plan(trayOpen: trayOpen, available: 409);
+        expect(fits(409, trayOpen, p), isTrue, reason: 'trayOpen=$trayOpen');
+        expect(p.hideEcho, isFalse);
+      }
+      // closed tray: room for the full eight lines; open tray: still about three
+      expect(plan(trayOpen: false, available: 409).maxField, greaterThanOrEqualTo(150));
+      expect(plan(trayOpen: true, available: 409).maxField, greaterThanOrEqualTo(80));
+    });
+
+    test('smaller screens: the header gives way instead of overflowing', () {
+      for (final available in [300.0, 280.0, 260.0, 240.0]) {
+        for (final trayOpen in [false, true]) {
+          final p = plan(trayOpen: trayOpen, available: available);
+          expect(fits(available, trayOpen, p), isTrue, reason: 'h=$available tray=$trayOpen');
+        }
+      }
+    });
+
+    test('a roomy screen never limits below the eight-line cap', () {
+      expect(plan(trayOpen: false, available: 800).maxField, greaterThanOrEqualTo(197));
+    });
   });
 }

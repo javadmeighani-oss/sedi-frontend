@@ -45,7 +45,7 @@ void main() {
       ).first,
     );
     expect(textBox.constraints.minHeight, 44);
-    expect(textBox.constraints.maxHeight, 154); // six lines, then the text scrolls inside the field
+    expect(textBox.constraints.maxHeight, 197); // eight lines, then the text scrolls (with a scrollbar)
 
     final add = tester.widget<Gate3ComposerActionButton>(
       find.widgetWithIcon(Gate3ComposerActionButton, Icons.attach_file_rounded),
