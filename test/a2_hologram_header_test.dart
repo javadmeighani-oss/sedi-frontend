@@ -23,20 +23,20 @@ void main() {
   }
 
   for (final hero in [true, false]) {
-    testWidgets('${hero ? 'first step' : 'later steps'}: a ring-less sphere, 10 % larger than the old picture',
+    testWidgets('${hero ? 'first step' : 'later steps'}: a ring-less sphere, 10 % larger than the old circle',
         (tester) async {
       await pump(tester, hero: hero);
       final orb = tester.widget<SediHologramOrb>(find.byType(SediHologramOrb));
       expect(orb.showRings, isFalse);
       expect(orb.showLogo, isTrue);
-      final old = hero ? 168.0 : 104.0;
+      final old = (hero ? 168.0 : 104.0) * 0.68; // the old circle itself, without its rings
       expect(orb.diameter, closeTo(old * 1.10, 0.001));
       expect(tester.getSize(find.byType(SediHologramOrb)).width, closeTo(old * 1.10, 0.5));
     });
   }
 
   test('the size rule', () {
-    expect(A2HologramHeader.sphereDiameter(hero: true), closeTo(184.8, 0.001));
-    expect(A2HologramHeader.sphereDiameter(hero: false), closeTo(114.4, 0.001));
+    expect(A2HologramHeader.sphereDiameter(hero: true), closeTo(125.664, 0.001));
+    expect(A2HologramHeader.sphereDiameter(hero: false), closeTo(77.792, 0.001));
   });
 }

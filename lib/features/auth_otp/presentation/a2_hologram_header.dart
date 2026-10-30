@@ -26,14 +26,17 @@ class A2HologramHeader extends StatelessWidget {
     this.animate = true,
   });
 
-  /// Edge of the old circle-with-rings picture (rings included).
+  /// Edge of the old picture (the rings' footprint).
   static double oldFootprint({required bool hero}) => hero ? 168.0 : 104.0;
 
-  /// Javad 2026-10-30: the circle with rings is gone; Sedi's glass sphere with her wordmark takes its place, 10 %
-  /// larger than that picture was.
+  /// The old circle itself, without its rings: the sphere was 68 % of the footprint.
+  static double oldSphere({required bool hero}) => oldFootprint(hero: hero) * SediHologramOrb.sphereScaleWithRings;
+
+  /// Javad 2026-10-30: the rings are gone; Sedi's glass sphere with her wordmark takes the place of the old CIRCLE
+  /// (not of the rings' footprint) and is 10 % larger than that circle was.
   static const double sphereScale = 1.10;
 
-  static double sphereDiameter({required bool hero}) => oldFootprint(hero: hero) * sphereScale;
+  static double sphereDiameter({required bool hero}) => oldSphere(hero: hero) * sphereScale;
 
   @override
   Widget build(BuildContext context) {
