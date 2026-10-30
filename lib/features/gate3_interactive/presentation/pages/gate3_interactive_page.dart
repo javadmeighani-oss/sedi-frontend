@@ -65,6 +65,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       SediHealthSubjectController.instance;
   final NotificationsService _notificationsService = NotificationsService();
   int _subjectGenSeen = -1;
+  bool _initialSubjectLoad = true;
 
   bool _composerListening = false;
   String? _composerDraftSeed;
@@ -119,13 +120,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     });
     _refreshUnreadBadge();
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
-    _subjects.loadAccessibleSubjects().then((_) {
+    // A1->A3 speed: the subject list and the chat start-up (history + Sedi's opener) do not depend on each
+    // other, so they load together. The first subject load is not a "switch" and must not clear the chat.
+    _subjects.loadAccessibleSubjects().whenComplete(() {
+      _initialSubjectLoad = false;
+      _subjectGenSeen = _subjects.generation;
       _syncChatSubject();
-      _controller.initialize(
-        initialMessage: widget.initialMessage,
-        notificationId: widget.notificationId,
-      );
     });
+    _controller.initialize(
+      initialMessage: widget.initialMessage,
+      notificationId: widget.notificationId,
+    );
   }
 
   Future<void> _refreshUnreadBadge() async {
@@ -159,6 +164,11 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       return;
     }
     _subjectGenSeen = _subjects.generation;
+    if (_initialSubjectLoad) {
+      _syncChatSubject();
+      setState(() {});
+      return;
+    }
     // Invalidate chat transcript when subject switches — no stale leakage.
     _controller.messages.clear();
     _editingLocalId = null;

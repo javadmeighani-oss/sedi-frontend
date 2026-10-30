@@ -159,13 +159,19 @@ void main() {
         src.indexOf('await _restoreCurrentDayTranscript();'),
         lessThan(src.indexOf('if (initialMessage != null)')),
       );
+      // A1->A3 speed: the opener request is STARTED before history loads (no initial message only) ...
+      expect(
+        src.indexOf('initialMessage == null ? _openSessionSoft() : null'),
+        lessThan(src.indexOf('await _restoreCurrentDayTranscript();')),
+      );
+      // ... but its text is added only after the restore finished, so the order of messages is unchanged.
       expect(
         src.indexOf('await _restoreCurrentDayTranscript();'),
-        lessThan(src.indexOf('_chatService.openSession')),
+        lessThan(src.indexOf('await openFuture!')),
       );
       expect(
         src.indexOf('if (initialMessage != null)'),
-        lessThan(src.indexOf('_chatService.openSession')),
+        lessThan(src.indexOf('await openFuture!')),
       );
       expect(src.contains("'/memory/history'"), isTrue);
       expect(src.contains("'group': 'daily'"), isTrue);

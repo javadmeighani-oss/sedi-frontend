@@ -72,6 +72,9 @@ class AppGateRouter {
     );
   }
 
+  /// A1 -> A2/A3 slide. Shortened from 600 ms so the hand-over after the logo stops feels immediate.
+  static const Duration kSplashToGateTransition = Duration(milliseconds: 300);
+
   /// Splash-only cube transition into Gate 2 or Gate 3.
   static void transitionFromSplash(
     BuildContext context,
@@ -86,8 +89,8 @@ class AppGateRouter {
           gate,
           initialMessage: initialMessage,
         ),
-        transitionDuration: const Duration(milliseconds: 600),
-        reverseTransitionDuration: const Duration(milliseconds: 600),
+        transitionDuration: kSplashToGateTransition,
+        reverseTransitionDuration: kSplashToGateTransition,
         opaque: false,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final curvedAnimation = CurvedAnimation(
