@@ -1,3 +1,4 @@
+import '../../../core/copy/sedi_copy.dart';
 import '../../../core/locale/sedi_locale_controller.dart';
 
 /// A4 Smart Notifications Inbox localization (en/fa/ar). Presentation only.
@@ -20,147 +21,103 @@ class NotificationInboxL10n {
     }
   }
 
-  String get title => _t(
-        en: 'Smart Notifications',
-        fa: 'اعلان‌های هوشمند',
-        ar: 'الإشعارات الذكية',
-      );
+  String get title => SediCopy.t('inbox.title', lang);
 
-  String get filterAll => _t(en: 'All', fa: 'همه', ar: 'الكل');
+  String get filterAll => SediCopy.t('inbox.filterAll', lang);
 
   String get filterUnread =>
-      _t(en: 'Unread', fa: 'خوانده‌نشده', ar: 'غير مقروء');
+      SediCopy.t('inbox.filterUnread', lang);
 
   /// Top-control Delete enters selection mode (standalone Select removed).
-  String get filterDelete => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
+  String get filterDelete => SediCopy.t('inbox.filterDelete', lang);
 
   String get cancelSelection =>
-      _t(en: 'Cancel', fa: 'لغو', ar: 'إلغاء');
+      SediCopy.t('inbox.cancelSelection', lang);
 
   String get deleteSelected =>
-      _t(en: 'Delete selected', fa: 'حذف انتخاب‌شده', ar: 'حذف المحدد');
+      SediCopy.t('inbox.deleteSelected', lang);
 
-  String get deleteConfirmTitle => _t(
-        en: 'Delete selected?',
-        fa: 'حذف موارد انتخاب‌شده؟',
-        ar: 'حذف المحدد؟',
-      );
+  String get deleteConfirmTitle => SediCopy.t('inbox.deleteConfirmTitle', lang);
 
-  String get deleteConfirmBody => _t(
-        en: 'They will be removed from your inbox. This cannot be undone here.',
-        fa: 'از صندوق اعلان‌ها حذف می‌شوند. این کار از اینجا قابل بازگشت نیست.',
-        ar: 'ستُزال من صندوق الوارد. لا يمكن التراجع عن ذلك هنا.',
-      );
+  String get deleteConfirmBody => SediCopy.t('inbox.deleteConfirmBody', lang);
 
   String get deleteConfirmAction =>
-      _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
+      SediCopy.t('inbox.deleteConfirmAction', lang);
 
-  String get likeAction => _t(en: 'Like', fa: 'پسندیدن', ar: 'إعجاب');
+  String get likeAction => SediCopy.t('inbox.likeAction', lang);
 
   String get dislikeAction =>
-      _t(en: 'Dislike', fa: 'نپسندیدن', ar: 'عدم إعجاب');
+      SediCopy.t('inbox.dislikeAction', lang);
 
   String get dislikeReasonTitle =>
-      _t(en: 'Why did you dislike it?', fa: 'چرا نپسندیدی؟', ar: 'لماذا لم يعجبك؟');
+      SediCopy.t('inbox.dislikeReasonTitle', lang);
 
-  String get dislikeReasonHint => _t(
-        en: 'Pick one and I will send the next one at a better time.',
-        fa: 'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم.',
-        ar: 'اختر واحدًا وسأرسل التالي في وقت أنسب.',
-      );
+  String get dislikeReasonHint => SediCopy.t('inbox.dislikeReasonHint', lang);
 
   String dislikeReasonLabel(String code) {
     switch (code) {
       case 'busy_now':
-        return _t(en: "I'm busy now", fa: 'الان درگیرم', ar: 'مشغول الآن');
+        return SediCopy.t('inbox.dislikeReasonLabel.busy_now', lang);
       case 'rest_time':
-        return _t(en: 'Rest time', fa: 'وقت استراحتمه', ar: 'وقت راحتي');
+        return SediCopy.t('inbox.dislikeReasonLabel.rest_time', lang);
       case 'not_in_mood':
-        return _t(en: 'Not in the mood', fa: 'حوصله ندارم', ar: 'لا رغبة لدي');
+        return SediCopy.t('inbox.dislikeReasonLabel.not_in_mood', lang);
       case 'too_frequent':
-        return _t(en: 'Too many', fa: 'زیاد می‌فرسته', ar: 'كثيرة جداً');
+        return SediCopy.t('inbox.dislikeReasonLabel.too_frequent', lang);
       case 'irrelevant':
-        return _t(en: 'Not relevant to me', fa: 'به من ربطی نداره', ar: 'لا تخصني');
+        return SediCopy.t('inbox.dislikeReasonLabel.irrelevant', lang);
       case 'unclear':
-        return _t(en: 'Unclear', fa: 'نامفهومه', ar: 'غير واضحة');
+        return SediCopy.t('inbox.dislikeReasonLabel.unclear', lang);
       case 'not_helpful':
-        return _t(en: 'Not helpful', fa: 'کمکی نکرد', ar: 'لم تفدني');
+        return SediCopy.t('inbox.dislikeReasonLabel.not_helpful', lang);
       default:
-        return _t(en: 'Wrong time', fa: 'زمانش بد بود', ar: 'توقيت غير مناسب');
+        return SediCopy.t('inbox.dislikeReasonLabel.default', lang);
     }
   }
 
   String get planNotDoneTitle =>
-      _t(en: 'That is fine. What happened?', fa: 'اشکالی نداره. چی شد؟', ar: 'لا بأس. ماذا حدث؟');
+      SediCopy.t('inbox.planNotDoneTitle', lang);
 
-  String get planNotDoneHint => _t(
-        en: 'This helps Sedi make your plan easier.',
-        fa: 'با این، صدی برنامه رو راحت‌تر می‌کنه.',
-        ar: 'هذا يساعد صدی على تسهيل خطتك.',
-      );
+  String get planNotDoneHint => SediCopy.t('inbox.planNotDoneHint', lang);
 
   String planReasonLabel(String code) {
     switch (code) {
       case 'no_time':
-        return _t(en: 'No time', fa: 'وقت نداشتم', ar: 'لم يكن لدي وقت');
+        return SediCopy.t('inbox.planReasonLabel.no_time', lang);
       case 'dont_like':
-        return _t(en: 'Did not like it', fa: 'دوست نداشتم', ar: 'لم يعجبني');
+        return SediCopy.t('inbox.planReasonLabel.dont_like', lang);
       default:
-        return _t(en: 'Not feeling well', fa: 'حالم خوب نیست', ar: 'لست بخير');
+        return SediCopy.t('inbox.planReasonLabel.default', lang);
     }
   }
 
-  String get talkToSedi => _t(
-        en: 'Talk to Sedi',
-        fa: 'صحبت با صدی',
-        ar: 'التحدث مع صدی',
-      );
+  String get talkToSedi => SediCopy.t('inbox.talkToSedi', lang);
 
-  String get groupToday => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
+  String get groupToday => SediCopy.t('inbox.groupToday', lang);
 
   String get groupYesterday =>
-      _t(en: 'Yesterday', fa: 'دیروز', ar: 'أمس');
+      SediCopy.t('inbox.groupYesterday', lang);
 
-  String get actionFailed => _t(
-        en: 'Could not complete action. Try again.',
-        fa: 'انجام عملیات ممکن نشد. دوباره تلاش کنید.',
-        ar: 'تعذر إكمال الإجراء. حاول مرة أخرى.',
-      );
+  String get actionFailed => SediCopy.t('inbox.actionFailed', lang);
 
-  String get hideFailed => _t(
-        en: 'Could not delete notifications. Try again.',
-        fa: 'حذف اعلان‌ها ممکن نشد. دوباره تلاش کنید.',
-        ar: 'تعذر حذف الإشعارات. حاول مرة أخرى.',
-      );
+  String get hideFailed => SediCopy.t('inbox.hideFailed', lang);
 
-  String get loading => _t(
-        en: 'Loading notifications...',
-        fa: 'در حال بارگذاری اعلان‌ها...',
-        ar: 'جاري تحميل الإشعارات...',
-      );
+  String get loading => SediCopy.t('inbox.loading', lang);
 
-  String get emptyTitle => _t(
-        en: 'No sent notifications in this history window',
-        fa: 'هیچ اعلان ارسال‌شده‌ای در این بازه تاریخچه نیست',
-        ar: 'لا إشعارات مُرسلة في نافذة السجل هذه',
-      );
+  String get emptyTitle => SediCopy.t('inbox.emptyTitle', lang);
 
-  String get emptySubtitle => _t(
-        en: 'Scheduled or failed notifications are not shown here.',
-        fa: 'اعلان‌های زمان‌بندی‌شده یا ناموفق اینجا نشان داده نمی‌شوند.',
-        ar: 'الإشعارات المجدولة أو الفاشلة لا تُعرض هنا.',
-      );
+  String get emptySubtitle => SediCopy.t('inbox.emptySubtitle', lang);
 
   String get fallbackTitle =>
-      _t(en: 'Notification', fa: 'اعلان', ar: 'إشعار');
+      SediCopy.t('inbox.fallbackTitle', lang);
 
   String get noDetails =>
-      _t(en: 'No details', fa: 'بدون جزئیات', ar: 'بدون تفاصيل');
+      SediCopy.t('inbox.noDetails', lang);
 
   String get markAsRead =>
-      _t(en: 'Mark as read', fa: 'علامت به‌عنوان خوانده‌شده', ar: 'تعيين كمقروء');
+      SediCopy.t('inbox.markAsRead', lang);
 
-  String get now => _t(en: 'Now', fa: 'الان', ar: 'الآن');
+  String get now => SediCopy.t('inbox.now', lang);
 
   String minutesAgo(int n) => _t(
         en: '${n}m',
@@ -194,38 +151,29 @@ class NotificationInboxL10n {
     final key = _canonicalCategoryKey(rawCategoryOrChannel);
     switch (key) {
       case 'daily_status':
-        return _t(en: 'Daily status', fa: 'وضعیت روزانه', ar: 'الحالة اليومية');
+        return SediCopy.t('inbox.categoryLabel.daily_status', lang);
       case 'reminder':
-        return _t(en: 'Reminder', fa: 'یادآوری', ar: 'تذكير');
+        return SediCopy.t('inbox.categoryLabel.reminder', lang);
       case 'event_reminder':
-        return _t(en: 'Event reminder', fa: 'یادآوری رویداد', ar: 'تذكير بالحدث');
+        return SediCopy.t('inbox.categoryLabel.event_reminder', lang);
       case 'medication_reminder':
-        return _t(
-            en: 'Medication reminder',
-            fa: 'یادآوری دارو',
-            ar: 'تذكير بالدواء');
+        return SediCopy.t('inbox.categoryLabel.medication_reminder', lang);
       case 'care_follow_up':
-        return _t(en: 'Care follow-up', fa: 'پیگیری مراقبت', ar: 'متابعة الرعاية');
+        return SediCopy.t('inbox.categoryLabel.care_follow_up', lang);
       case 'care_recommendation':
-        return _t(
-            en: 'Care recommendation',
-            fa: 'پیشنهاد مراقبت',
-            ar: 'توصية رعاية');
+        return SediCopy.t('inbox.categoryLabel.care_recommendation', lang);
       case 'engagement_checkin':
-        return _t(
-            en: 'Check-in', fa: 'پیگیری ارتباط', ar: 'تسجيل حضور');
+        return SediCopy.t('inbox.categoryLabel.engagement_checkin', lang);
       case 'health_status':
-        return _t(en: 'Health status', fa: 'وضعیت سلامت', ar: 'الحالة الصحية');
+        return SediCopy.t('inbox.categoryLabel.health_status', lang);
       case 'device_alert':
-        return _t(en: 'Device alert', fa: 'هشدار دستگاه', ar: 'تنبيه الجهاز');
+        return SediCopy.t('inbox.categoryLabel.device_alert', lang);
       case 'critical_alert':
-        return _t(
-            en: 'Important alert', fa: 'هشدار مهم', ar: 'تنبيه مهم');
+        return SediCopy.t('inbox.categoryLabel.critical_alert', lang);
       case 'chat_continuation':
-        return _t(
-            en: 'Conversation', fa: 'گفتگو', ar: 'محادثة');
+        return SediCopy.t('inbox.categoryLabel.chat_continuation', lang);
       case 'system':
-        return _t(en: 'System', fa: 'سیستم', ar: 'النظام');
+        return SediCopy.t('inbox.categoryLabel.system', lang);
       default:
         return fallbackTitle;
     }

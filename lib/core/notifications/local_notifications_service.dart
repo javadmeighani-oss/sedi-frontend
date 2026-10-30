@@ -18,6 +18,7 @@ import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'background_notification_action_handler.dart';
 import 'tray_notification_snapshot_store.dart';
+import '../copy/sedi_copy.dart';
 
 /// Expected Android raw resource name (file without extension): sedi_alarm.
 const String androidSoundResource = 'sedi_alarm';
@@ -166,78 +167,18 @@ List<AndroidNotificationAction> resolveNotificationActions({
 }
 
 String fallbackActionLabel(String actionId, String language) {
-  final lang = language.toLowerCase().split('-').first;
-  switch (actionId) {
-    case 'like':
-      return lang == 'fa'
-          ? 'پسندیدن'
-          : lang == 'ar'
-          ? 'إعجاب'
-          : 'Like';
-    case 'dislike':
-      return lang == 'fa'
-          ? 'نپسندیدن'
-          : lang == 'ar'
-          ? 'عدم إعجاب'
-          : 'Dislike';
-    case 'open_chat':
-      return lang == 'fa'
-          ? 'صحبت با صدی'
-          : lang == 'ar'
-          ? 'التحدث مع صدی'
-          : 'Talk to Sedi';
-    case 'done':
-      return lang == 'fa'
-          ? 'آره، انجام شد'
-          : lang == 'ar'
-          ? 'تم'
-          : 'Done';
-    case 'plan_not_done':
-      return lang == 'fa'
-          ? 'نشد'
-          : lang == 'ar'
-          ? 'لم يتم'
-          : 'Not done';
-    case 'later':
-      return lang == 'fa'
-          ? 'بعداً'
-          : lang == 'ar'
-          ? 'لاحقًا'
-          : 'Later';
-    default:
-      return actionId;
-  }
+  const known = {'like', 'dislike', 'open_chat', 'done', 'plan_not_done', 'later'};
+  if (!known.contains(actionId)) return actionId;
+  return SediCopy.t('tray.action.$actionId', language);
 }
 
 /// Transient tray processing label — never implies backend success.
 String trayProcessingLabel(String actionId, String language) {
-  final lang = language.toLowerCase().split('-').first;
-  switch (actionId) {
-    case 'like':
-      return lang == 'fa'
-          ? 'در حال ارسال پسند…'
-          : lang == 'ar'
-          ? 'جارٍ إرسال الإعجاب…'
-          : 'Sending Like…';
-    case 'dislike':
-      return lang == 'fa'
-          ? 'در حال ارسال نپسند…'
-          : lang == 'ar'
-          ? 'جارٍ إرسال عدم الإعجاب…'
-          : 'Sending Dislike…';
-    case 'open_chat':
-      return lang == 'fa'
-          ? 'در حال آماده‌سازی…'
-          : lang == 'ar'
-          ? 'جارٍ التحضير…'
-          : 'Preparing…';
-    default:
-      return lang == 'fa'
-          ? 'در حال پردازش…'
-          : lang == 'ar'
-          ? 'جارٍ المعالجة…'
-          : 'Processing…';
-  }
+  const specific = {'like', 'dislike', 'open_chat'};
+  return SediCopy.t(
+    specific.contains(actionId) ? 'tray.processing.$actionId' : 'tray.processing.default',
+    language,
+  );
 }
 
 (Importance, Priority, bool playSound, bool enableVibration)
