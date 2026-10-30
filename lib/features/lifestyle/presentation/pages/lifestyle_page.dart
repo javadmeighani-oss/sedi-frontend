@@ -311,6 +311,8 @@ Widget _hubTodayCard(ScheduleDaySummary s, LifestyleL10n l10n) {
               const SizedBox(height: 5),
               Text(
                 l10n.hubToday(s.total, s.done),
+                maxLines: 2, // the card has a fixed height: two lines at most, never an overflow
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 20,
                   height: 1.3,
