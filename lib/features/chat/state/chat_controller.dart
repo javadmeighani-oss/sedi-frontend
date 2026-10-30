@@ -12,6 +12,7 @@
 import '../../../core/locale/sedi_locale_controller.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/user_profile_manager.dart';
+import '../../../core/network/api_response.dart';
 import '../../../data/dto/chat/chat_send_response.dart';
 import '../../../data/dto/history_response.dart';
 import '../../../data/dto/lifestyle_summary_response.dart';
@@ -183,6 +184,10 @@ class ChatController extends ChangeNotifier {
     conversationState = ConversationState.initializing;
     notifyListeners();
 
+    // A1->A3 speed: the opener request does not depend on the restored transcript, so it is already in
+    // flight while history loads. Its text is still added AFTER the restored messages (order unchanged).
+    final openFuture = initialMessage == null ? _openSessionSoft() : null;
+
     await _restoreCurrentDayTranscript();
 
     if (initialMessage != null) {
@@ -195,11 +200,8 @@ class ChatController extends ChangeNotifier {
     }
 
     try {
-      final open = await _chatService.openSession(
-        language: currentLanguage,
-        sourceNotificationId: sourceNotificationId,
-      );
-      if (open.ok && open.data != null) {
+      final open = await openFuture!;
+      if (open != null && open.ok && open.data != null) {
         final data = open.data!;
         if (data.language.isNotEmpty) {
           currentLanguage = data.language;
@@ -224,6 +226,21 @@ class ChatController extends ChangeNotifier {
 
     conversationState = ConversationState.chatting;
     notifyListeners();
+  }
+
+  /// Opens the chat session; a failure is a null result (chat opens without an opener, as before).
+  Future<ApiResponse<ChatSendResponse>?> _openSessionSoft() async {
+    try {
+      return await _chatService.openSession(
+        language: currentLanguage,
+        sourceNotificationId: sourceNotificationId,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[ChatController] session/open failed: $e');
+      }
+      return null;
+    }
   }
 
   Future<void> _restoreCurrentDayTranscript() async {
