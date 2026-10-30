@@ -87,6 +87,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   StreamSubscription<void>? _inboxRefreshSub;
 
   bool _topTrayExpanded = false;
+  bool _keyboardWasOpen = false;
 
   @override
   void initState() {
@@ -380,6 +381,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     // Root A3 (no previous route) keeps the existing double-back exit policy.
     final routeCanPop = ModalRoute.of(context)?.canPop ?? false;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // The tray panel eats half the room the keyboard leaves: when the keyboard opens the panel folds away.
+    if (keyboardOpen && !_keyboardWasOpen && _topTrayExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _topTrayExpanded) setState(() => _topTrayExpanded = false);
+      });
+    }
+    _keyboardWasOpen = keyboardOpen;
 
     final content = PopScope(
       canPop: routeCanPop,
@@ -408,6 +416,18 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       final heroSize =
                           math.min(300.0, box.maxHeight * 0.34).toDouble();
                       const chatTopPad = 8.0;
+                      // The text area never needs more than what the header, the resonance and the buttons leave
+                      // (keyboard open, long text): it scrolls inside the field and the buttons stay in view.
+                      final fixedAbove =
+                          (_topTrayExpanded ? Gate3TopNavigationTray.expandedExtraHeight : 0.0) +
+                              SediLivingEcho.heightFor(compact: compact, heroSize: heroSize) +
+                              SediResonanceDock.height +
+                              10 + // the dock's own padding
+                              (_editingLocalId != null ? 48.0 : 0.0);
+                      const composerChrome = 90.0; // outer 18 + inner 16 + buttons 52 + gap 4
+                      const minChatRoom = 48.0;
+                      final maxFieldHeight =
+                          box.maxHeight - fixedAbove - composerChrome - minChatRoom;
                       return Stack(
                         children: [
                           Positioned.fill(
@@ -478,6 +498,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                   key: ValueKey(
                                       'gate3-composer-$_composerDraftToken'),
                                   placeholder: l10n.composerPlaceholder,
+                                  maxFieldHeight: maxFieldHeight,
                                   lang: presentationLang,
                                   isRtl: isRtl,
                                   initialText:

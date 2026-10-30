@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/sedi_glass.dart';
@@ -21,6 +23,10 @@ class Gate3Composer extends StatefulWidget {
   /// Populates the text field only. Does not send or insert transcript.
   final String? initialText;
 
+  /// The most height the text area may take (the page knows what the keyboard and the header leave). The text then
+  /// scrolls inside the field while the buttons stay in view. Null = the six-line cap only.
+  final double? maxFieldHeight;
+
   const Gate3Composer({
     super.key,
     required this.onSendText,
@@ -33,6 +39,7 @@ class Gate3Composer extends StatefulWidget {
     required this.isRtl,
     this.onListeningChanged,
     this.initialText,
+    this.maxFieldHeight,
   });
 
   @override
@@ -49,7 +56,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   final GlobalKey _attachKey = GlobalKey(debugLabel: 'gate3ComposerAttach');
   final Gate3AttachmentFlow _attachmentFlow = Gate3AttachmentFlow();
 
-  static const double _maxTextHeight = 168;
+  // six lines of the field style: 2 x 11 content padding + 6 x (16.2 x 1.35)
+  static const double _maxTextHeight = 154;
   static const double _minTextHeight = 44;
   static const double _capsuleRadius = 34;
   static const double _primarySize = 52;
@@ -158,12 +166,16 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     // The button row is forced left-to-right (paperclip left, mic right), but the field keeps the
     // language's own direction: the placeholder is laid out with the AMBIENT direction, so without this
     // it jumped to the left in Persian/Arabic instead of sitting where typing starts.
+    final cap = math.max(
+      _minTextHeight,
+      math.min(_maxTextHeight, widget.maxFieldHeight ?? _maxTextHeight),
+    );
     return Directionality(
       textDirection: textDirection,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
+        constraints: BoxConstraints(
           minHeight: _minTextHeight,
-          maxHeight: _maxTextHeight,
+          maxHeight: cap,
         ),
         child: TextField(
           controller: _controller,
@@ -184,9 +196,10 @@ class _Gate3ComposerState extends State<Gate3Composer> {
             border: InputBorder.none,
             hintText: widget.placeholder,
             hintTextDirection: textDirection,
-            hintStyle: TextStyle(
+            // same size as the typed text: the placeholder lines up with the mic and the paperclip
+            hintStyle: const TextStyle(
               color: SediPalette.sageMuted,
-              fontSize: 12.8,
+              fontSize: 16.2,
               height: 1.35,
             ),
             alignLabelWithHint: true,
@@ -264,6 +277,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   @override
   Widget build(BuildContext context) {
     final hasText = _controller.text.trim().isNotEmpty;
+    // From the first typed character the buttons sit BELOW the text, for any number of lines (Javad 2026-10-30).
+    final buttonsBelow = !widget.isRecording && _controller.text.isNotEmpty;
     final textDirection =
         widget.isRtl ? TextDirection.rtl : TextDirection.ltr;
     // Typed lines are justified like the chat text: every wrapped line the same width.
@@ -279,7 +294,11 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           decoration: SediGlass.capsule(radius),
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: LayoutBuilder(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.bottomCenter,
+              child: LayoutBuilder(
               builder: (context, box) {
                 final field = KeyedSubtree(
                   key: _fieldKey,
@@ -290,10 +309,9 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                           textAlign: textAlign,
                         ),
                 );
-                // A long message gets the WHOLE width: the field sits on top and the buttons move below it,
-                // instead of the text wrapping early between two buttons (Javad 2026-10-28).
-                if (!widget.isRecording &&
-                    _needsWideField(box.maxWidth, textDirection)) {
+                // Typing: the field sits on top with the WHOLE width and the buttons move below it - never the text
+                // wrapping early between two buttons (Javad 2026-10-28, 2026-10-30).
+                if (buttonsBelow) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,7 +337,8 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 return Directionality(
                   textDirection: TextDirection.ltr,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    // empty box: the placeholder is level with the paperclip and the mic
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       _buildAttachButton(),
                       Expanded(
@@ -334,6 +353,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
                 );
               },
             ),
+            ),
           ),
         ),
       ),
@@ -345,19 +365,4 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     fontSize: 16.2,
     height: 1.35,
   );
-
-  /// True when the current text does not fit one line between the two buttons (or has a line break).
-  bool _needsWideField(double rowWidth, TextDirection direction) {
-    final text = _controller.text;
-    if (text.trim().isEmpty) return false;
-    if (text.contains('\n')) return true;
-    // the attach and primary buttons + the field's horizontal padding
-    final narrow = rowWidth - (_attachSize + _primarySize) - 20;
-    if (narrow <= 0) return false;
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: _fieldStyle),
-      textDirection: direction,
-    )..layout(maxWidth: narrow);
-    return painter.computeLineMetrics().length > 1;
-  }
 }

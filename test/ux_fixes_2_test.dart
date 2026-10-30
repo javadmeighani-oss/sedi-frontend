@@ -63,10 +63,11 @@ void main() {
     expect(inbox.contains('onPressed: _deleteSelected,'), isTrue);
   });
 
-  test('8 a long message takes the whole width; the buttons move below it', () {
+  test('8 while typing the text takes the whole width and the buttons sit below it (from the first character)', () {
     final c = _read('lib/features/gate3_interactive/presentation/widgets/gate3_composer.dart');
-    expect(c.contains('_needsWideField('), isTrue);
-    expect(c.contains('computeLineMetrics().length > 1'), isTrue);
+    expect(c.contains('final buttonsBelow = !widget.isRecording && _controller.text.isNotEmpty;'), isTrue);
+    expect(c.contains('if (buttonsBelow) {'), isTrue);
+    expect(c.contains('_needsWideField'), isFalse); // no more guessing the width between the two buttons
     expect(c.contains('const Spacer(),'), isTrue);
   });
 }

@@ -259,7 +259,11 @@ jobs:
             test/profile_language_change_test.dart \
             test/a1_entry_speed_test.dart \
             test/a3_composer_hint_start_test.dart \
-            test/a3_current_day_continuity_test.dart
+            test/a3_current_day_continuity_test.dart \
+            test/composer_two_tier_test.dart \
+            test/profile_language_picker_test.dart \
+            test/a3_composer_vertical_balance_test.dart \
+            test/ux_fixes_2_test.dart
 
       - name: Prepare Sedi physical signing (fail-closed)
         env:
