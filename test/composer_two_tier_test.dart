@@ -108,8 +108,7 @@ void main() {
     final controller = tester.widget<TextField>(find.byType(TextField)).scrollController!;
     expect(controller.position.maxScrollExtent, 0); // nothing to scroll: the thumb stays hidden
 
-    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('
-'));
+    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('\n'));
     await tester.pumpAndSettle();
     expect(controller.position.maxScrollExtent, greaterThan(0)); // longer than the box: the thumb is drawn
   });
