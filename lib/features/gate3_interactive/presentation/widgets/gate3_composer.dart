@@ -155,38 +155,45 @@ class _Gate3ComposerState extends State<Gate3Composer> {
     required TextDirection textDirection,
     required TextAlign textAlign,
   }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: _minTextHeight,
-        maxHeight: _maxTextHeight,
-      ),
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        enabled: !widget.isRecording,
-        minLines: 1,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-        textInputAction: TextInputAction.newline,
-        textDirection: textDirection,
-        textAlign: textAlign,
-        textAlignVertical: TextAlignVertical.center,
-        scrollPhysics: const BouncingScrollPhysics(),
-        cursorColor: SediPalette.pistachio700,
-        decoration: InputDecoration(
-          isCollapsed: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 11),
-          border: InputBorder.none,
-          hintText: widget.placeholder,
-          hintStyle: TextStyle(
-            color: SediPalette.sageMuted,
-            fontSize: 12.8,
-            height: 1.35,
-          ),
-          alignLabelWithHint: true,
+    // The button row is forced left-to-right (paperclip left, mic right), but the field keeps the
+    // language's own direction: the placeholder is laid out with the AMBIENT direction, so without this
+    // it jumped to the left in Persian/Arabic instead of sitting where typing starts.
+    return Directionality(
+      textDirection: textDirection,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: _minTextHeight,
+          maxHeight: _maxTextHeight,
         ),
-        style: _fieldStyle,
-        onSubmitted: (_) => _send(),
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          enabled: !widget.isRecording,
+          minLines: 1,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          textDirection: textDirection,
+          textAlign: textAlign,
+          textAlignVertical: TextAlignVertical.center,
+          scrollPhysics: const BouncingScrollPhysics(),
+          cursorColor: SediPalette.pistachio700,
+          decoration: InputDecoration(
+            isCollapsed: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 11),
+            border: InputBorder.none,
+            hintText: widget.placeholder,
+            hintTextDirection: textDirection,
+            hintStyle: TextStyle(
+              color: SediPalette.sageMuted,
+              fontSize: 12.8,
+              height: 1.35,
+            ),
+            alignLabelWithHint: true,
+          ),
+          style: _fieldStyle,
+          onSubmitted: (_) => _send(),
+        ),
       ),
     );
   }
