@@ -107,8 +107,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(thumb), findsNothing);
 
-    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('
-'));
+    await tester.enterText(find.byType(TextField), List.filled(20, 'x').join('\n'));
     await tester.pumpAndSettle();
     expect(find.byKey(thumb), findsOneWidget);
     final controller = tester.widget<TextField>(find.byType(TextField)).scrollController!;
