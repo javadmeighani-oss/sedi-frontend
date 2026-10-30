@@ -26,14 +26,23 @@ class A2HologramHeader extends StatelessWidget {
     this.animate = true,
   });
 
+  /// Edge of the old circle-with-rings picture (rings included).
+  static double oldFootprint({required bool hero}) => hero ? 168.0 : 104.0;
+
+  /// Javad 2026-10-30: the circle with rings is gone; Sedi's glass sphere with her wordmark takes its place, 10 %
+  /// larger than that picture was.
+  static const double sphereScale = 1.10;
+
+  static double sphereDiameter({required bool hero}) => oldFootprint(hero: hero) * sphereScale;
+
   @override
   Widget build(BuildContext context) {
-    final orbD = hero ? 168.0 : 104.0;
+    final orbD = sphereDiameter(hero: hero);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(height: hero ? 28 : 8),
-        SediHologramOrb(state: state, diameter: orbD, animate: animate),
+        SediHologramOrb(state: state, diameter: orbD, showRings: false, animate: animate),
         SizedBox(height: hero ? 44 : 30),
         if (hero) ...[
           Text(
