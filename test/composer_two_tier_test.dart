@@ -4,7 +4,7 @@ import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_c
 
 Gate3Composer _composer({required bool rtl, double? maxFieldHeight}) {
   return Gate3Composer(
-    placeholder: rtl ? 'صحبت با صدی' : 'Talk to Sedi',
+    placeholder: rtl ? 'صحبت با صدی' : 'Talk',
     lang: rtl ? 'fa' : 'en',
     isRtl: rtl,
     isRecording: false,

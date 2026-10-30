@@ -397,15 +397,36 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // The card lives in a share of the screen that gets smaller when the today card is on top: it adapts instead of
     // overflowing by a fraction of a pixel (phone test 2026-10-30).
-    return LayoutBuilder(builder: (context, box) => _build(context, box.maxHeight));
+    return LayoutBuilder(builder: (context, box) => _build(context, box.maxHeight, box.maxWidth));
   }
 
-  Widget _build(BuildContext context, double height) {
+  Widget _build(BuildContext context, double height, double width) {
     final radius = BorderRadius.circular(30);
     final snug = !tall && height < 150;
     final tight = !tall && height < 128;
     final tile = tall ? 58.0 : (snug ? 40.0 : 50.0);
     final pad = snug ? 12.0 : 14.0;
+    final titleText = Text(
+      card.title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF1F2A09),
+      ),
+    );
+    final subtitleText = Text(
+      card.subtitle,
+      maxLines: tight ? 1 : (snug ? 2 : 3),
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 12,
+        height: 1.5,
+        fontWeight: FontWeight.w500,
+        color: Color(0xFF4B5530),
+      ),
+    );
     return Semantics(
       container: true,
       button: true,
@@ -453,32 +474,30 @@ class _LifestyleHubDestinationCard extends StatelessWidget {
                         color: SediGlass.ink,
                       ),
                     ),
-                    if (tall)
-                      const Expanded(child: _SoftWave())
-                    else
-                      const Spacer(),
-                    Text(
-                      card.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1F2A09),
+                    if (tall) ...[
+                      const Expanded(child: _SoftWave()),
+                      titleText,
+                      const SizedBox(height: 3),
+                      subtitleText,
+                    ] else
+                      // whatever font the phone has, the words only scale down - they never overflow the card
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.bottomStart,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.bottomStart,
+                            child: SizedBox(
+                              width: math.max(width - 2 * pad, 40),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [titleText, const SizedBox(height: 3), subtitleText],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      card.subtitle,
-                      maxLines: tight ? 1 : (snug ? 2 : 3),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.5,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF4B5530),
-                      ),
-                    ),
                   ],
                 ),
               ),

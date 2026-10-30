@@ -16,7 +16,7 @@ void main() {
     expect(c.contains('earlierTodayCollapsed = restoredTodayCount > 0;'), isTrue);
     // the flag is set inside the branch that adds the opener text, never unconditionally
     final i = c.indexOf('earlierTodayCollapsed = restoredTodayCount > 0;');
-    expect(c.lastIndexOf('_addSediMessage(text);', i) > c.lastIndexOf('if (text.isNotEmpty)', i), isTrue);
+    expect(c.lastIndexOf('_addSediMessage(text, maxReveal: openerMaxReveal);', i) > c.lastIndexOf('if (text.isNotEmpty)', i), isTrue);
   });
 
   test('the chat window hides the earlier chats behind one expandable card', () {

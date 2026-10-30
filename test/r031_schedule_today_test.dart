@@ -161,6 +161,9 @@ void main() {
     expect(page.contains('showScheduleAmountSheet('), isTrue);
     expect(page.contains("eventType = 'doctor_visit'"), isTrue);
     final hub = File('lib/features/lifestyle/presentation/pages/lifestyle_page.dart').readAsStringSync();
-    expect(hub.contains('summarize('), isTrue);
+    expect(hub.contains('LifestyleSummaryCache.'), isTrue); // the hub reads "today" through the shared cache
+    final cache = File('lib/features/lifestyle/logic/lifestyle_summary_cache.dart').readAsStringSync();
+    expect(cache.contains('summarize('), isTrue);
+    expect(cache.contains('svc.listEvents()'), isTrue); // the three reads start together, then are awaited
   });
 }
