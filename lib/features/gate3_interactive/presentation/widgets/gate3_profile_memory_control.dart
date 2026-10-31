@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/memory/memory_consent_service.dart';
 import '../../../../core/memory/memory_consent_status.dart';
+import '../../../../core/profile/profile_snapshot_cache.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_glass.dart';
 import '../gate3_localization.dart';
@@ -22,8 +23,9 @@ class _Gate3ProfileMemoryControlState extends State<Gate3ProfileMemoryControl> {
   late final MemoryConsentService _service =
       widget.service ?? MemoryConsentService();
 
-  MemoryConsentStatus? _status;
-  bool _loading = true;
+  // The last known switch is shown at once (A3 reads it in the background); the read below refreshes it silently, so
+  // the profile has no spinner (Javad 2026-10-31). With nothing known yet the switch is simply disabled, never faked.
+  MemoryConsentStatus? _status = ProfileSnapshotCache.memory;
   bool _busy = false;
   String? _error;
 
@@ -39,17 +41,15 @@ class _Gate3ProfileMemoryControlState extends State<Gate3ProfileMemoryControl> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
     final res = await _service.fetchStatus();
     if (!mounted) return;
     setState(() {
-      _loading = false;
       if (res.ok && res.data != null) {
         _status = res.data;
-      } else {
+        _error = null;
+        ProfileSnapshotCache.putMemory(res.data!);
+      } else if (_status == null) {
+        // A failed read never hides a status that is already known.
         _error = _l10n.memoryConsentLoadError;
       }
     });
@@ -67,6 +67,7 @@ class _Gate3ProfileMemoryControlState extends State<Gate3ProfileMemoryControl> {
       _busy = false;
       if (res.ok && res.data != null) {
         _status = res.data;
+        ProfileSnapshotCache.putMemory(res.data!);
       } else {
         _error = _l10n.memoryConsentActionError;
       }
@@ -85,6 +86,7 @@ class _Gate3ProfileMemoryControlState extends State<Gate3ProfileMemoryControl> {
       _busy = false;
       if (res.ok && res.data != null) {
         _status = res.data;
+        ProfileSnapshotCache.putMemory(res.data!);
       } else {
         _error = _l10n.memoryConsentActionError;
       }
@@ -164,39 +166,26 @@ class _Gate3ProfileMemoryControlState extends State<Gate3ProfileMemoryControl> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _loading
-                          ? const Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppTheme.gate2ButtonOlive,
-                                ),
-                              ),
-                            )
-                          : Text(
-                              label,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: SediGlass.inkDeep,
-                              ),
-                            ),
-                    ),
-                    if (!_loading)
-                      Switch(
-                        value: _granted,
-                        onChanged: (_status == null || _busy) ? null : _onToggle,
-                        activeColor: Colors.white,
-                        activeTrackColor: const Color(0xFF8FAE3E),
-                        inactiveThumbColor: Colors.white,
-                        inactiveTrackColor: const Color(0x4D48551F),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: SediGlass.inkDeep,
+                        ),
                       ),
+                    ),
+                    Switch(
+                      value: _granted,
+                      onChanged: (_status == null || _busy) ? null : _onToggle,
+                      activeColor: Colors.white,
+                      activeTrackColor: const Color(0xFF8FAE3E),
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor: const Color(0x4D48551F),
+                    ),
                   ],
                 ),
-                if (!_loading && _error != null)
+                if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(

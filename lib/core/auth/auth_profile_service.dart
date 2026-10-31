@@ -7,6 +7,7 @@ import '../../data/models/user_profile.dart';
 import '../network/api_client.dart';
 import '../network/api_error.dart';
 import '../network/api_response.dart';
+import '../profile/profile_snapshot_cache.dart';
 import '../utils/user_profile_manager.dart';
 import 'user_identity_service.dart';
 
@@ -137,6 +138,8 @@ class AuthProfileService {
   }
 
   Future<void> cacheProfileFromBackend(MeProfileDto me) async {
+    // A1 reads /auth/me for the session check anyway: the profile page is filled from this very answer (no new request).
+    ProfileSnapshotCache.putMe(me);
     final existing = await UserProfileManager.loadProfile();
     final profile = existing.copyWith(
       userId: me.userId,

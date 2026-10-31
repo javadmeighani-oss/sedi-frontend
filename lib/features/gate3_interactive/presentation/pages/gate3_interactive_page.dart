@@ -18,7 +18,9 @@ import '../../../../services/notifications/notifications_service.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
+import '../../../../core/profile/profile_snapshot_loader.dart';
 import '../../../lifestyle/logic/lifestyle_summary_cache.dart';
+import 'gate3_profile_page.dart' show canonicalProfileSummaryText;
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notifications/presentation/notification_inbox_l10n.dart';
 import '../../../notifications/presentation/pages/notification_inbox_page.dart';
@@ -126,6 +128,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     if (Platform.environment['FLUTTER_TEST'] != 'true') {
       Future<void>.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) LifestyleSummaryCache.refresh();
+      });
+      // The profile page (summary + memory switch) is filled in the background too, so it opens with no load time.
+      Future<void>.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) ProfileSnapshotLoader.refresh(summaryParser: canonicalProfileSummaryText);
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());

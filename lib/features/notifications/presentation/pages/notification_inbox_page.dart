@@ -254,8 +254,36 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     InboxRefreshBus.instance.triggerDebounced();
   }
 
+  /// Dislike: the "why?" sheet opens AT ONCE (Javad 2026-10-31: no waiting). The server ACK and the list refresh run
+  /// behind it; the reason is sent after the ACK. A failed ACK stays pending (retried by the drain) and says so.
+  Future<void> _runDislike(NotificationItem item) async {
+    setState(() => _actionBusy = true);
+    final acked = NotificationActionCoordinator.submit(
+      notificationId: item.id,
+      actionId: 'dislike',
+      showTrayProcessing: false,
+    );
+    setState(() {
+      _items = _items
+          .map((e) => e.id == item.id ? e.copyWith(isRead: true, hasUserResponse: true) : e)
+          .toList(growable: false);
+    });
+    final picked = await showDislikeReasonSheet(context, _l10n);
+    final ok = await acked;
+    if (!mounted) return;
+    setState(() => _actionBusy = false);
+    if (!ok) _showMessage(_l10n.actionFailed);
+    InboxRefreshBus.instance.triggerDebounced();
+    if (ok && picked != null) await _service.sendDislikeReason(item.id, picked);
+    if (mounted) await _reload(soft: true);
+  }
+
   Future<void> _runDetailAction(NotificationItem item, String actionId) async {
     if (_actionBusy) return;
+    if (actionId == 'dislike') {
+      await _runDislike(item);
+      return;
+    }
     setState(() => _actionBusy = true);
     final ok = await NotificationActionCoordinator.submit(
       notificationId: item.id,
@@ -281,17 +309,6 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     });
     InboxRefreshBus.instance.triggerDebounced();
     await _reload(soft: true);
-    if (actionId == 'dislike' && mounted) {
-      await _askDislikeReason(item);
-    }
-  }
-
-  /// After a dislike, ask why (bounded reasons) so the smart notifications can adapt.
-  Future<void> _askDislikeReason(NotificationItem item) async {
-    final l10n = _l10n;
-    final picked = await showDislikeReasonSheet(context, l10n);
-    if (picked == null || !mounted) return;
-    await _service.sendDislikeReason(item.id, picked);
   }
 
   Future<void> _openDetails(

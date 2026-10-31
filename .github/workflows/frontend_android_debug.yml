@@ -147,6 +147,14 @@ jobs:
       - name: Targeted A3 single-page profile tests
         run: flutter test test/a3_single_page_profile_test.dart
 
+      - name: Targeted speed tests (profile without load time, why-options at once, A1 to A3, warm-up)
+        run: |
+          flutter test \
+            test/speed_profile_feedback_icons_test.dart \
+            test/a3_profile_memory_control_test.dart \
+            test/a3_current_day_continuity_test.dart \
+            test/d128_tray_dislike_reason_and_repeat_test.dart
+
       - name: Targeted R3 canonical structure and legacy quarantine tests
         run: flutter test test/r3_canonical_structure_legacy_quarantine_test.dart
 

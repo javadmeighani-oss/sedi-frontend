@@ -89,6 +89,15 @@ class BackgroundNotificationActionHandler {
 
     try {
       final clientTs = DateTime.now().toUtc().toIso8601String();
+      // Javad 2026-10-31: the "why?" question must open at once. It does not depend on the pending-action write, so it
+      // starts FIRST and the disk write runs beside it (it used to wait in front of the question).
+      Future<bool>? promptShown;
+      if (action == planNotDoneAction) {
+        promptShown = _showPlanReasonPrompt(notificationId: id, payload: payload);
+      } else if (action == 'dislike') {
+        promptShown = _showReasonPrompt(notificationId: id, payload: payload);
+      }
+
       // Persist pending BEFORE network attempt.
       await PendingNotificationActions.enqueue(
         notificationId: id,
@@ -114,11 +123,11 @@ class BackgroundNotificationActionHandler {
       // The question opens INSIDE the same notification at once (before any network round trip); only when it cannot
       // be shown does the chat page ask later (fallback).
       if (action == planNotDoneAction) {
-        final shown = await _showPlanReasonPrompt(notificationId: id, payload: payload);
+        final shown = await promptShown!;
         if (!shown) await _dismissTrayIsolated(id);
       }
       if (action == 'dislike') {
-        final shown = await _showReasonPrompt(notificationId: id, payload: payload);
+        final shown = await promptShown!;
         if (!shown) {
           await _dismissTrayIsolated(id);
           try {
@@ -199,6 +208,8 @@ class BackgroundNotificationActionHandler {
     try {
       final lang = _lang(payload);
       final l10n = NotificationInboxL10n(lang);
+      // The saved original text is read WHILE the plugin starts (they used to run one after the other).
+      final originalF = TrayNotificationSnapshotStore.get(notificationId);
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
         const InitializationSettings(
@@ -218,7 +229,7 @@ class BackgroundNotificationActionHandler {
           ),
       ];
       // The SAME notification keeps its own title and text; the question opens below them (Javad 2026-10-30).
-      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
       final expanded = growWithQuestion(
         originalBody: original?.body ?? '',
@@ -273,6 +284,8 @@ class BackgroundNotificationActionHandler {
     try {
       final lang = _lang(payload);
       final l10n = NotificationInboxL10n(lang);
+      // The saved original text is read WHILE the plugin starts (they used to run one after the other).
+      final originalF = TrayNotificationSnapshotStore.get(notificationId);
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
         const InitializationSettings(
@@ -282,7 +295,7 @@ class BackgroundNotificationActionHandler {
       );
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final channelId = resolveAndroidChannelId(channelRaw);
-      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.planNotDoneTitle;
       final expanded = growWithQuestion(
         originalBody: original?.body ?? '',
