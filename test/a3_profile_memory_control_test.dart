@@ -155,6 +155,8 @@ void main() {
     expect(find.text(l10n.memoryControlOn), findsOneWidget);
 
     final failService = _FakeMemoryConsentService(granted: true, failRevoke: true);
+    // Unmount first: the same widget type in the same place would keep the OLD State (and its old service).
+    await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

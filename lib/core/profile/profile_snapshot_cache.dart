@@ -74,16 +74,35 @@ class ProfileSnapshotCache {
     _me = null;
     _summary = '';
     _memory = null;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_prefsKey);
-    } catch (_) {}
+    // After any write already queued, so a late write can never bring the old copy back.
+    _writeChain = _writeChain.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_prefsKey);
+      } catch (_) {}
+    });
+    await _writeChain;
   }
 
+  /// Device writes run ONE AFTER ANOTHER, each writing the state as it is when its turn comes: two quick changes can never
+  /// leave the older copy behind (overlapping `SharedPreferences.getInstance()` calls do not finish in call order).
+  static Future<void> _writeChain = Future<void>.value();
+
   static void _persist() {
+    _writeChain = _writeChain.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefsKey, _payload());
+      } catch (e) {
+        if (kDebugMode) debugPrint('[ProfileSnapshotCache] persist failed: $e');
+      }
+    });
+  }
+
+  static String _payload() {
     final me = _me;
     final memory = _memory;
-    final payload = jsonEncode({
+    return jsonEncode({
       if (me != null) 'me': me.toJson(),
       if (memory != null)
         'memory': {
@@ -95,7 +114,6 @@ class ProfileSnapshotCache {
           if (memory.policyVersion != null) 'policy': memory.policyVersion,
         },
     });
-    SharedPreferences.getInstance().then((prefs) => prefs.setString(_prefsKey, payload)).catchError((Object _) => false);
   }
 
   @visibleForTesting
