@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/navigation/app_gate.dart';
+import '../../../../core/ui/sedi_warmup.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/navigation/session_gate_resolver.dart';
 import '../../../../core/network/backend_availability.dart';
@@ -67,6 +70,11 @@ class _IntroPageState extends State<IntroPage>
       duration: IntroPage.kIntroDuration,
     )..forward();
 
+    // The logo plays for three seconds anyway: get A3's wordmark and fonts ready meanwhile (no pop-in later).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) SediWarmup.run(context);
+    });
+
     _awaitIntroThenRoute();
   }
 
@@ -115,7 +123,9 @@ class _IntroPageState extends State<IntroPage>
     final nextGate = session.nextGate;
 
     if (nextGate == SediAppGate.heart) {
-      await tryRegisterStoredTokenAfterLogin();
+      // Javad 2026-10-31: A3 must not wait for the push-token round trip (FCM token + a server call, every app open):
+      // it runs behind the chat. It is fail-open inside and retried at the next open when it did not finish.
+      unawaited(tryRegisterStoredTokenAfterLogin());
     }
 
     if (!mounted) return;

@@ -180,19 +180,21 @@ class ChatController extends ChangeNotifier {
 
     print('[ChatController] ========== INITIALIZE START ==========');
 
-    _userProfile = await UserProfileManager.loadProfile();
     currentLanguage = SediLocaleController.instance.languageCode;
-
-    conversationState = ConversationState.initializing;
-    notifyListeners();
 
     // A1->A3 speed: the opener request does not depend on the restored transcript, so it is already in
     // flight while history loads. Its text is still added AFTER the restored messages (order unchanged).
     // (A1 may already have started that very request while its logo moved: A3SessionPrefetch.)
+    // It also does not depend on the stored profile, so it starts BEFORE that read (Javad 2026-10-31).
     _threadDay = ChatReturnPolicy.dayKey(DateTime.now());
     // A chat opened from a notification asks for ITS opener (source id): the plain prefetched one is dropped.
     if (sourceNotificationId != null) A3SessionPrefetch.take();
     final openFuture = initialMessage == null ? (A3SessionPrefetch.take() ?? _openSessionSoft()) : null;
+
+    _userProfile = await UserProfileManager.loadProfile();
+
+    conversationState = ConversationState.initializing;
+    notifyListeners();
 
     await _restoreCurrentDayTranscript();
 

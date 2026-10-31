@@ -10,6 +10,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../data/models/user_profile.dart';
+import '../profile/profile_snapshot_cache.dart';
 
 class UserProfileManager {
   static const String _profileKey = 'user_profile';
@@ -97,6 +98,8 @@ class UserProfileManager {
 
   /// Clear profile (logout)
   static Future<bool> clearProfile() async {
+    // Logout / invalid session: the profile snapshot cache (R-044-era speed work, 2026-10-31) goes with it.
+    await ProfileSnapshotCache.clear();
     try {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.remove(_profileKey);

@@ -67,6 +67,22 @@ class MeProfileDto {
     );
   }
 
+  /// Same keys [MeProfileDto.fromJson] reads (the profile snapshot cache stores this).
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      if (phone != null) 'phone': phone,
+      if (name != null) 'name': name,
+      if (preferredLanguage != null) 'preferred_language': preferredLanguage,
+      if (sex != null) 'sex': sex,
+      if (calendarType != null) 'calendar_type': calendarType,
+      if (birthDay != null) 'birth_day': birthDay,
+      if (birthMonth != null) 'birth_month': birthMonth,
+      if (birthYear != null) 'birth_year': birthYear,
+      if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+    };
+  }
+
   static String? _asString(dynamic value) {
     if (value == null) return null;
     final text = value.toString().trim();

@@ -6,7 +6,8 @@ import '../../../../core/auth/auth_otp_service.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/network/api_client.dart';
+import '../../../../core/profile/profile_snapshot_cache.dart';
+import '../../../../core/profile/profile_snapshot_loader.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
@@ -37,14 +38,14 @@ class Gate3ProfilePage extends StatefulWidget {
 class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   final _profile = AuthProfileService();
   final _otp = AuthOtpService();
-  final _api = ApiClient();
   final _phoneCtrl = TextEditingController();
   final _otpCtrl = TextEditingController();
   final _otpFocus = FocusNode();
 
-  MeProfileDto? _me;
-  String _canonicalSummary = '';
-  bool _loading = true;
+  // Painted at once from the snapshot cache (A1 already read /auth/me; A3 reads the rest in the background): the page
+  // has no loading state (Javad 2026-10-31). The silent refresh below only updates what changed.
+  MeProfileDto? _me = ProfileSnapshotCache.me;
+  String _canonicalSummary = ProfileSnapshotCache.summary;
   String? _error;
   String? _phoneFlowError;
   String? _phoneFlowSuccess;
@@ -60,7 +61,7 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _load(force: false);
   }
 
   @override
@@ -71,34 +72,28 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    final meRes = await _profile.fetchMe(recoverSessionOn401: true);
-    final summaryRes = await _api.get<String>(
-      '/auth/me/profile-summary',
-      parser: canonicalProfileSummaryText,
+  /// Reads the profile, the summary and the memory switch together and refreshes SILENTLY (no spinner; the page is
+  /// already filled from the cache). [force] starts a new read; the first call joins A3's background read if it is
+  /// still running. A failed read keeps what is on screen; the error text shows only when there is nothing to show.
+  Future<void> _load({bool force = true}) async {
+    final result = await ProfileSnapshotLoader.refresh(
+      summaryParser: canonicalProfileSummaryText,
+      force: force,
     );
-
     if (!mounted) return;
     setState(() {
-      _loading = false;
-      if (!meRes.ok || meRes.data == null) {
-        _error = meRes.errorMessage;
-      } else {
-        _me = meRes.data;
-        final lang = meRes.data!.preferredLanguage;
+      final me = result.me;
+      if (me != null) {
+        _me = me;
+        _error = null;
+        final lang = me.preferredLanguage;
         if (lang != null && lang.isNotEmpty) {
           SediLocaleController.instance.reconcileFromBackendConfirmed(lang);
         }
-      }
-      if (summaryRes.ok && summaryRes.data != null) {
-        _canonicalSummary = summaryRes.data!;
       } else {
-        _canonicalSummary = '';
+        _error = _me == null ? result.meError : null;
       }
+      _canonicalSummary = ProfileSnapshotCache.summary;
     });
   }
 
@@ -193,6 +188,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       } else {
         _me = res.data;
       }
+      final fresh = _me;
+      if (fresh != null) ProfileSnapshotCache.putMe(fresh);
       _changingPhone = false;
       _otpSent = false;
       _pendingNewPhone = null;
@@ -241,14 +238,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
           fit: StackFit.expand,
           children: [
             const SediSceneBackdrop(),
-            if (_loading)
-              const Center(
-                child: CircularProgressIndicator(
-                  color: AppTheme.gate2ButtonOlive,
-                ),
-              )
-            else
-              RefreshIndicator(
+            // No loading state: the cache paints the page at once; the pull-down refresh has its own indicator.
+            RefreshIndicator(
                 color: AppTheme.gate2ButtonOlive,
                 onRefresh: _load,
                 child: LayoutBuilder(
@@ -314,11 +305,8 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                                         ),
                                         const SizedBox(width: 10),
                                         _factTile(
-                                          leading: SediLanguageBadge(
-                                            code: _me?.preferredLanguage ??
-                                                SediLocaleController.instance.languageCode,
-                                            size: 34,
-                                          ),
+                                          // A globe (Javad 2026-10-31): the language tile is a graphic, not a letter.
+                                          icon: Icons.language_rounded,
                                           label: l10n.profileLanguageLabel,
                                           value: _formatLanguage(
                                               _me?.preferredLanguage),

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/memory/memory_consent_service.dart';
 import 'package:sedi_app/core/memory/memory_consent_status.dart';
 import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/core/profile/profile_snapshot_cache.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_profile_memory_control.dart';
 
@@ -51,6 +52,9 @@ class _FakeMemoryConsentService extends MemoryConsentService {
 }
 
 void main() {
+  // The profile snapshot cache is static: every test starts without what an earlier one stored.
+  setUp(ProfileSnapshotCache.reset);
+
   test('Profile hosts Memory & Privacy; Settings duplicate is removed', () {
     final profile = File(
       'lib/features/gate3_interactive/presentation/pages/gate3_profile_page.dart',
@@ -151,6 +155,8 @@ void main() {
     expect(find.text(l10n.memoryControlOn), findsOneWidget);
 
     final failService = _FakeMemoryConsentService(granted: true, failRevoke: true);
+    // Unmount first: the same widget type in the same place would keep the OLD State (and its old service).
+    await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
