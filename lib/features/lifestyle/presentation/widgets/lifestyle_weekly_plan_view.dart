@@ -983,12 +983,39 @@ class _LifestyleWeeklyPlanViewState extends State<LifestyleWeeklyPlanView> {
       onSubmit: _submitSetup,
     );
     if (built == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(coach.buildOk)));
+      final both = _lastSetupWasPro;
+      // The professional plan is ONE plan for diet + exercise: say that both exist and open the other page in one tap.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(both ? coach.proBuiltOk(_isNutrition) : coach.buildOk),
+          duration: Duration(seconds: both ? 9 : 4),
+          action: both
+              ? SnackBarAction(
+                  label: coach.openOtherPlan(_isNutrition),
+                  onPressed: _openOtherPlan,
+                )
+              : null,
+        ),
+      );
       await _load();
     }
   }
 
+  bool _lastSetupWasPro = false;
+
+  void _openOtherPlan() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LifestyleWeeklyPlanView(
+          domain: _isNutrition ? LifestyleWeeklyDomain.exercise : LifestyleWeeklyDomain.nutrition,
+        ),
+      ),
+    );
+  }
+
   Future<PlanSetupOutcome> _submitSetup(PlanSetupInput input) async {
+    _lastSetupWasPro = input.mode == 'pro';
     final res = await _svc.buildPlan(input);
     if (!res.ok) {
       if (res.error?.code == 'CONSENT_DENIED') return PlanSetupOutcome.consentNeeded;

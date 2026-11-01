@@ -122,9 +122,28 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
 
   bool get _allergyOk => !_nutritionFields || _noAllergy || _allergyCtl.text.trim().isNotEmpty;
 
+  final GlobalKey _allergyKey = GlobalKey();
+  bool _allergyAlert = false;
+
+  /// The plan cannot be built without the allergy answer (a safety rule). When that is what stops "Next", the answer
+  /// itself lights up (red edge, the message right under it) and scrolls into view - the button must never look dead
+  /// (Javad 2026-11-01: «بعدی کار نمیکند»).
+  void _flagAllergy() {
+    setState(() {
+      _allergyAlert = true;
+      _notice = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _allergyKey.currentContext;
+      if (ctx != null && mounted) {
+        Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 250), alignment: 0.05);
+      }
+    });
+  }
+
   void _next() {
     if (_step == 0 && !_allergyOk) {
-      setState(() => _notice = _l.allergyNeeded);
+      _flagAllergy();
       return;
     }
     setState(() {
@@ -152,8 +171,8 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
       setState(() {
         _busy = false;
         _step = 0;
-        _notice = _l.allergyNeeded;
       });
+      _flagAllergy();
       return;
     }
     final input = _pro
@@ -187,8 +206,8 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
         setState(() {
           _busy = false;
           _step = 0;
-          _notice = _l.allergyNeeded;
         });
+        _flagAllergy();
         return;
       case PlanSetupOutcome.consentNeeded:
         setState(() {
@@ -215,6 +234,60 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
       );
 
   Widget _chips(List<Widget> chips) => Wrap(spacing: 8, runSpacing: 8, children: chips);
+
+  /// The allergy answer (shared by the simple meal plan and the professional plan). It is required before a plan with
+  /// meals is built; when it is missing the whole block gets a red edge and the message sits right under it.
+  Widget _allergyBlock() {
+    return Container(
+      key: _allergyKey,
+      padding: _allergyAlert ? const EdgeInsets.fromLTRB(10, 0, 10, 10) : EdgeInsets.zero,
+      decoration: _allergyAlert
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.dangerRed, width: 1.6),
+              color: AppTheme.dangerRed.withOpacity(0.05),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _label(_l.allergyQuestion),
+          _chips([
+            A3DestinationChip(
+              label: _l.noAllergy,
+              selected: _noAllergy,
+              onTap: () => setState(() {
+                _noAllergy = !_noAllergy;
+                if (_noAllergy) _allergyCtl.clear();
+                _allergyAlert = false;
+              }),
+            ),
+          ]),
+          if (!_noAllergy)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: TextField(
+                controller: _allergyCtl,
+                maxLength: 120,
+                onChanged: (_) => setState(() {
+                  _notice = null;
+                  _allergyAlert = false;
+                }),
+                decoration: InputDecoration(hintText: _l.allergyHint, counterText: ''),
+              ),
+            ),
+          if (_allergyAlert)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _l.allergyNeeded,
+                style: const TextStyle(fontSize: 14, height: 1.6, fontWeight: FontWeight.w700, color: AppTheme.dangerRed),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _timeRow({required String kind, required String label, required String time, required ValueChanged<String> onPicked}) {
     return Padding(
@@ -278,27 +351,7 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
           ),
       ]),
       if (_nutritionFields) ...[
-        _label(_l.allergyQuestion),
-        _chips([
-          A3DestinationChip(
-            label: _l.noAllergy,
-            selected: _noAllergy,
-            onTap: () => setState(() {
-              _noAllergy = !_noAllergy;
-              if (_noAllergy) _allergyCtl.clear();
-            }),
-          ),
-        ]),
-        if (!_noAllergy)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: TextField(
-              controller: _allergyCtl,
-              maxLength: 120,
-              onChanged: (_) => setState(() => _notice = null),
-              decoration: InputDecoration(hintText: _l.allergyHint, counterText: ''),
-            ),
-          ),
+        _allergyBlock(),
         _label(_l.base.avoidQuestion),
         _chips([
           for (final a in _avoidKeys)
@@ -353,27 +406,7 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
   List<Widget> _stepSimple() {
     if (widget.nutrition) {
       return [
-        _label(_l.allergyQuestion),
-        _chips([
-          A3DestinationChip(
-            label: _l.noAllergy,
-            selected: _noAllergy,
-            onTap: () => setState(() {
-              _noAllergy = !_noAllergy;
-              if (_noAllergy) _allergyCtl.clear();
-            }),
-          ),
-        ]),
-        if (!_noAllergy)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: TextField(
-              controller: _allergyCtl,
-              maxLength: 120,
-              onChanged: (_) => setState(() => _notice = null),
-              decoration: InputDecoration(hintText: _l.allergyHint, counterText: ''),
-            ),
-          ),
+        _allergyBlock(),
         const SizedBox(height: 12),
         _mealRows(),
       ];
@@ -446,8 +479,8 @@ class _PlanSetupSheetState extends State<_PlanSetupSheet> {
         const SizedBox(height: 14),
         _modeCard(
           icon: Icons.check_rounded,
-          title: _l.modeSimple,
-          hint: _l.modeSimpleHint,
+          title: _l.modeSimpleFor(widget.nutrition),
+          hint: _l.modeSimpleHintFor(widget.nutrition),
           strong: true,
           onTap: () => setState(() {
             _mode = 'simple';

@@ -176,12 +176,46 @@ class PlanCoachL10n {
         fa: 'روزها و ساعت رو انتخاب کن، بقیه‌اش با من.',
         ar: 'اختر الأيام والوقت وأتولى الباقي.',
       );
-  String get modePro => _t(en: 'Professional, with a diet', fa: 'حرفه‌ای با رژیم غذایی', ar: 'احترافية مع نظام غذائي');
-  String get modeProHint => _t(
-        en: 'Goal, body and food together; your exercise and meals fit each other.',
-        fa: 'هدف، بدن و غذا با هم؛ ورزش و غذات هماهنگ می‌شه.',
-        ar: 'الهدف والجسم والغذاء معًا؛ يتناسق التمرين مع وجباتك.',
+  /// The simple choice names the page it is on (Javad 2026-11-01): on the meal page it is the meal plan only, on the
+  /// exercise page the exercise plan only.
+  String modeSimpleFor(bool nutrition) => nutrition
+      ? _t(en: 'Simple · meal plan', fa: 'ساده · برنامه‌ی غذایی', ar: 'بسيطة · خطة الوجبات')
+      : _t(en: 'Simple · exercise plan', fa: 'ساده · برنامه‌ی ورزشی', ar: 'بسيطة · خطة التمرين');
+  String modeSimpleHintFor(bool nutrition) => nutrition
+      ? _t(
+          en: 'Pick your meal times, I take care of the rest.',
+          fa: 'ساعت وعده‌ها رو انتخاب کن، بقیه‌اش با من.',
+          ar: 'اختر أوقات وجباتك وأتولى الباقي.',
+        )
+      : modeSimpleHint;
+
+  /// ONE professional plan, the same on the meal page and the exercise page: diet and exercise built together.
+  String get modePro => _t(
+        en: 'Professional · diet and exercise together',
+        fa: 'حرفه‌ای · رژیم غذایی و ورزش با هم',
+        ar: 'احترافية · الغذاء والتمرين معًا',
       );
+  String get modeProHint => _t(
+        en: 'Your goal and body first; then your meal plan AND your exercise plan are built together and fit each other.',
+        fa: 'اول هدف و بدنت؛ بعد برنامه‌ی غذایی و برنامه‌ی ورزشی با هم و هماهنگ ساخته می‌شن.',
+        ar: 'الهدف والجسم أولًا؛ ثم تُبنى خطة الطعام وخطة التمرين معًا ومتناسقة.',
+      );
+
+  /// After a professional build both plans exist: say so, and offer the other page.
+  String proBuiltOk(bool nutrition) => nutrition
+      ? _t(
+          en: 'Your meal plan and your exercise plan are both ready.',
+          fa: 'برنامه‌ی غذایی و برنامه‌ی ورزشی‌ت هر دو آماده‌ست.',
+          ar: 'خطة الطعام وخطة التمرين جاهزتان معًا.',
+        )
+      : _t(
+          en: 'Your exercise plan and your meal plan are both ready.',
+          fa: 'برنامه‌ی ورزشی و برنامه‌ی غذایی‌ت هر دو آماده‌ست.',
+          ar: 'خطة التمرين وخطة الطعام جاهزتان معًا.',
+        );
+  String openOtherPlan(bool nutrition) => nutrition
+      ? _t(en: 'See exercise plan', fa: 'دیدن برنامه‌ی ورزشی', ar: 'عرض خطة التمرين')
+      : _t(en: 'See meal plan', fa: 'دیدن برنامه‌ی غذایی', ar: 'عرض خطة الطعام');
   String get workoutDaysQuestion =>
       _t(en: 'Which days shall we train?', fa: 'کدوم روزها تمرین کنیم؟', ar: 'في أي أيام نتمرن؟');
   String streakLine(int weeks) => _t(

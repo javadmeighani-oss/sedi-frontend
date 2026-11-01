@@ -54,6 +54,56 @@ class BackgroundNotificationActionHandler {
     return body.isEmpty ? '$question\n$hint' : '$body\n\n$question\n$hint';
   }
 
+  /// The same grown notification with the feedback as a visibly SEPARATE BLOCK (Javad 2026-11-01): the original text
+  /// first, a blank line, then a framed block - a rule above and below, a green side bar on every line, the question
+  /// in bold - so the "why?" is never read as part of the message. An Android notification cannot draw a real box, so
+  /// the frame is made of text (HTML in the big-text style); the colours are mid-tones that read on light and dark
+  /// notification backgrounds, and the text itself keeps the system colour. [rtl] puts the bars and rules on the start
+  /// (right) side for Persian and Arabic.
+  static String growWithQuestionHtml({
+    required String originalBody,
+    required String question,
+    required String hint,
+    bool rtl = false,
+    int hintLineChars = 34,
+  }) {
+    const esc = HtmlEscape();
+    final dir = rtl ? '&#8207;' : ''; // RLM: the line starts on the right in RTL languages
+    const green = '#8FAE3E';
+    final bar = '$dir<font color="$green">&#9612;</font> ';
+    final rule = '$dir<font color="$green">${'&#9472;' * 22}</font>';
+    final block = StringBuffer()
+      ..write('$rule<br>')
+      ..write('$bar<b>${esc.convert(question)}</b><br>');
+    for (final line in wrapWords(hint, hintLineChars)) {
+      block.write('$bar${esc.convert(line)}<br>');
+    }
+    block.write(rule);
+    final body = originalBody.trim();
+    if (body.isEmpty) return block.toString();
+    return '${esc.convert(body).replaceAll('\n', '<br>')}<br><br>$block';
+  }
+
+  /// Splits [text] into lines of at most [width] characters on word boundaries (a longer single word stays whole).
+  @visibleForTesting
+  static List<String> wrapWords(String text, int width) {
+    final words = text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    final lines = <String>[];
+    var current = '';
+    for (final w in words) {
+      if (current.isEmpty) {
+        current = w;
+      } else if (current.length + 1 + w.length <= width) {
+        current = '$current $w';
+      } else {
+        lines.add(current);
+        current = w;
+      }
+    }
+    if (current.isNotEmpty) lines.add(current);
+    return lines;
+  }
+
   /// Isolate-local in-flight lock (dedupeKey) — reject duplicate taps.
   static final Set<String> _inFlightKeys = <String>{};
 
@@ -231,10 +281,11 @@ class BackgroundNotificationActionHandler {
       // The SAME notification keeps its own title and text; the question opens below them (Javad 2026-10-30).
       final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
-      final expanded = growWithQuestion(
+      final expanded = growWithQuestionHtml(
         originalBody: original?.body ?? '',
         question: l10n.dislikeReasonTitle,
         hint: l10n.dislikeReasonHint,
+        rtl: l10n.isRtl,
       );
       await plugin.show(
         _notificationIdToInt(notificationId),
@@ -256,6 +307,7 @@ class BackgroundNotificationActionHandler {
             // R-039: the same notification, bigger: the question and what it is for, then the three answers.
             styleInformation: BigTextStyleInformation(
               expanded,
+              htmlFormatBigText: true,
               contentTitle: title,
             ),
             actions: actions,
@@ -297,10 +349,11 @@ class BackgroundNotificationActionHandler {
       final channelId = resolveAndroidChannelId(channelRaw);
       final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.planNotDoneTitle;
-      final expanded = growWithQuestion(
+      final expanded = growWithQuestionHtml(
         originalBody: original?.body ?? '',
         question: l10n.planNotDoneTitle,
         hint: l10n.planNotDoneHint,
+        rtl: l10n.isRtl,
       );
       await plugin.show(
         _notificationIdToInt(notificationId),
@@ -321,6 +374,7 @@ class BackgroundNotificationActionHandler {
             timeoutAfter: 90000,
             styleInformation: BigTextStyleInformation(
               expanded,
+              htmlFormatBigText: true,
               contentTitle: title,
             ),
             actions: <AndroidNotificationAction>[
