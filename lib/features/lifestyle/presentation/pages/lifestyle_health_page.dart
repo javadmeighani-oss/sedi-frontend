@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/sedi_glass.dart';
 import '../../../../services/lifestyle/lifestyle_health_service.dart';
+import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_destination_surface.dart';
 import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
+import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../lifestyle_l10n.dart';
 
 class LifestyleHealthPage extends StatefulWidget {
@@ -90,114 +94,173 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
+    final top = MediaQuery.of(context).padding.top + kToolbarHeight + 8;
     return Directionality(
       textDirection: l10n.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: A3DestinationSurface.canvas,
+        extendBodyBehindAppBar: true,
         appBar: A3PageAppBar(
-          title: Text(l10n.health),
-          backgroundColor: A3DestinationSurface.canvas,
-        ),
-        body: RefreshIndicator(
-          color: AppTheme.gate2ButtonOlive,
-          onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          // R-035: the small Sedi sphere sits on the START side of the title (right in fa/ar, left in en).
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.gate2ButtonOlive,
-                    ),
-                  ),
-                )
-              else if (_error != null)
-                A3DestinationCard(
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: AppTheme.dangerRed),
-                  ),
-                )
-              else ...[
-                _latestHrCard(l10n),
-                if (_data?.isDeviceReportedStatus == true) ...[
-                  const SizedBox(height: 16),
-                  _statusBlock(l10n),
-                ],
-                const SizedBox(height: 16),
-                _averagesCard(l10n),
-              ],
+              const SediHologramOrb(
+                state: Gate3InteractionState.idle,
+                diameter: 38,
+                showRings: false,
+                animate: false,
+                keyedLogo: false,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.health,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: SediGlass.inkDeep,
+                ),
+              ),
             ],
           ),
+          backgroundColor: Colors.transparent,
+        ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const SediSceneBackdrop(),
+            RefreshIndicator(
+              color: AppTheme.gate2ButtonOlive,
+              onRefresh: _load,
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(16, top, 16, 28),
+                children: [
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 120),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.gate2ButtonOlive,
+                        ),
+                      ),
+                    )
+                  else if (_error != null)
+                    A3DestinationCard(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: AppTheme.dangerRed),
+                      ),
+                    )
+                  else ...[
+                    _latestHrCard(l10n),
+                    if (_data?.isDeviceReportedStatus == true) ...[
+                      const SizedBox(height: 14),
+                      _statusBlock(l10n),
+                    ],
+                    const SizedBox(height: 14),
+                    _averagesCard(l10n),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  Widget _glass({required Widget child, bool strong = false, EdgeInsets padding = const EdgeInsets.all(18)}) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: SediGlass.card(BorderRadius.circular(28), strong: strong),
+      child: child,
+    );
+  }
+
   Widget _latestHrCard(LifestyleL10n l10n) {
     final value = _data?.latestValue;
-    return A3DestinationCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return _glass(
+      strong: true,
+      child: Row(
         children: [
-          Text(
-            l10n.latestHr,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white.withOpacity(0.85), Colors.white.withOpacity(0.35)],
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.9)),
             ),
+            child: const Icon(Icons.favorite_border_rounded, size: 30, color: SediGlass.ink),
           ),
-          const SizedBox(height: 8),
-          if (value != null)
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${value.round()}',
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.latestHr,
+                  style: TextStyle(
+                    color: SediGlass.ink.withOpacity(0.75),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (value != null)
+                  Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: CalendarDateMath.localizeDigitsForLanguage('${value.round()}', l10n.lang),
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w800,
+                              height: 1.05,
+                              color: SediGlass.inkDeep,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '  bpm',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: SediGlass.ink.withOpacity(0.75),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    l10n.noHrData,
                     style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      height: 1.05,
-                      color: AppTheme.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      height: 1.4,
+                      color: SediGlass.inkDeep,
                     ),
                   ),
-                  const TextSpan(
-                    text: '  bpm',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textSecondary,
-                    ),
+                const SizedBox(height: 10),
+                SizedBox(height: 26, width: double.infinity, child: CustomPaint(painter: _PulsePainter(live: value != null))),
+                const SizedBox(height: 8),
+                Text(
+                  '${l10n.lastReceived}: ${_formatTs(_data?.latestReceivedAt)}',
+                  style: TextStyle(
+                    color: SediGlass.ink.withOpacity(0.7),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-            )
-          else
-            Text(
-              l10n.noHrData,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.lastReceived,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            _formatTs(_data?.latestReceivedAt),
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 14,
+                ),
+              ],
             ),
           ),
         ],
@@ -209,19 +272,27 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
     // Caller must already gate with isDeviceReportedStatus (STABLE|UNSTABLE only).
     final code = (_data?.hrStatus ?? '').trim().toUpperCase();
     final color = _statusColor(code);
-    return A3DestinationCard(
-      borderColor: color.withOpacity(0.45),
+    return _glass(
       child: Row(
         children: [
-          Icon(Icons.monitor_heart_outlined, color: color),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.18),
+              border: Border.all(color: color.withOpacity(0.55)),
+            ),
+            child: Icon(Icons.monitor_heart_outlined, color: color),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               l10n.deviceReportedHrStatusLabel(code),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: color,
+                fontWeight: FontWeight.w800,
+                color: SediGlass.inkDeep,
               ),
             ),
           ),
@@ -230,60 +301,107 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
     );
   }
 
+  /// The average of the last week, month and year as three glass tiles side by side (Javad 2026-10-28: only averages).
   Widget _averagesCard(LifestyleL10n l10n) {
     final rows = <(String, String)>[
       ('7d', l10n.avgLastWeek),
       ('30d', l10n.avgLastMonth),
       ('1y', l10n.avgLastYear),
     ];
-    return A3DestinationCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
+          child: Text(
             l10n.avgHeartRateTitle,
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w800,
+              color: SediGlass.inkDeep,
             ),
           ),
-          const SizedBox(height: 6),
-          for (final r in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      r.$2,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _averages[r.$1] == null
-                        ? '—'
-                        : CalendarDateMath.localizeDigitsForLanguage(
-                            '${_averages[r.$1]} bpm',
-                            l10n.lang,
-                          ),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: _averages[r.$1] == null
-                          ? AppTheme.textSecondary
-                          : AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
+        ),
+        Row(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(child: _averageTile(rows[i].$2, _averages[rows[i].$1], l10n)),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _averageTile(String label, int? value, LifestyleL10n l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      decoration: SediGlass.card(BorderRadius.circular(24)),
+      child: Column(
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+              color: SediGlass.ink.withOpacity(0.78),
             ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value == null ? '\u2014' : CalendarDateMath.localizeDigitsForLanguage('$value', l10n.lang),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: value == null ? SediGlass.ink.withOpacity(0.5) : SediGlass.inkDeep,
+            ),
+          ),
+          Text(
+            'bpm',
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: SediGlass.ink.withOpacity(0.65)),
+          ),
         ],
       ),
     );
   }
+}
+
+/// A calm, decorative pulse line (never data): brighter when a value exists.
+class _PulsePainter extends CustomPainter {
+  final bool live;
+
+  const _PulsePainter({required this.live});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.height / 2;
+    final path = Path()..moveTo(0, mid);
+    final unit = size.width / 12;
+    path
+      ..lineTo(unit * 3, mid)
+      ..lineTo(unit * 3.8, mid - size.height * 0.42)
+      ..lineTo(unit * 4.7, mid + size.height * 0.45)
+      ..lineTo(unit * 5.5, mid - size.height * 0.12)
+      ..lineTo(unit * 6.2, mid)
+      ..lineTo(unit * 9, mid)
+      ..lineTo(unit * 9.7, mid - size.height * 0.3)
+      ..lineTo(unit * 10.4, mid)
+      ..lineTo(size.width, mid);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = live ? const Color(0xFF48551F) : const Color(0xFF48551F).withOpacity(0.28),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PulsePainter oldDelegate) => oldDelegate.live != live;
 }

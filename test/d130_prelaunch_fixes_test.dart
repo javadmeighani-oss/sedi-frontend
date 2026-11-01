@@ -38,7 +38,7 @@ void main() {
     expect(manifest.contains('@drawable/ic_stat_sedi'), isTrue);
     final service = _read('lib/core/notifications/local_notifications_service.dart');
     expect(service.contains("androidBrandSmallIcon = 'ic_stat_sedi'"), isTrue);
-    expect(service.contains('sedi_notification_large.png'), isTrue); // the logo sphere as the large icon
+    expect(service.contains('sedi_notification_sphere.png'), isTrue); // the glass logo sphere as the large icon
   });
 
   test('a tray Dislike asks the reason inside a notification with three buttons', () {

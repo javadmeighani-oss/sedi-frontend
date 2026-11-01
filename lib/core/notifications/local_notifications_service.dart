@@ -28,7 +28,7 @@ const String androidBrandSmallIcon = 'ic_stat_sedi';
 
 /// Hologram large icon shown in the expanded/lock-screen notification.
 const String androidBrandLargeIconAsset =
-    'assets/images/sedi_notification_large.png';
+    'assets/images/sedi_notification_sphere.png'; // the glass sphere with Sedi's wordmark
 
 /// iOS sound file name (as in Runner bundle): sedi_alarm.wav (or .caf).
 const String iosSoundFile = 'sedi_alarm.wav';
