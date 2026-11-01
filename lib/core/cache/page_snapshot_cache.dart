@@ -19,7 +19,7 @@ class PageSnapshotCache {
       return null;
     }
     final v = e.value;
-    return v is T ? v : null;
+    return v is T ? v as T : null;
   }
 
   static void put(String key, Object value, {DateTime? now}) {
