@@ -590,14 +590,14 @@ class LifestyleL10n {
 
   /// Contextual assistant starter (not composer draft; not auto-submitted).
   String get nutritionChatStarter => _t(
-        en: 'If you like, we can review your nutrition plan together and improve it for your goals. Where would you like to start?',
-        fa: 'اگر بخواهی، می‌توانیم برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar: 'إذا رغبت، يمكننا مراجعة خطة تغذيتك معًا وتحسينها بما يناسب هدفك. من أين تحب أن نبدأ؟',
+        en: 'Let us review your nutrition plan together and improve it for your goals. Where shall we start?',
+        fa: 'بیا برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. از کجا شروع کنیم؟',
+        ar: 'لنراجع خطة تغذيتك معًا ونحسّنها بما يناسب هدفك. من أين نبدأ؟',
       );
   String get exerciseChatStarter => _t(
-        en: 'If you like, we can review your exercise plan together and adjust it to your situation and goals. Where would you like to start?',
-        fa: 'اگر بخواهی، می‌توانیم برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar: 'إذا رغبت، يمكننا مراجعة خطة تمرينك معًا وتعديلها بما يناسب وضعك وهدفك. من أين تحب أن نبدأ؟',
+        en: 'Let us review your exercise plan together and adjust it to your situation and goals. Where shall we start?',
+        fa: 'بیا برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. از کجا شروع کنیم؟',
+        ar: 'لنراجع خطة تمرينك معًا ونعدّلها بما يناسب وضعك وهدفك. من أين نبدأ؟',
       );
 
   String cycleRangeLabel(String start, String end) {
