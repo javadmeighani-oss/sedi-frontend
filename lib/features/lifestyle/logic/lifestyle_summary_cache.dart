@@ -1,7 +1,30 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/cache/page_snapshot_cache.dart';
 import '../../../services/lifestyle/lifestyle_schedule_service.dart';
 import '../domain/schedule_today.dart';
+
+/// The three reads of "My Schedule" as last seen (R-050): the schedule page paints this at once and refreshes behind it.
+class ScheduleSnapshot {
+  final List<LifestyleUserEventDto> events;
+  final List<LifestyleMedicationDto> meds;
+  final Set<String> doneIds;
+  final String day;
+  const ScheduleSnapshot({required this.events, required this.meds, required this.doneIds, required this.day});
+
+  /// Today's snapshot, or null (a snapshot from another day is never shown).
+  static ScheduleSnapshot? today({DateTime? now}) {
+    final s = PageSnapshotCache.get<ScheduleSnapshot>(PageSnapshotCache.schedule);
+    return s != null && s.day == isoDay(now ?? DateTime.now()) ? s : null;
+  }
+
+  static void remember(List<LifestyleUserEventDto> events, List<LifestyleMedicationDto> meds, Set<String> done, {DateTime? now}) {
+    PageSnapshotCache.put(
+      PageSnapshotCache.schedule,
+      ScheduleSnapshot(events: events, meds: meds, doneIds: done, day: isoDay(now ?? DateTime.now())),
+    );
+  }
+}
 
 /// "Today" for the Lifestyle hub (R-031), loaded ONCE and shared (Javad 2026-10-30: the hub was slow and its today card
 /// came late). The three reads run together instead of one after another; A3 starts them in the background, so by the
@@ -36,6 +59,7 @@ class LifestyleSummaryCache {
       final md = await meds;
       final dn = await done;
       if (!ev.ok) return null;
+      ScheduleSnapshot.remember(ev.data ?? const [], md.data ?? const [], dn.data ?? <String>{}, now: now);
       final items = buildToday(
         events: ev.data ?? const [],
         medications: md.data ?? const [],

@@ -1,3 +1,4 @@
+import '../../../../core/cache/page_snapshot_cache.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/locale/calendar_date_math.dart';
@@ -59,7 +60,13 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // R-050: the history seen last paints at once; the fresh read replaces it.
+    final seen = PageSnapshotCache.get<HistoryResponse>(PageSnapshotCache.history);
+    if (seen != null) {
+      _history = seen;
+      _loading = false;
+    }
+    _load(silent: seen != null);
   }
 
   @override
@@ -68,12 +75,14 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      _history = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+        _history = null;
+      });
+    }
     await _loadHistory();
     if (!mounted) return;
     setState(() => _loading = false);
@@ -95,9 +104,10 @@ class _LifestyleHistoryPageState extends State<LifestyleHistoryPage> {
         hist = HistoryResponse.tryParse(histRes.data);
       }
       if (!mounted) return;
+      if (hist != null) PageSnapshotCache.put(PageSnapshotCache.history, hist);
       setState(() {
-        _history = hist;
-        if (hist == null && histRes.errorMessage.isNotEmpty) {
+        _history = hist ?? _history;
+        if (hist == null && _history == null && histRes.errorMessage.isNotEmpty) {
           _error = histRes.errorMessage;
         }
       });

@@ -152,19 +152,19 @@ void main() {
           'action_labels': jsonEncode({
             'like': 'أعجبني',
             'dislike': 'لم يعجبني',
-            'open_chat': 'لنتحدث مع صدی',
+            'open_chat': 'لنتحدث مع صدي',
           }),
         },
         language: 'ar',
       );
-      expect(ar.firstWhere((a) => a.id == 'open_chat').title, contains('صدی'));
+      expect(ar.firstWhere((a) => a.id == 'open_chat').title, contains('صدي'));
     });
 
     test('safe fallback labels when metadata missing', () {
       expect(fallbackActionLabel('like', 'en'), 'Like');
       expect(fallbackActionLabel('dislike', 'fa'), 'نپسندیدن');
       expect(fallbackActionLabel('open_chat', 'fa'), 'صحبت با صدی');
-      expect(fallbackActionLabel('open_chat', 'ar'), 'التحدث مع صدی');
+      expect(fallbackActionLabel('open_chat', 'ar'), 'التحدث مع صدي');
       expect(fallbackActionLabel('open_chat', 'en'), 'Talk to Sedi');
     });
 

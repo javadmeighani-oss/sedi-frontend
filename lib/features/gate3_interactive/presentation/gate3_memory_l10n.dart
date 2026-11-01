@@ -19,7 +19,7 @@ extension Gate3MemoryL10n on Gate3Localization {
   String get memoryPageIntro => _p(
         en: 'This is what Sedi remembers about you. Correct or delete anything that is not right — your word is final.',
         fa: 'این چیزهایی است که صدی درباره‌ی تو به یاد دارد. هر چیزی که درست نیست را اصلاح یا پاک کن؛ حرف تو آخرین حرف است.',
-        ar: 'هذا ما تتذكره صدی عنك. صحّح أو احذف أي شيء غير صحيح؛ كلمتك هي الأخيرة.',
+        ar: 'هذا ما تتذكره صدي عنك. صحّح أو احذف أي شيء غير صحيح؛ كلمتك هي الأخيرة.',
       );
 
   String get memoryFactsSection => _p(
@@ -43,7 +43,7 @@ extension Gate3MemoryL10n on Gate3Localization {
   String get memoryConsentOff => _p(
         en: 'Memory is off. Turn it on from your profile so Sedi can remember you.',
         fa: 'حافظه خاموش است. برای اینکه صدی تو را به یاد بسپارد، آن را از پروفایل روشن کن.',
-        ar: 'الذاكرة متوقفة. شغّلها من ملفك ليتذكرك صدی.',
+        ar: 'الذاكرة متوقفة. شغّلها من ملفك ليتذكرك صدي.',
       );
 
   String get memoryLoadFailed => _p(
@@ -114,7 +114,7 @@ extension Gate3MemoryL10n on Gate3Localization {
   String get attachReading => _p(
         en: 'Sedi is reading it…',
         fa: 'صدی دارد آن را می‌خواند…',
-        ar: 'صدی تقرأه الآن…',
+        ar: 'صدي تقرأه الآن…',
       );
   String get attachFailed => _p(
         en: 'I could not read that. Try a clearer photo or file.',
@@ -143,7 +143,7 @@ extension Gate3MemoryL10n on Gate3Localization {
   String get attachTalk => _p(
         en: 'Talk to Sedi about it',
         fa: 'درباره‌اش با صدی حرف بزن',
-        ar: 'تحدّث مع صدی عنها',
+        ar: 'تحدّث مع صدي عنها',
       );
   String get attachRemembered => _p(
         en: 'Saved to your memory.',

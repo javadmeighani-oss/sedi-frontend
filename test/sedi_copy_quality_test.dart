@@ -55,9 +55,9 @@ void main() {
     });
   });
 
-  test('Arabic uses Arabic letters (the brand keeps its Persian Yeh)', () {
+  test('Arabic uses Arabic letters (the brand is «صدي» in Arabic, R-048)', () {
     entries.forEach((key, value) {
-      final ar = value['ar']!.replaceAll('صدی', '');
+      final ar = value['ar']!;
       expect(RegExp('[یک]').hasMatch(ar), isFalse, reason: key);
     });
   });
@@ -74,7 +74,7 @@ void main() {
 
   test('tray labels come from the catalog and keep their meaning', () {
     expect(fallbackActionLabel('open_chat', 'fa'), 'صحبت با صدی');
-    expect(fallbackActionLabel('open_chat', 'ar-SA'), 'التحدث مع صدی');
+    expect(fallbackActionLabel('open_chat', 'ar-SA'), 'التحدث مع صدي');
     expect(fallbackActionLabel('done', 'en'), 'Done');
     expect(fallbackActionLabel('unknown_action', 'fa'), 'unknown_action');
     expect(trayProcessingLabel('dislike', 'fa'), 'در حال ثبت نظرت…');

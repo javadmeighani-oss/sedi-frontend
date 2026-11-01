@@ -135,7 +135,7 @@ class SediCopy {
     },
     'inbox.planNotDoneHint': {
       'fa': 'با این، صدی برنامه رو راحت‌تر می‌کنه.',
-      'ar': 'هذا يساعد صدی على تسهيل خطتك.',
+      'ar': 'هذا يساعد صدي على تسهيل خطتك.',
       'en': 'This helps Sedi make your plan easier.',
     },
     'inbox.planReasonLabel.no_time': {
@@ -155,7 +155,7 @@ class SediCopy {
     },
     'inbox.talkToSedi': {
       'fa': 'صحبت با صدی',
-      'ar': 'التحدث مع صدی',
+      'ar': 'التحدث مع صدي',
       'en': 'Talk to Sedi',
     },
     'inbox.groupToday': {
@@ -285,7 +285,7 @@ class SediCopy {
     },
     'tray.action.open_chat': {
       'fa': 'صحبت با صدی',
-      'ar': 'التحدث مع صدی',
+      'ar': 'التحدث مع صدي',
       'en': 'Talk to Sedi',
     },
     'tray.action.done': {

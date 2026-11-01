@@ -13,56 +13,45 @@ String _read(String path) => File(path).readAsStringSync();
 /// look dead - the missing allergy answer lights up where it belongs; (3) "Professional" is ONE plan, diet and exercise
 /// together, named the same on the meal page and the exercise page.
 void main() {
-  group('the feedback is a separate block inside the same notification', () {
-    test('the original text stays first and escaped; the block follows it with rules, side bars and a bold question', () {
-      final html = BackgroundNotificationActionHandler.growWithQuestionHtml(
-        originalBody: 'امروز چطوری؟ <b>x</b>\nدلم می‌خواست بپرسم.',
-        question: 'چرا نپسندیدی؟',
-        hint: 'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم.',
-        rtl: true,
-      );
-      // dart:convert HtmlEscape (default mode) writes '/' as &#47;
-      expect(html.startsWith('امروز چطوری؟ &lt;b&gt;x&lt;&#47;b&gt;'), isTrue, reason: html);
-      expect(html.contains('<br>دلم'), isTrue); // a line break stays a line break
-      final bodyEnd = html.indexOf('<br><br>');
-      expect(bodyEnd, greaterThan(0));
-      final block = html.substring(bodyEnd);
-      expect(block.contains('&#9472;'), isTrue); // the rule
-      expect(block.contains('&#9612;'), isTrue); // the side bar
-      expect(block.contains('<b>چرا نپسندیدی؟</b>'), isTrue);
-      expect(block.contains('&#8207;'), isTrue); // RTL: lines start on the right
-      expect(block.trimRight().endsWith('</font>'), isTrue); // closed by the bottom rule
-    });
-
-    test('English has no right-to-left mark; with no stored original the block stands alone', () {
-      final html = BackgroundNotificationActionHandler.growWithQuestionHtml(
-        originalBody: '   ',
-        question: 'Why?',
-        hint: 'Pick one so I can send it at a better time.',
-      );
-      expect(html.contains('&#8207;'), isFalse);
-      expect(html.startsWith('<font color="#8FAE3E">'), isTrue);
-      expect(html.contains('<b>Why?</b>'), isTrue);
-    });
-
-    test('the hint is wrapped on word boundaries so every line carries the bar', () {
-      final lines = BackgroundNotificationActionHandler.wrapWords(
-        'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم و بعد هم یه چیز دیگه',
-        34,
-      );
-      expect(lines.length, greaterThan(1));
-      for (final l in lines) {
-        expect(l.length, lessThanOrEqualTo(34));
-      }
-      expect(lines.join(' '), 'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم و بعد هم یه چیز دیگه');
-      expect(BackgroundNotificationActionHandler.wrapWords('averyveryverylongsingleword', 5), ['averyveryverylongsingleword']);
-    });
-
-    test('both tray prompts use the block (HTML big text) and still show before the network', () {
+  group('the feedback is a modern conversation inside the same notification', () {
+    test('both tray prompts are a Sedi conversation (her sphere as avatar), not a text-art frame', () {
       final bg = _read('lib/core/notifications/background_notification_action_handler.dart');
-      expect(RegExp('growWithQuestionHtml\\(').allMatches(bg).length, 3); // the definition + the two prompts
-      expect(RegExp('htmlFormatBigText: true').allMatches(bg).length, 2);
+      expect(RegExp('promptStyle\\(').allMatches(bg).length, 3); // the definition + the two prompts
+      expect(RegExp('styleInformation: style').allMatches(bg).length, 2);
+      expect(bg.contains('MessagingStyleInformation('), isTrue);
+      expect(bg.contains('DrawableResourceAndroidIcon('), isTrue); // R-050: no asset read on the tap path
+      expect(bg.contains('rootBundle'), isFalse);
+      expect(File('android/app/src/main/res/drawable-nodpi/sedi_notification_sphere.png').existsSync(), isTrue);
+      expect(_read('android/app/src/main/res/raw/keep.xml').contains('sedi_notification_sphere'), isTrue);
+      // no block characters / HTML frame any more
+      expect(bg.contains('&#9612;'), isFalse);
+      expect(bg.contains('htmlFormatBigText: true'), isFalse);
       expect(bg.contains('final expanded = growWithQuestion('), isFalse);
+    });
+
+    test('the plain big-text fallback still keeps the original text first and appends the question', () {
+      final text = BackgroundNotificationActionHandler.growWithQuestion(
+        originalBody: 'امروز چطوری؟',
+        question: 'چرا نپسندیدی؟',
+        hint: 'یکی رو بزن.',
+      );
+      expect(text.startsWith('امروز چطوری؟'), isTrue);
+      expect(text.contains('چرا نپسندیدی؟'), isTrue);
+    });
+
+    test('the large icon and the avatar are the glass sphere with the official wordmark', () {
+      final service = _read('lib/core/notifications/local_notifications_service.dart');
+      expect(service.contains("'assets/images/sedi_notification_sphere.png'"), isTrue);
+      expect(File('assets/images/sedi_notification_sphere.png').existsSync(), isTrue);
+    });
+  });
+
+  group('Health page carries the Sedi sphere and the glass look', () {
+    test('uses the shared scene backdrop, the sphere beside the title and glass cards', () {
+      final page = _read('lib/features/lifestyle/presentation/pages/lifestyle_health_page.dart');
+      expect(page.contains('SediSceneBackdrop'), isTrue);
+      expect(page.contains('_glass('), isTrue);
+      expect(page.contains('_PulsePainter'), isTrue);
     });
   });
 

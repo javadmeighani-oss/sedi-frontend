@@ -11,6 +11,7 @@ import '../../../gate3_interactive/presentation/widgets/a3_page_app_bar.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_scene_backdrop.dart';
 import '../../domain/schedule_today.dart';
+import '../../logic/lifestyle_summary_cache.dart';
 import '../lifestyle_l10n.dart';
 import '../widgets/schedule_add_sheets.dart';
 import '../widgets/schedule_amount_sheet.dart';
@@ -44,7 +45,15 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // R-050: what was seen last (or loaded by A3 in the background) paints at once; the fresh read replaces it.
+    final seen = ScheduleSnapshot.today();
+    if (seen != null) {
+      _events = seen.events;
+      _meds = seen.meds;
+      _doneIds = seen.doneIds;
+      _loading = false;
+    }
+    _load(silent: seen != null);
   }
 
   Future<void> _load({bool silent = false}) async {
@@ -55,17 +64,25 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       });
     }
     final today = isoDay(DateTime.now());
-    final ev = await _svc.listEvents();
-    final md = await _svc.listMedications();
-    final dn = await _svc.listDone(today);
+    // The three reads run together (they used to wait for each other).
+    final evF = _svc.listEvents();
+    final mdF = _svc.listMedications();
+    final dnF = _svc.listDone(today);
+    final ev = await evF;
+    final md = await mdF;
+    final dn = await dnF;
     if (!mounted) return;
+    if (ev.ok) ScheduleSnapshot.remember(ev.data ?? const [], md.data ?? const [], dn.data ?? <String>{});
+    if (!ev.ok && silent && (_events.isNotEmpty || _meds.isNotEmpty)) {
+      return; // a failed refresh never wipes what the user already sees
+    }
     setState(() {
       _loading = false;
       _events = ev.data ?? const [];
       _meds = md.data ?? const [];
       _doneIds = dn.data ?? <String>{};
       _doneOverride.clear();
-      if (!ev.ok) _error = ev.errorMessage;
+      _error = ev.ok ? null : ev.errorMessage;
     });
   }
 

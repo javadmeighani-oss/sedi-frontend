@@ -100,7 +100,7 @@ class LifestyleL10n {
         ar: 'المحادثات الأخيرة',
       );
   String get sediSummaries =>
-      _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدی');
+      _t(en: 'Sedi summaries', fa: 'خلاصه‌های صدی', ar: 'ملخصات صدي');
   String get historyExplain => _t(
         en: 'Chats from the last 30 days can be read and corrected; older days only show what Sedi remembers.',
         fa: 'گفتگوهای ۳۰ روز گذشته قابل‌خواندن و اصلاح است؛ قدیمی‌تر را فقط یادآوری می‌کنم.',
@@ -144,7 +144,7 @@ class LifestyleL10n {
   String get noSummary =>
       _t(en: 'No summary yet.', fa: 'هنوز خلاصه‌ای نیست.', ar: 'لا ملخص بعد.');
   String get openChat =>
-      _t(en: 'Talk to Sedi', fa: 'صحبت با صدی', ar: 'تحدث إلى صدی');
+      _t(en: 'Talk to Sedi', fa: 'صحبت با صدی', ar: 'تحدث إلى صدي');
 
   String get today => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
   String get tomorrow => _t(en: 'Tomorrow', fa: 'فردا', ar: 'غداً');
@@ -172,11 +172,11 @@ class LifestyleL10n {
 
   // ---- R-026: reminders from chat + notification settings on My Schedule
   String get scheduleHeroTitle =>
-      _t(en: 'Just tell Sedi', fa: 'فقط به صدی بگو', ar: 'قل لصدی فقط');
+      _t(en: 'Just tell Sedi', fa: 'فقط به صدی بگو', ar: 'قل لصدي فقط');
   String get scheduleHeroBody => _t(
         en: 'In the chat say “remind me tomorrow at 10 am to …”. Sedi saves it here and sends you a notification on time.',
         fa: 'توی چت بگو «فردا ساعت ۱۰ صبح یادم بنداز ...». صدی همین‌جا ثبتش می‌کنه و سر وقتش برات نوتیف می‌فرسته.',
-        ar: 'في المحادثة قل «ذكّرني غداً الساعة 10 صباحاً بـ ...». سيسجّلها صدی هنا ويرسل لك إشعاراً في وقته.',
+        ar: 'في المحادثة قل «ذكّرني غداً الساعة 10 صباحاً بـ ...». سيسجّلها صدي هنا ويرسل لك إشعاراً في وقته.',
       );
   String get addReminder =>
       _t(en: 'Add a reminder', fa: 'افزودن یادآور', ar: 'إضافة تذكير');
@@ -211,7 +211,7 @@ class LifestyleL10n {
   String get scheduleEmptyHint => _t(
         en: 'Add your medication, a doctor appointment, a meeting or anything you want to remember; Sedi will remind you on time.',
         fa: 'دارو، نوبت دکتر، جلسه یا هر چیزی که می‌خوای یادت بمونه رو اضافه کن؛ صدی سر وقت بهت خبر می‌ده.',
-        ar: 'أضف دواءك أو موعد الطبيب أو اجتماعاً أو أي شيء تريد تذكره؛ وستذكّرك صدی في وقته.',
+        ar: 'أضف دواءك أو موعد الطبيب أو اجتماعاً أو أي شيء تريد تذكره؛ وستذكّرك صدي في وقته.',
       );
   String get nothingToday => _t(
         en: 'Nothing planned for today.',
@@ -236,7 +236,7 @@ class LifestyleL10n {
   String get rememberedBySedi => _t(
         en: "Saved in Sedi's memory",
         fa: 'در حافظه‌ی صدی ثبت شد',
-        ar: 'حُفظ في ذاكرة صدی',
+        ar: 'حُفظ في ذاكرة صدي',
       );
   String get doneSaved => _t(en: 'Saved', fa: 'ثبت شد', ar: 'تم الحفظ');
   String get addToSchedule => _t(
@@ -279,7 +279,7 @@ class LifestyleL10n {
   String get medsEmptyHint => _t(
         en: 'Tell Sedi in chat or add your medication here.',
         fa: 'توی چت به صدی بگو یا دارویت رو همین‌جا اضافه کن.',
-        ar: 'قل لصدی في المحادثة أو أضف دواءك هنا.',
+        ar: 'قل لصدي في المحادثة أو أضف دواءك هنا.',
       );
   String hubToday(int total, int done) => total == 0
       ? nothingToday
@@ -462,7 +462,7 @@ class LifestyleL10n {
   String get notifSettingsTitle => _t(
         en: 'Sedi notifications',
         fa: 'اعلان‌های صدی',
-        ar: 'إشعارات صدی',
+        ar: 'إشعارات صدي',
       );
   String get notifSettingsSubtitle => _t(
         en: 'Choose which ones you get',
@@ -472,7 +472,7 @@ class LifestyleL10n {
   String get chCompanion => _t(
         en: 'Sedi asking how you are',
         fa: 'احوال‌پرسی صدی',
-        ar: 'سؤال صدی عن حالك',
+        ar: 'سؤال صدي عن حالك',
       );
   String get chAppointment => _t(
         en: 'Appointments and meetings',
@@ -545,7 +545,7 @@ class LifestyleL10n {
   String get talkToCreate => _t(
         en: 'Talk to Sedi to create your plan.',
         fa: 'برای ساخت برنامه با صدی صحبت کنید.',
-        ar: 'تحدث إلى صدی لإنشاء خطتك.',
+        ar: 'تحدث إلى صدي لإنشاء خطتك.',
       );
   String get breakfast => _t(en: 'Breakfast', fa: 'صبحانه', ar: 'فطور');
   String get lunch => _t(en: 'Lunch', fa: 'ناهار', ar: 'غداء');
@@ -570,7 +570,7 @@ class LifestyleL10n {
   String get reviewDueBody => _t(
         en: 'Your current cycle has ended. Review with Sedi when ready.',
         fa: 'چرخه فعلی به پایان رسیده است. وقتی آماده بودید با صدی بازبینی کنید.',
-        ar: 'انتهت دورتك الحالية. راجع مع صدی عندما تكون جاهزاً.',
+        ar: 'انتهت دورتك الحالية. راجع مع صدي عندما تكون جاهزاً.',
       );
   String get planUnavailable => _t(
         en: 'Plan unavailable',
@@ -590,14 +590,14 @@ class LifestyleL10n {
 
   /// Contextual assistant starter (not composer draft; not auto-submitted).
   String get nutritionChatStarter => _t(
-        en: 'If you like, we can review your nutrition plan together and improve it for your goals. Where would you like to start?',
-        fa: 'اگر بخواهی، می‌توانیم برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar: 'إذا رغبت، يمكننا مراجعة خطة تغذيتك معًا وتحسينها بما يناسب هدفك. من أين تحب أن نبدأ؟',
+        en: 'Let us review your nutrition plan together and improve it for your goals. Where shall we start?',
+        fa: 'بیا برنامه تغذیه‌ات را با هم مرور کنیم و متناسب با هدفت بهترش کنیم. از کجا شروع کنیم؟',
+        ar: 'لنراجع خطة تغذيتك معًا ونحسّنها بما يناسب هدفك. من أين نبدأ؟',
       );
   String get exerciseChatStarter => _t(
-        en: 'If you like, we can review your exercise plan together and adjust it to your situation and goals. Where would you like to start?',
-        fa: 'اگر بخواهی، می‌توانیم برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. دوست داری از کجا شروع کنیم؟',
-        ar: 'إذا رغبت، يمكننا مراجعة خطة تمرينك معًا وتعديلها بما يناسب وضعك وهدفك. من أين تحب أن نبدأ؟',
+        en: 'Let us review your exercise plan together and adjust it to your situation and goals. Where shall we start?',
+        fa: 'بیا برنامه ورزشی‌ات را با هم مرور کنیم و متناسب با شرایط و هدفت تنظیمش کنیم. از کجا شروع کنیم؟',
+        ar: 'لنراجع خطة تمرينك معًا ونعدّلها بما يناسب وضعك وهدفك. من أين نبدأ؟',
       );
 
   String cycleRangeLabel(String start, String end) {
@@ -695,7 +695,7 @@ class LifestyleL10n {
   String get whySkippedHint => _t(
         en: 'This helps Sedi make tomorrow fit you better.',
         fa: 'با این، صدی برنامه‌ی فردا رو مناسب‌تر می‌کنه.',
-        ar: 'هذا يساعد صدی على جعل الغد أنسب لك.',
+        ar: 'هذا يساعد صدي على جعل الغد أنسب لك.',
       );
 
   String skipReasonLabel(String code) {
@@ -762,12 +762,12 @@ class LifestyleL10n {
   String get searchMemoryHint => _t(
         en: 'Search Sedi memory',
         fa: 'جست‌وجو در حافظه‌ی صدی',
-        ar: 'ابحث في ذاكرة صدی',
+        ar: 'ابحث في ذاكرة صدي',
       );
   String get memoryDotLegend => _t(
         en: 'Days Sedi remembers something about',
         fa: 'روزی که صدی چیزی ازش یادش مونده',
-        ar: 'أيام تتذكر صدی شيئاً عنها',
+        ar: 'أيام تتذكر صدي شيئاً عنها',
       );
   String get recentDays => _t(en: 'Recent days', fa: 'آخرین روزها', ar: 'الأيام الأخيرة');
   String get noteForDay => _t(en: 'Note for a day', fa: 'یادداشت برای یک روز', ar: 'ملاحظة ليوم');
@@ -775,7 +775,7 @@ class LifestyleL10n {
   String get nextMonth => _t(en: 'Next month', fa: 'ماه بعد', ar: 'الشهر التالي');
   String get dayConversations => _t(en: 'Conversations', fa: 'گفتگوها', ar: 'المحادثات');
   String get youLabel => _t(en: 'You', fa: 'تو', ar: 'أنت');
-  String get sediLabel => _t(en: 'Sedi', fa: 'صدی', ar: 'صدی');
+  String get sediLabel => _t(en: 'Sedi', fa: 'صدی', ar: 'صدي');
   String get todayLabel => _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
   String daysAgoLabel(int n) => n <= 0
       ? todayLabel
@@ -783,21 +783,21 @@ class LifestyleL10n {
   String get sediDaySummary => _t(
         en: 'Sedi summary of this day',
         fa: 'خلاصه‌ی صدی از این روز',
-        ar: 'ملخص صدی لهذا اليوم',
+        ar: 'ملخص صدي لهذا اليوم',
       );
   String get eventsAndNotes =>
       _t(en: 'Events and notes', fa: 'رویدادها و یادداشت‌ها', ar: 'الأحداث والملاحظات');
   String get learnedThatDay => _t(
         en: 'What Sedi learned that day',
         fa: 'چیزهایی که صدی همان روز یاد گرفت',
-        ar: 'ما تعلمته صدی في ذلك اليوم',
+        ar: 'ما تعلمته صدي في ذلك اليوم',
       );
   String get addItem => _t(en: '+ Add', fa: '+ افزودن', ar: '+ إضافة');
   String get editItem => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
   String get oldDayBanner => _t(
         en: 'Chat text older than 30 days is not shown, but Sedi remembers. Here is what she kept about this day.',
         fa: 'متن گفتگوهای بیشتر از ۳۰ روز نمایش داده نمی‌شود، ولی صدی یادش هست. خلاصه‌ی اون روز رو اینجا می‌بینی.',
-        ar: 'لا يُعرض نص المحادثات الأقدم من 30 يوماً، لكن صدی تتذكرها. هذا ما احتفظت به عن هذا اليوم.',
+        ar: 'لا يُعرض نص المحادثات الأقدم من 30 يوماً، لكن صدي تتذكرها. هذا ما احتفظت به عن هذا اليوم.',
       );
   String get fixSummary => _t(
         en: 'This summary is not right? Correct it',
@@ -812,14 +812,14 @@ class LifestyleL10n {
   String get correctionExplain => _t(
         en: 'The original summary stays as it is; your correction is saved beside it and Sedi considers both.',
         fa: 'خلاصه‌ی اصلی دست نمی‌خوره؛ اصلاحیه‌ی تو کنارش ثبت می‌شه و صدی هر دو رو در نظر می‌گیره.',
-        ar: 'يبقى الملخص الأصلي كما هو؛ يُحفظ تصحيحك بجانبه وتأخذ صدی الاثنين في الاعتبار.',
+        ar: 'يبقى الملخص الأصلي كما هو؛ يُحفظ تصحيحك بجانبه وتأخذ صدي الاثنين في الاعتبار.',
       );
   String get correctionLabel => _t(en: 'Correction', fa: 'اصلاحیه', ar: 'تصحيح');
   String get noteLabel => _t(en: 'Note', fa: 'یادداشت', ar: 'ملاحظة');
   String get correctionHint => _t(
         en: 'What should Sedi remember instead?',
         fa: 'صدی به‌جاش چی باید یادش بمونه؟',
-        ar: 'ماذا يجب أن تتذكر صدی بدلاً من ذلك؟',
+        ar: 'ماذا يجب أن تتذكر صدي بدلاً من ذلك؟',
       );
   String get noteHint =>
       _t(en: 'Write a note for this day', fa: 'برای این روز یادداشت بنویس', ar: 'اكتب ملاحظة لهذا اليوم');
@@ -828,7 +828,7 @@ class LifestyleL10n {
   String get deleteMessageQuestion => _t(
         en: 'Delete this message from Sedi memory?',
         fa: 'این پیام از حافظه‌ی صدی پاک شود؟',
-        ar: 'حذف هذه الرسالة من ذاكرة صدی؟',
+        ar: 'حذف هذه الرسالة من ذاكرة صدي؟',
       );
   String get deleteItemQuestion => _t(
         en: 'Delete this item?',
@@ -843,7 +843,7 @@ class LifestyleL10n {
   String get memoryConsentOff => _t(
         en: 'Sedi memory is turned off, so there is nothing to show.',
         fa: 'حافظه‌ی صدی خاموش است، برای همین چیزی برای نمایش نیست.',
-        ar: 'ذاكرة صدی متوقفة، لذلك لا يوجد ما يُعرض.',
+        ar: 'ذاكرة صدي متوقفة، لذلك لا يوجد ما يُعرض.',
       );
   String get memoryLoadFailed => _t(
         en: 'Could not load this right now.',
@@ -857,7 +857,7 @@ class LifestyleL10n {
   String get searchOldDaysNote => _t(
         en: 'For days older than 30, search covers summaries, events and what Sedi knows, not the chat text.',
         fa: 'برای روزهای بیشتر از ۳۰ روز پیش، جست‌وجو روی خلاصه‌ها، رویدادها و چیزهایی که صدی می‌دونه انجام می‌شه، نه متن خام گفتگو.',
-        ar: 'للأيام الأقدم من 30 يوماً يشمل البحث الملخصات والأحداث وما تعرفه صدی، لا نص المحادثة.',
+        ar: 'للأيام الأقدم من 30 يوماً يشمل البحث الملخصات والأحداث وما تعرفه صدي، لا نص المحادثة.',
       );
   String get rangeAll => _t(en: 'All time', fa: 'همه‌ی زمان‌ها', ar: 'كل الأوقات');
   String get rangeThreeMonths => _t(en: '3 months', fa: '۳ ماه', ar: '3 أشهر');
@@ -871,7 +871,7 @@ class LifestyleL10n {
       case 'note':
         return _t(en: 'Note', fa: 'یادداشت', ar: 'ملاحظة');
       case 'fact':
-        return _t(en: 'What Sedi knows', fa: 'چیزی که صدی می‌دونه', ar: 'ما تعرفه صدی');
+        return _t(en: 'What Sedi knows', fa: 'چیزی که صدی می‌دونه', ar: 'ما تعرفه صدي');
       default:
         return _t(en: 'Conversation', fa: 'گفتگو', ar: 'محادثة');
     }
@@ -914,7 +914,7 @@ class LifestyleL10n {
   String get planSetupIntro => _t(
         en: 'Sedi starts from what she already knows about you. Tell her the rest here and she builds the plan.',
         fa: 'صدی از چیزهایی که از تو می‌دونه شروع می‌کنه؛ بقیه‌اش رو همین‌جا بگو تا برنامه رو بسازه.',
-        ar: 'تبدأ صدی مما تعرفه عنك. أخبرها بالباقي هنا لتبني الخطة.',
+        ar: 'تبدأ صدي مما تعرفه عنك. أخبرها بالباقي هنا لتبني الخطة.',
       );
   String get knownFactsTitle =>
       _t(en: 'What I already know', fa: 'این‌ها رو از قبل می‌دونم', ar: 'ما أعرفه مسبقًا');
@@ -980,7 +980,7 @@ class LifestyleL10n {
   String get otherThingHint =>
       _t(en: 'Something else (optional)', fa: 'چیز دیگه‌ای هم هست؟ (اختیاری)', ar: 'شيء آخر (اختياري)');
   String get buildPlanButton =>
-      _t(en: 'Sedi, build the plan', fa: 'صدی برنامه رو بساز', ar: 'يا صدی، ابني الخطة');
+      _t(en: 'Sedi, build the plan', fa: 'صدی برنامه رو بساز', ar: 'يا صدي، ابني الخطة');
 
   /// The user message the setup sheet sends to the canonical chat (the plan composer there does the rest).
   String composeSetupMessage({
@@ -1034,7 +1034,7 @@ class LifestyleL10n {
   String get itemAskAlternative => _t(
         en: 'Ask Sedi for an alternative',
         fa: 'از صدی جایگزین بخواه',
-        ar: 'اطلب بديلًا من صدی',
+        ar: 'اطلب بديلًا من صدي',
       );
   String alternativeMessage(String title) => _t(
         en: 'Please suggest an alternative to "$title" that fits my plan.',
@@ -1051,7 +1051,7 @@ class LifestyleL10n {
   String get alternativesEmpty => _t(
         en: 'I could not find a fitting alternative right now; you can ask Sedi below.',
         fa: 'الان جایگزین مناسبی پیدا نکردم؛ می‌تونی پایین از صدی بخوای.',
-        ar: 'لم أجد بديلاً مناسباً الآن؛ يمكنك أن تسأل صدی أدناه.',
+        ar: 'لم أجد بديلاً مناسباً الآن؛ يمكنك أن تسأل صدي أدناه.',
       );
   String get applyChange => _t(en: 'Apply change', fa: 'ثبت تغییر', ar: 'تطبيق التغيير');
   String get itemEdit => _t(en: 'Edit text and duration', fa: 'ویرایش متن و مدت', ar: 'تعديل النص والمدة');
@@ -1061,7 +1061,7 @@ class LifestyleL10n {
   String get planChangedSnack => _t(
         en: 'Saved. Sedi knows about it too.',
         fa: 'ثبت شد؛ صدی هم می‌دونه.',
-        ar: 'تم الحفظ، وصدی تعرف ذلك أيضاً.',
+        ar: 'تم الحفظ، وصدي تعرف ذلك أيضاً.',
       );
 
   // ---- Health: the simple three-line average (Javad 2026-10-28) ----

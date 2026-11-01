@@ -31,9 +31,9 @@ class Gate3Localization {
       );
 
   String get memoryConsentInvitation => _t(
-        en: 'Sedi can remember helpful details across conversations if you allow Memory.',
-        fa: 'اگر اجازه حافظه را بدهید، صدی می‌تواند جزئیات مفید را در گفتگوها به خاطر بسپارد.',
-        ar: 'يمكن لصدی تذكّر التفاصيل المفيدة عبر المحادثات إذا سمحت بالذاكرة.',
+        en: 'Allow Memory and Sedi keeps your health story over the short, medium and long term, to care for you better.',
+        fa: 'اگر اجازه حافظه را بدهید، صدی داستان سلامت شما را در کوتاه‌مدت، میان‌مدت و بلندمدت نگه می‌دارد تا بهتر از شما مراقبت کند.',
+        ar: 'إذا سمحت بالذاكرة يحفظ صدي قصة صحتك على المدى القصير والمتوسط والطويل ليرعاك بشكل أفضل.',
       );
 
   String get memoryConsentGrant =>
@@ -72,13 +72,13 @@ class Gate3Localization {
   String get memoryOffConfirmTitle => _t(
         en: 'Turn off Sedi Memory?',
         fa: 'خاموش کردن حافظه صدی؟',
-        ar: 'إيقاف ذاكرة صدی؟',
+        ar: 'إيقاف ذاكرة صدي؟',
       );
 
   String get memoryOffConfirmBody => _t(
         en: 'If you turn Memory off, Sedi will not store new conversation details for later use from this moment, and will not use stored memory for conversation continuity. Care continuity, personalization, and companion accuracy will decrease. Are you sure?',
         fa: 'با خاموش کردن حافظه، از این لحظه صدی اطلاعات جدید گفتگو را برای استفاده در دفعات بعد ذخیره نمی‌کند و از حافظه ذخیره‌شده برای پیوستگی گفتگو استفاده نخواهد کرد. در نتیجه پیوستگی مراقبت، شخصی‌سازی و دقت همراهی صدی کاهش می‌یابد. آیا مطمئن هستید؟',
-        ar: 'بإيقاف الذاكرة، لن يخزّن صدی من هذه اللحظة تفاصيل المحادثة الجديدة للاستخدام لاحقًا ولن يستخدم الذاكرة المخزّنة لاستمرار المحادثة. لذلك تنخفض استمرارية الرعاية والتخصيص ودقة مرافقة صدی. هل أنت متأكد؟',
+        ar: 'بإيقاف الذاكرة، لن يخزّن صدي من هذه اللحظة تفاصيل المحادثة الجديدة للاستخدام لاحقًا ولن يستخدم الذاكرة المخزّنة لاستمرار المحادثة. لذلك تنخفض استمرارية الرعاية والتخصيص ودقة مرافقة صدي. هل أنت متأكد؟',
       );
 
   String get memoryOffConfirmKeepOn => _t(
@@ -129,7 +129,7 @@ class Gate3Localization {
   String get userSummaryEmpty => _t(
         en: 'There is not enough information about you in Sedi memory yet. As you continue chatting and using Sedi, this section will gradually become more complete.',
         fa: 'در حال حاضر، اطلاعات کافی از شما در حافظه صدی ثبت نشده است. با ادامه گفت‌وگو و استفاده از صدی، این بخش به‌تدریج کامل‌تر می‌شود.',
-        ar: 'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة صدی. مع مواصلة المحادثة واستخدام صدی، سيكتمل هذا القسم تدريجيًا.',
+        ar: 'لا تتوفر حاليًا معلومات كافية عنك في ذاكرة صدي. مع مواصلة المحادثة واستخدام صدي، سيكتمل هذا القسم تدريجيًا.',
       );
 
   String get profileLanguageLabel =>
@@ -370,7 +370,7 @@ class Gate3Localization {
   String get editingMessage => _t(
         en: 'Editing your message — Sedi will answer again',
         fa: 'در حال ویرایش پیامت — صدی دوباره جواب می‌دهد',
-        ar: 'تعديل رسالتك — سترد صدی من جديد',
+        ar: 'تعديل رسالتك — سترد صدي من جديد',
       );
 
   String get cancelEdit =>

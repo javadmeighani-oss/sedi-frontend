@@ -16,6 +16,7 @@ import '../../data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/notification_inbox_l10n.dart';
 import '../auth/auth_service.dart';
 import '../theme/sedi_palette.dart';
+import '../utils/brand_name.dart';
 import 'local_notifications_service.dart';
 import 'pending_dislike_reasons.dart';
 import 'pending_notification_actions.dart';
@@ -54,54 +55,39 @@ class BackgroundNotificationActionHandler {
     return body.isEmpty ? '$question\n$hint' : '$body\n\n$question\n$hint';
   }
 
-  /// The same grown notification with the feedback as a visibly SEPARATE BLOCK (Javad 2026-11-01): the original text
-  /// first, a blank line, then a framed block - a rule above and below, a green side bar on every line, the question
-  /// in bold - so the "why?" is never read as part of the message. An Android notification cannot draw a real box, so
-  /// the frame is made of text (HTML in the big-text style); the colours are mid-tones that read on light and dark
-  /// notification backgrounds, and the text itself keeps the system colour. [rtl] puts the bars and rules on the start
-  /// (right) side for Persian and Arabic.
-  static String growWithQuestionHtml({
+  /// The grown notification as a small CONVERSATION (Javad 2026-11-01: no text art, a modern native look): Sedi's own
+  /// avatar (the glass sphere with her wordmark) in front of two messages - what she said, and below it her question
+  /// with its hint. One notification, one sender, a clearly separate second bubble; the three answers stay buttons.
+  /// Fail-open: when the conversation style cannot be built the plain big-text version is shown instead.
+  static Future<StyleInformation> promptStyle({
+    required String lang,
+    required String title,
     required String originalBody,
     required String question,
     required String hint,
-    bool rtl = false,
-    int hintLineChars = 34,
-  }) {
-    const esc = HtmlEscape();
-    final dir = rtl ? '&#8207;' : ''; // RLM: the line starts on the right in RTL languages
-    const green = '#8FAE3E';
-    final bar = '$dir<font color="$green">&#9612;</font> ';
-    final rule = '$dir<font color="$green">${'&#9472;' * 22}</font>';
-    final block = StringBuffer()
-      ..write('$rule<br>')
-      ..write('$bar<b>${esc.convert(question)}</b><br>');
-    for (final line in wrapWords(hint, hintLineChars)) {
-      block.write('$bar${esc.convert(line)}<br>');
+  }) async {
+    try {
+      // R-050: the avatar is an Android drawable (no asset read + no 43 KB byte transfer on the tap path: the question
+      // had to wait for them); it is the same glass sphere with the wordmark.
+      const icon = DrawableResourceAndroidIcon('sedi_notification_sphere');
+      final sedi = Person(name: sediBrandName(lang), key: 'sedi', icon: icon, important: true);
+      final now = DateTime.now();
+      final body = originalBody.trim();
+      return MessagingStyleInformation(
+        sedi,
+        groupConversation: false,
+        messages: <Message>[
+          if (body.isNotEmpty) Message(body, now.subtract(const Duration(seconds: 30)), sedi),
+          Message('$question\n$hint', now, sedi),
+        ],
+      );
+    } catch (e) {
+      debugPrint('[FCM-bg] conversation style unavailable, plain text used: $e');
+      return BigTextStyleInformation(
+        growWithQuestion(originalBody: originalBody, question: question, hint: hint),
+        contentTitle: title,
+      );
     }
-    block.write(rule);
-    final body = originalBody.trim();
-    if (body.isEmpty) return block.toString();
-    return '${esc.convert(body).replaceAll('\n', '<br>')}<br><br>$block';
-  }
-
-  /// Splits [text] into lines of at most [width] characters on word boundaries (a longer single word stays whole).
-  @visibleForTesting
-  static List<String> wrapWords(String text, int width) {
-    final words = text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
-    final lines = <String>[];
-    var current = '';
-    for (final w in words) {
-      if (current.isEmpty) {
-        current = w;
-      } else if (current.length + 1 + w.length <= width) {
-        current = '$current $w';
-      } else {
-        lines.add(current);
-        current = w;
-      }
-    }
-    if (current.isNotEmpty) lines.add(current);
-    return lines;
   }
 
   /// Isolate-local in-flight lock (dedupeKey) — reject duplicate taps.
@@ -281,11 +267,12 @@ class BackgroundNotificationActionHandler {
       // The SAME notification keeps its own title and text; the question opens below them (Javad 2026-10-30).
       final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
-      final expanded = growWithQuestionHtml(
+      final style = await promptStyle(
+        lang: lang,
+        title: title,
         originalBody: original?.body ?? '',
         question: l10n.dislikeReasonTitle,
         hint: l10n.dislikeReasonHint,
-        rtl: l10n.isRtl,
       );
       await plugin.show(
         _notificationIdToInt(notificationId),
@@ -304,12 +291,8 @@ class BackgroundNotificationActionHandler {
             onlyAlertOnce: true,
             autoCancel: true,
             timeoutAfter: 90000,
-            // R-039: the same notification, bigger: the question and what it is for, then the three answers.
-            styleInformation: BigTextStyleInformation(
-              expanded,
-              htmlFormatBigText: true,
-              contentTitle: title,
-            ),
+            // R-039: the same notification, grown: Sedi's question as a second message, then the three answers.
+            styleInformation: style,
             actions: actions,
           ),
         ),
@@ -349,11 +332,12 @@ class BackgroundNotificationActionHandler {
       final channelId = resolveAndroidChannelId(channelRaw);
       final original = await originalF;
       final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.planNotDoneTitle;
-      final expanded = growWithQuestionHtml(
+      final style = await promptStyle(
+        lang: lang,
+        title: title,
         originalBody: original?.body ?? '',
         question: l10n.planNotDoneTitle,
         hint: l10n.planNotDoneHint,
-        rtl: l10n.isRtl,
       );
       await plugin.show(
         _notificationIdToInt(notificationId),
@@ -372,11 +356,7 @@ class BackgroundNotificationActionHandler {
             onlyAlertOnce: true,
             autoCancel: true,
             timeoutAfter: 90000,
-            styleInformation: BigTextStyleInformation(
-              expanded,
-              htmlFormatBigText: true,
-              contentTitle: title,
-            ),
+            styleInformation: style,
             actions: <AndroidNotificationAction>[
               for (final r in planNotDoneReasons)
                 AndroidNotificationAction(

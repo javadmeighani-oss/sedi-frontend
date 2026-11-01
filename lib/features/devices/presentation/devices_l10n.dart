@@ -32,12 +32,12 @@ class DevicesL10n {
   String get specialTitle => _t(
         en: "Sedi's specialised gadgets",
         fa: 'گجت‌های تخصصی صدی',
-        ar: 'أجهزة صدی المتخصصة',
+        ar: 'أجهزة صدي المتخصصة',
       );
   String get specialBody => _t(
         en: "Soon, Sedi's specialised gadgets will connect here for your continuous care.",
         fa: 'به‌زودی گجت‌های تخصصی صدی برای مراقبت پیوسته‌ی شما در همین بخش متصل خواهند شد.',
-        ar: 'قريبًا سيتم ربط أجهزة صدی المتخصصة هنا لرعايتك المستمرة.',
+        ar: 'قريبًا سيتم ربط أجهزة صدي المتخصصة هنا لرعايتك المستمرة.',
       );
 
   String get active => _t(en: 'Active', fa: 'فعال', ar: 'نشط');

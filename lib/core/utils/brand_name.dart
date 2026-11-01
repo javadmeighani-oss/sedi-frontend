@@ -1,4 +1,4 @@
-/// Centralized brand name: EN = "Sedi", FA/AR = "صدی".
+/// Centralized brand name: EN = "Sedi", FA = "صدی", AR = "صدي" (Arabic spelling, R-048).
 /// Use for all UI strings, notifications, onboarding, and intro.
 /// Do NOT use "سدی" (wrong spelling) anywhere; always use this helper for FA/AR.
 ///
@@ -9,6 +9,7 @@ const String sediOrbBrandLatin = 'Sedi.';
 
 String sediBrandName(String langCode) {
   final lang = langCode.toLowerCase();
-  if (lang == 'fa' || lang == 'ar') return 'صدی'; // Correct: صدی (not سدی)
+  if (lang == 'ar') return 'صدي'; // R-048: Arabic spelling with the Arabic Yeh
+  if (lang == 'fa') return 'صدی'; // Correct: صدی (not سدی)
   return 'Sedi';
 }

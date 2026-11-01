@@ -34,7 +34,7 @@ void main() {
     test('both prompts keep the notification\'s own title and body and show first, before the network', () {
       final bg = _read('lib/core/notifications/background_notification_action_handler.dart');
       expect(RegExp(r'TrayNotificationSnapshotStore\.get\(notificationId\)').allMatches(bg).length, 2);
-      expect(bg.contains('BigTextStyleInformation(\n              expanded,'), isTrue);
+      expect(bg.contains('promptStyle('), isTrue); // R-047: the grown notification is a Sedi conversation
       final handle = bg.substring(bg.indexOf('static Future<void> handle('), bg.indexOf('/// Returns true on ACK'));
       expect(handle.indexOf('_showReasonPrompt('), lessThan(handle.indexOf('_attemptLikeDislikeAck(')));
       expect(handle.indexOf('_showPlanReasonPrompt('), lessThan(handle.indexOf('_attemptLikeDislikeAck(')));

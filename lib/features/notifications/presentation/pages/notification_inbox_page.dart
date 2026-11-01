@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/cache/page_snapshot_cache.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/notifications/notification_action_coordinator.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -61,21 +62,31 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     _refreshSub = InboxRefreshBus.instance.stream.listen((_) {
       _reload(soft: true);
     });
-    _bootstrap();
+    // R-050: the first page seen last time paints at once; the fresh read replaces it behind it.
+    final seen = PageSnapshotCache.get<_InboxFirstPage>(PageSnapshotCache.inbox);
+    if (seen != null) {
+      _items = seen.items;
+      _nextCursor = seen.nextCursor;
+      _hasMore = seen.hasMore;
+    }
+    _bootstrap(hasSeen: seen != null);
   }
 
   void _onLocale() {
     if (mounted) setState(() {});
   }
 
-  Future<void> _bootstrap() async {
-    final userId = await UserIdentityService.resolveUserId();
+  Future<void> _bootstrap({bool hasSeen = false}) async {
+    // The inbox read starts AT ONCE; the signed-in check runs beside it (it used to wait in front of the request).
+    final idF = UserIdentityService.resolveUserId();
+    final reloadF = _reload(soft: hasSeen);
+    final userId = await idF;
     if (!mounted) return;
     if (userId == null) {
       AppGateRouter.goToLogin(context);
       return;
     }
-    await _reload();
+    await reloadF;
   }
 
   @override
@@ -119,6 +130,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
         _hasMore = resp.data!.hasMore;
         _error = null;
         _selectedIds.removeWhere((id) => !_items.any((e) => e.id == id));
+        if (_filter == InboxFilter.all) {
+          PageSnapshotCache.put(
+            PageSnapshotCache.inbox,
+            _InboxFirstPage(_items, _nextCursor, _hasMore),
+          );
+        }
       } else {
         _error = resp.errorMessage;
       }
@@ -892,4 +909,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       ),
     );
   }
+}
+
+/// The first inbox page as last seen (R-050).
+class _InboxFirstPage {
+  final List<NotificationItem> items;
+  final String? nextCursor;
+  final bool hasMore;
+  const _InboxFirstPage(this.items, this.nextCursor, this.hasMore);
 }
