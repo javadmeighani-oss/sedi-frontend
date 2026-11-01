@@ -9,10 +9,14 @@ void main() {
       expect(text, isNot(contains('سدی')));
     });
 
-    test('FA mentions گجت and مراقبت پیوسته', () {
+    test('FA states the identity: memory tiers, adviser, vital signs with the gadgets (R-048)', () {
       final text = getIntroGreeting('fa');
       expect(text, contains('گجت'));
-      expect(text, contains('مراقبت پیوسته'));
+      expect(text, contains('حافظه'));
+      expect(text, contains('کوتاه‌مدت'));
+      expect(text, contains('بلندمدت'));
+      expect(text, contains('علائم حیاتی'));
+      expect(text, contains('مشاور'));
     });
 
     test('EN contains Sedi', () {
@@ -20,15 +24,19 @@ void main() {
       expect(text, contains('Sedi'));
     });
 
-    test('EN mentions specialized gadgets and continuous', () {
+    test('EN states the identity: memory tiers, adviser, vital signs with the gadgets (R-048)', () {
       final text = getIntroGreeting('en');
-      expect(text.toLowerCase(), contains('specialized gadgets'));
-      expect(text.toLowerCase(), contains('continuous'));
+      expect(text.toLowerCase(), contains('short, medium and long term'));
+      expect(text.toLowerCase(), contains('vital signs'));
+      expect(text.toLowerCase(), contains('adviser'));
+      expect(text.toLowerCase(), contains('gadgets'));
     });
 
-    test('AR contains صدی (never سدی)', () {
+    test('AR states the identity with the Arabic spelling صدي (R-048, never سدی)', () {
       final text = getIntroGreeting('ar');
-      expect(text, contains('صدی'));
+      expect(text, contains('صدي'));
+      expect(text, isNot(contains('صدی')));
+      expect(text, contains('علاماتك الحيوية'));
       expect(text, isNot(contains('سدی')));
     });
 

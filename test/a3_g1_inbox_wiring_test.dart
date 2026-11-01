@@ -111,7 +111,7 @@ void main() {
 
     expect(en.likeAction, 'Like');
     expect(fa.likeAction, 'پسندیدن');
-    expect(ar.talkToSedi, contains('صدی'));
+    expect(ar.talkToSedi, contains('صدي'));
     expect(en.deleteSelected, 'Delete selected');
     expect(fa.deleteSelected, 'حذف انتخاب‌شده');
     expect(ar.deleteSelected, 'حذف المحدد');

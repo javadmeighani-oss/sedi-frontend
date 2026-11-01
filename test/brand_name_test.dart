@@ -12,9 +12,9 @@ void main() {
       expect(sediBrandName('fa'), isNot(wrongBrandFa));
     });
 
-    test('ar returns صدی (never سدی)', () {
-      expect(sediBrandName('ar'), 'صدی');
-      expect(sediBrandName('AR'), 'صدی');
+    test('ar returns صدي (Arabic spelling, R-048; never سدی)', () {
+      expect(sediBrandName('ar'), 'صدي');
+      expect(sediBrandName('AR'), 'صدي');
       expect(sediBrandName('ar'), isNot(wrongBrandFa));
     });
 

@@ -74,9 +74,9 @@ class OtpLoginLocalization {
       );
 
   String get welcomeTagline => _t(
-        en: 'Your always-there friend — remembers what you say and looks out for how you are doing.',
-        fa: 'دوستِ همیشه‌همراهت؛ حرف‌هات رو یادش می‌مونه و حواسش به حال و روزت هست.',
-        ar: 'صديقك الدائم؛ يتذكّر ما تقوله ويهتمّ بحالك.',
+        en: 'Your always-there friend — keeps your health story over time and looks after how you are doing.',
+        fa: 'دوستِ همیشه‌همراهت؛ داستان سلامتت رو در طول زمان یادش می‌مونه و حواسش به حال و روزت هست.',
+        ar: 'صديقك الدائم؛ يحفظ قصة صحتك عبر الزمن ويهتمّ بحالك.',
       );
 
   String get welcomePromiseListen =>

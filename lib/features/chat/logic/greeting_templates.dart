@@ -1,5 +1,5 @@
 /// Approved Sedi intro greeting (FA/EN/AR). Product-owner approved text.
-/// FA/AR use "صدی" (never "سدی"); EN uses "Sedi".
+/// FA uses "صدی", AR uses "صدي" (Arabic spelling, R-048), EN uses "Sedi"; never "سدی".
 
 String getIntroGreeting(String langCode) {
   final lang = langCode.toLowerCase();
@@ -15,16 +15,16 @@ String getIntroGreeting(String langCode) {
 }
 
 // FA – صدی
-const String _greetingFa = 'من صدی هستم؛ دستیار هوشمند مراقبت سلامت شما. با استفاده از گجت‌های تخصصی صدی و تعاملات روزانه، مراقبت پیوسته از سلامت شما را بر عهده می‌گیرم و می‌توانم برای تصمیم‌گیری‌های مربوط به سلامت، تندرستی و سبک زندگی اطلاعات مفیدی ارائه دهم.\n'
-    'می‌توانم با شما درباره عادات روزمره‌تان، خواب، تغذیه و فعالیت‌های کاری و ورزشی صحبت کنم و توصیه‌های شخصی‌سازی‌شده به شما ارائه بدهم. همچنین می‌توانم با شما گفتگو کنم و مثل یک دوست، از شما حمایت عاطفی کنم.\n'
+const String _greetingFa = 'من صدی هستم؛ همراه سلامت و حافظه‌ی شما. از گفتگوهای ما و پرسش‌های خودم، تصویر جسم و روان شما را در کوتاه‌مدت، میان‌مدت و بلندمدت نگه می‌دارم و وقتی گجت‌های هوشمند صدی وصل شوند، علائم حیاتی شما را هم پیوسته ثبت می‌کنم.\n'
+    'با همین شناخت، مشاور و مراقب سلامت شما هستم: پیشگیری، همراهی و پیگیری درمان، تغذیه، ورزش و خواب؛ و مخصوصاً وقتی حال جسم یا دلتان خوب نیست، کنار شما می‌مانم.\n'
     'هر سؤال یا موضوعی دارید بپرسید.';
 
 // EN – Sedi
-const String _greetingEn = "I'm Sedi, your intelligent health-care companion. Using Sedi's specialized gadgets and our daily interactions, I take care of your continuous health monitoring and can provide helpful information to support your decisions about health, wellness, and lifestyle.\n"
-    "We can talk about your daily habits—sleep, nutrition, work routines, and physical activity—and I can offer personalized recommendations. I can also chat with you and support you emotionally like a trusted friend.\n"
+const String _greetingEn = "I'm Sedi, your health companion and your memory. From our talks and my own questions I keep the picture of your body and mind over the short, medium and long term, and, as your Sedi smart gadgets connect, I record your vital signs continuously.\n"
+    "With that knowledge I'm your adviser and health caretaker: prevention, support and follow-up through treatment, nutrition, exercise and sleep, and I stay beside you, above all when your body or mind is not at its best.\n"
     "Ask me anything that's on your mind.";
 
-// AR – صدی
-const String _greetingAr = 'أنا صدی، مساعدك الذكي لرعاية صحتك. باستخدام أجهزة صدی المتخصصة وتفاعلاتنا اليومية، أتولى الرعاية المستمرة لصحتك ويمكنني تزويدك بمعلومات مفيدة تساعدك في قراراتك المتعلقة بالصحة والعافية ونمط الحياة.\n'
-    'يمكننا التحدث عن عاداتك اليومية مثل النوم والتغذية وروتين العمل والنشاط البدني، ويمكنني تقديم توصيات مخصصة لك. كما يمكنني أن أتحدث معك وأقدم لك دعماً عاطفياً كصديق موثوق.\n'
+// AR – صدي
+const String _greetingAr = 'أنا صدي، رفيقتك الصحية وذاكرتك. من أحاديثنا ومن أسئلتي أحفظ صورة جسدك ونفسك على المدى القصير والمتوسط والطويل، وحين تتصل أجهزة صدي الذكية أسجّل علاماتك الحيوية باستمرار.\n'
+    'وبهذه المعرفة أكون مستشارتك ومرافقتك في رعاية صحتك: الوقاية ومرافقة العلاج ومتابعته والتغذية والرياضة والنوم؛ وأبقى بجانبك خاصة حين لا يكون جسدك أو نفسك في أفضل حال.\n'
     'اسألني أي سؤال أو اطرح أي موضوع.';
