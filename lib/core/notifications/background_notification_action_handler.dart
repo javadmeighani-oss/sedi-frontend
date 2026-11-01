@@ -68,7 +68,7 @@ class BackgroundNotificationActionHandler {
     required String hint,
   }) async {
     try {
-      AndroidIcon<Object>? icon;
+      ByteArrayAndroidIcon? icon;
       try {
         final data = await rootBundle.load(androidBrandLargeIconAsset);
         icon = ByteArrayAndroidIcon(data.buffer.asUint8List());
