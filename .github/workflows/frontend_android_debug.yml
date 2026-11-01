@@ -269,6 +269,7 @@ jobs:
             test/sedi_copy_quality_test.dart \
             test/profile_language_change_test.dart \
             test/a1_entry_speed_test.dart \
+            test/r050_speed_pages_test.dart \
             test/a3_composer_hint_start_test.dart \
             test/a3_current_day_continuity_test.dart \
             test/composer_two_tier_test.dart \

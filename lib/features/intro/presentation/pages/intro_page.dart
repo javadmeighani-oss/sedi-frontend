@@ -19,8 +19,8 @@ import '../../../../services/push/push_service.dart';
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
 
-  /// Approved A1 intro duration (~3 seconds).
-  static const Duration kIntroDuration = Duration(milliseconds: 3000);
+  /// A1 intro duration: 2.2 s (Javad 2026-11-01, was 3 s) - the motion keyframes are unchanged, only faster.
+  static const Duration kIntroDuration = Duration(milliseconds: 2200);
 
   /// Delay between cold-start revalidation attempts while backend is unavailable.
   static const Duration kReconnectRetryDelay = Duration(seconds: 2);
@@ -57,7 +57,7 @@ class _IntroPageState extends State<IntroPage>
 
     _sessionFuture = SessionGateResolver.resolveColdStart();
     _healthFuture = BackendAvailability.probeHealthz();
-    // The logo plays for three seconds anyway: as soon as the session is known to be valid, Sedi's opener is asked for,
+    // The logo plays for ~2 seconds anyway: as soon as the session is known to be valid, Sedi's opener is asked for,
     // so A3 does not open on an empty chat while the server prepares it.
     _sessionFuture.then((s) {
       if (s.isAuthenticated) {
@@ -70,7 +70,7 @@ class _IntroPageState extends State<IntroPage>
       duration: IntroPage.kIntroDuration,
     )..forward();
 
-    // The logo plays for three seconds anyway: get A3's wordmark and fonts ready meanwhile (no pop-in later).
+    // The logo plays for ~2 seconds anyway: get A3's wordmark and fonts ready meanwhile (no pop-in later).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) SediWarmup.run(context);
     });

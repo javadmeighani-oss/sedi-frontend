@@ -238,7 +238,7 @@ void main() {
 
   group('A1 intro', () {
     test('approved visual contract constants', () {
-      expect(IntroPage.kIntroDuration, const Duration(milliseconds: 3000));
+      expect(IntroPage.kIntroDuration, const Duration(milliseconds: 2200));
       expect(IntroPage.kBrandLatin, 'Sedi.');
       expect(IntroPage.kMotionKeyframes.length, 3);
       expect(IntroPage.kMotionKeyframes[0], (0.00, 0.79, 0.05));

@@ -1,3 +1,4 @@
+import '../../../../core/cache/page_snapshot_cache.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/locale/calendar_date_math.dart';
@@ -34,18 +35,28 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // R-050: the last values seen paint at once; the fresh read replaces them.
+    final seen = PageSnapshotCache.get<_HealthSnapshot>(PageSnapshotCache.health);
+    if (seen != null) {
+      _data = seen.data;
+      _averages.addAll(seen.averages);
+      _loading = false;
+    }
+    _load(silent: seen != null);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     final results = await Future.wait(
       _averageRanges.map((r) => _svc.fetchHr(rangeKey: r)),
     );
     if (!mounted) return;
+    if (silent && !(results.first.ok && results.first.data != null)) return; // a failed refresh keeps what is shown
     setState(() {
       _loading = false;
       final first = results.first;
@@ -60,6 +71,9 @@ class _LifestyleHealthPageState extends State<LifestyleHealthPage> {
         _data = null;
       }
     });
+    if (_data != null) {
+      PageSnapshotCache.put(PageSnapshotCache.health, _HealthSnapshot(_data, Map<String, int?>.from(_averages)));
+    }
   }
 
   /// Plain average of the range's daily/weekly averages (weighted by sample count when the backend sends it).
@@ -404,4 +418,11 @@ class _PulsePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PulsePainter oldDelegate) => oldDelegate.live != live;
+}
+
+/// The health numbers as last seen (R-050).
+class _HealthSnapshot {
+  final LifestyleHealthHrDto? data;
+  final Map<String, int?> averages;
+  const _HealthSnapshot(this.data, this.averages);
 }

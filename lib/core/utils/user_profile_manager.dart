@@ -7,6 +7,7 @@
 /// - Manage user information
 /// ============================================
 
+import '../cache/page_snapshot_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../data/models/user_profile.dart';
@@ -100,6 +101,7 @@ class UserProfileManager {
   static Future<bool> clearProfile() async {
     // Logout / invalid session: the profile snapshot cache (R-044-era speed work, 2026-10-31) goes with it.
     await ProfileSnapshotCache.clear();
+    PageSnapshotCache.clear(); // R-050: the icon pages' last-seen content goes with the session
     try {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.remove(_profileKey);

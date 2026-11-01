@@ -118,7 +118,8 @@ class _DevicesPageState extends State<DevicesPage> {
           28,
         ),
         children: [
-          if (_loading)
+          // R-050: with no gadget known yet the page shows its sentence at once (no spinner while the list is read).
+          if (_loading && _controller.devices.isNotEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(

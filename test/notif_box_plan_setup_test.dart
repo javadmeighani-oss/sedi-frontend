@@ -19,8 +19,10 @@ void main() {
       expect(RegExp('promptStyle\\(').allMatches(bg).length, 3); // the definition + the two prompts
       expect(RegExp('styleInformation: style').allMatches(bg).length, 2);
       expect(bg.contains('MessagingStyleInformation('), isTrue);
-      expect(bg.contains('ByteArrayAndroidIcon('), isTrue);
-      expect(bg.contains('androidBrandLargeIconAsset'), isTrue);
+      expect(bg.contains('DrawableResourceAndroidIcon('), isTrue); // R-050: no asset read on the tap path
+      expect(bg.contains('rootBundle'), isFalse);
+      expect(File('android/app/src/main/res/drawable-nodpi/sedi_notification_sphere.png').existsSync(), isTrue);
+      expect(_read('android/app/src/main/res/raw/keep.xml').contains('sedi_notification_sphere'), isTrue);
       // no block characters / HTML frame any more
       expect(bg.contains('&#9612;'), isFalse);
       expect(bg.contains('htmlFormatBigText: true'), isFalse);

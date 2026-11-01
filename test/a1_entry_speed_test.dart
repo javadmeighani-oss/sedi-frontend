@@ -6,8 +6,8 @@ import 'package:sedi_app/features/intro/presentation/pages/intro_page.dart';
 
 /// A1 -> A2/A3 speed contract: the logo motion is unchanged, the hand-over after it stops is short.
 void main() {
-  test('A1 logo motion stays as approved (3000 ms, same keyframes)', () {
-    expect(IntroPage.kIntroDuration, const Duration(milliseconds: 3000));
+  test('A1 logo motion: same keyframes, 2.2 s (Javad 2026-11-01, was 3 s)', () {
+    expect(IntroPage.kIntroDuration, const Duration(milliseconds: 2200));
     expect(IntroPage.kMotionKeyframes.length, 3);
   });
 

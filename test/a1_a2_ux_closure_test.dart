@@ -66,7 +66,7 @@ void main() {
       expect(src.contains('Reconnecting'), isFalse);
       expect(src.contains('temporarily unreachable'), isFalse);
       expect(src.contains('AuthService.clearUserData'), isFalse);
-      expect(IntroPage.kIntroDuration, const Duration(milliseconds: 3000));
+      expect(IntroPage.kIntroDuration, const Duration(milliseconds: 2200));
       expect(IntroPage.kMotionKeyframes, const [
         (0.00, 0.79, 0.05),
         (0.50, 0.52, 0.24),

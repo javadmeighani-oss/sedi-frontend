@@ -189,7 +189,7 @@ void main() {
       final src = _read('lib/features/intro/presentation/pages/intro_page.dart');
       expect(src.contains('unawaited(tryRegisterStoredTokenAfterLogin())'), isTrue);
       expect(src.contains('await tryRegisterStoredTokenAfterLogin()'), isFalse);
-      expect(src.contains('kIntroDuration = Duration(milliseconds: 3000)'), isTrue);
+      expect(src.contains('kIntroDuration = Duration(milliseconds: 2200)'), isTrue);
     });
 
     test('the wordmark and the fonts are made ready during the logo, once', () {

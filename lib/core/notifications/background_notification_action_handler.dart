@@ -10,7 +10,6 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../data/repositories/notification_repository.dart';
@@ -68,13 +67,9 @@ class BackgroundNotificationActionHandler {
     required String hint,
   }) async {
     try {
-      ByteArrayAndroidIcon? icon;
-      try {
-        final data = await rootBundle.load(androidBrandLargeIconAsset);
-        icon = ByteArrayAndroidIcon(data.buffer.asUint8List());
-      } catch (_) {
-        icon = null; // no avatar, the conversation still shows
-      }
+      // R-050: the avatar is an Android drawable (no asset read + no 43 KB byte transfer on the tap path: the question
+      // had to wait for them); it is the same glass sphere with the wordmark.
+      const icon = DrawableResourceAndroidIcon('sedi_notification_sphere');
       final sedi = Person(name: sediBrandName(lang), key: 'sedi', icon: icon, important: true);
       final now = DateTime.now();
       final body = originalBody.trim();
