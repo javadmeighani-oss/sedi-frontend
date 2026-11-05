@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import '../../../../core/health_subject/sedi_health_subject_controller.dart';
 import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
-import '../../../../core/notifications/pending_dislike_reasons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_palette.dart';
 import '../../../../data/models/chat_message.dart';
@@ -22,9 +21,7 @@ import '../../../../core/profile/profile_snapshot_loader.dart';
 import '../../../lifestyle/logic/lifestyle_summary_cache.dart';
 import 'gate3_profile_page.dart' show canonicalProfileSummaryText;
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
-import '../../../notifications/presentation/notification_inbox_l10n.dart';
 import '../../../notifications/presentation/pages/notification_inbox_page.dart';
-import '../../../notifications/presentation/widgets/dislike_reason_sheet.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
@@ -134,7 +131,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         if (mounted) ProfileSnapshotLoader.refresh(summaryParser: canonicalProfileSummaryText);
       });
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _askPendingDislikeReason());
     // A1->A3 speed: the subject list and the chat start-up (history + Sedi's opener) do not depend on each
     // other, so they load together. The first subject load is not a "switch" and must not clear the chat.
     _subjects.loadAccessibleSubjects().whenComplete(() {
@@ -200,7 +196,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     }
     if (state == AppLifecycleState.resumed) {
       _refreshUnreadBadge();
-      _askPendingDislikeReason();
       // Back after being away (2 min+): a new day starts clean, the same day collapses into a summary.
       final away = _pausedAt;
       _pausedAt = null;
@@ -211,30 +206,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           _scrollToBottom();
         });
       }
-    }
-  }
-
-  bool _askingDislikeReason = false;
-
-  /// P7: a tray "Dislike" carries no reason. The next time the chat is in front, Sedi asks why - once - so her
-  /// notifications can correct themselves (timing, wording, frequency). Dismissing the sheet is fine: no nagging.
-  Future<void> _askPendingDislikeReason() async {
-    if (_askingDislikeReason || !mounted) return;
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
-    _askingDislikeReason = true;
-    try {
-      final id = await PendingDislikeReasons.takeNext();
-      if (id == null || !mounted) return;
-      final picked = await showDislikeReasonSheet(
-        context,
-        NotificationInboxL10n(SediLocaleController.instance.languageCode),
-      );
-      if (picked == null) return;
-      await _notificationsService.sendDislikeReason(id, picked);
-    } catch (_) {
-      // Fail-open: never break the chat because of a feedback question.
-    } finally {
-      _askingDislikeReason = false;
     }
   }
 
@@ -741,11 +712,20 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             showTyping: true,
           );
         }
-        final msg = _controller.messages[entry as int];
+        final msgIndex = entry as int;
+        final msg = _controller.messages[msgIndex];
+        // R-073: the one-tap answers sit inside the LAST Sedi message once it has been fully spoken.
+        final showReplies = msg.isSedi &&
+            msgIndex == _controller.messages.length - 1 &&
+            !_controller.isSpeaking &&
+            !_controller.isThinking &&
+            _controller.quickReplies.isNotEmpty;
         return MessageBubble(
           key: ValueKey(msg.localId),
           message: msg.text,
           isSedi: msg.isSedi,
+          replies: showReplies ? _controller.quickReplies : const <String>[],
+          onReply: showReplies ? (reply) => _controller.sendUserMessage(reply) : null,
           isFailed: msg.isUser && msg.status == ChatMessageStatus.failed,
           onRetry: msg.isUser && msg.status == ChatMessageStatus.failed
               ? () => _controller.retryFailedMessage(msg.localId)

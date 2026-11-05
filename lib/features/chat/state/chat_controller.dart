@@ -83,6 +83,9 @@ class ChatController extends ChangeNotifier {
 
   bool isThinking = false;
   bool isSpeaking = false;
+
+  /// R-073: the one-tap answers under Sedi's opener question (drawn inside her message box); cleared when the user speaks.
+  List<String> quickReplies = const <String>[];
   bool isAlert = false;
 
   // ===============================
@@ -222,6 +225,7 @@ class ChatController extends ChangeNotifier {
             : (data.proactiveOpener ?? '').trim();
         if (text.isNotEmpty) {
           _addSediMessage(text, maxReveal: openerMaxReveal);
+          quickReplies = List<String>.from(data.followupAskLabels);
           // The recap opener replaces the long transcript at the top of the window.
           earlierTodayCollapsed = restoredTodayCount > 0;
         }
@@ -278,13 +282,18 @@ class ChatController extends ChangeNotifier {
       final text = open != null && open.ok && open.data != null
           ? (open.data!.message.trim().isNotEmpty ? open.data!.message : (open.data!.proactiveOpener ?? '').trim())
           : '';
+      final asks = open != null && open.ok && open.data != null ? open.data!.followupAskLabels : const <String>[];
       if (action == ChatReturnAction.freshDay) {
         _finishRevealNow();
         messages.clear();
         restoredTodayCount = 0;
         earlierTodayCollapsed = false;
         _threadDay = ChatReturnPolicy.dayKey(now);
-        if (text.isNotEmpty) _addSediMessage(text, maxReveal: openerMaxReveal);
+        quickReplies = const <String>[];
+        if (text.isNotEmpty) {
+          _addSediMessage(text, maxReveal: openerMaxReveal);
+          quickReplies = List<String>.from(asks);
+        }
         notifyListeners();
         return;
       }
@@ -293,6 +302,7 @@ class ChatController extends ChangeNotifier {
       _finishRevealNow();
       restoredTodayCount = messages.length;
       _addSediMessage(text, maxReveal: openerMaxReveal);
+      quickReplies = List<String>.from(asks);
       earlierTodayCollapsed = restoredTodayCount > 0;
       notifyListeners();
     } catch (e) {
@@ -336,6 +346,7 @@ class ChatController extends ChangeNotifier {
   Future<void> sendUserMessage(String text, {DateTime? createdAt}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    quickReplies = const <String>[];
     _finishRevealNow();
     final localId = DateTime.now().microsecondsSinceEpoch.toString();
     // Do not mutate Account.preferred_language from typed language.

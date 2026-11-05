@@ -1,49 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sedi_app/core/notifications/pending_dislike_reasons.dart';
 import 'package:sedi_app/features/lifestyle/presentation/lifestyle_l10n.dart';
 import 'package:sedi_app/services/lifestyle/lifestyle_schedule_service.dart';
 
-/// P7 (frontend) + DEBT-044: a tray dislike is remembered so Sedi can ask WHY once; repeating reminders show their rhythm.
+/// DEBT-044: repeating reminders show their rhythm. (The P7 "remember a tray dislike and ask in the chat sheet" tests were
+/// retired by R-073: Sedi now asks the reason herself in her first chat message, in ONE place - see
+/// f2_quick_reply_and_reason_panel_test.dart.)
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    PendingDislikeReasons.prefsLoader = null;
-  });
-
-  test('a tray dislike is remembered and asked about once, oldest first', () async {
-    await PendingDislikeReasons.add(12);
-    await PendingDislikeReasons.add(12); // duplicate ignored
-    await PendingDislikeReasons.add(15);
-    expect(await PendingDislikeReasons.load(), [12, 15]);
-    expect(await PendingDislikeReasons.takeNext(), 12);
-    expect(await PendingDislikeReasons.takeNext(), 15);
-    expect(await PendingDislikeReasons.takeNext(), isNull);
-  });
-
-  test('the store is bounded and ignores bad ids', () async {
-    for (var i = 1; i <= 9; i++) {
-      await PendingDislikeReasons.add(i);
-    }
-    await PendingDislikeReasons.add(0);
-    await PendingDislikeReasons.add(-4);
-    expect(await PendingDislikeReasons.load(), [5, 6, 7, 8, 9]);
-  });
-
-  test('the tray handler remembers a dislike, and the chat page asks the reason', () {
-    final bg = File('lib/core/notifications/background_notification_action_handler.dart')
-        .readAsStringSync();
+  test('the tray handler no longer stores a dislike for a chat sheet; the backend asks the reason in the first message', () {
+    final bg = File('lib/core/notifications/background_notification_action_handler.dart').readAsStringSync();
     expect(bg.contains("action == 'dislike'"), isTrue);
-    expect(bg.contains('PendingDislikeReasons.add(id)'), isTrue);
-    final page = File('lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart')
-        .readAsStringSync();
-    expect(page.contains('_askPendingDislikeReason'), isTrue);
-    expect(page.contains('showDislikeReasonSheet('), isTrue);
-    expect(page.contains('sendDislikeReason(id, picked)'), isTrue);
-    final inbox = File('lib/features/notifications/presentation/pages/notification_inbox_page.dart')
-        .readAsStringSync();
+    expect(bg.contains('PendingDislikeReasons'), isFalse);
+    final page = File('lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart').readAsStringSync();
+    expect(page.contains('_askPendingDislikeReason'), isFalse);
+    final inbox = File('lib/features/notifications/presentation/pages/notification_inbox_page.dart').readAsStringSync();
     expect(inbox.contains('showDislikeReasonSheet('), isTrue);
   });
 

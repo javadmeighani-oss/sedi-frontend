@@ -18,7 +18,6 @@ import '../auth/auth_service.dart';
 import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'local_notifications_service.dart';
-import 'pending_dislike_reasons.dart';
 import 'pending_notification_actions.dart';
 import 'tray_notification_snapshot_store.dart';
 
@@ -164,14 +163,8 @@ class BackgroundNotificationActionHandler {
       }
       if (action == 'dislike') {
         final shown = await promptShown!;
-        if (!shown) {
-          await _dismissTrayIsolated(id);
-          try {
-            await PendingDislikeReasons.add(id);
-          } catch (e) {
-            debugPrint('[FCM-bg] pending dislike reason not stored: $e');
-          }
-        }
+        // R-073: when the question could not be shown, Sedi asks it herself in the first chat message (backend, 2C-1).
+        if (!shown) await _dismissTrayIsolated(id);
       }
 
       final ok = await _attemptLikeDislikeAck(

@@ -74,19 +74,24 @@ class SediCopy {
       'en': 'Like',
     },
     'inbox.dislikeAction': {
-      'fa': 'نپسندیدن',
-      'ar': 'عدم إعجاب',
-      'en': 'Dislike',
+      'fa': 'فعلاً نه',
+      'ar': 'ليس الآن',
+      'en': 'Not now',
     },
     'inbox.dislikeReasonTitle': {
-      'fa': 'چرا نپسندیدی؟',
-      'ar': 'لماذا لم يعجبك؟',
-      'en': 'Why did you dislike it?',
+      'fa': 'چرا فعلاً نه؟',
+      'ar': 'لماذا ليس الآن؟',
+      'en': 'Why not now?',
     },
     'inbox.dislikeReasonHint': {
-      'fa': 'یکی رو بزن تا دفعه‌ی بعد توی وقت بهتری برات بفرستم.',
-      'ar': 'اختر واحدًا وسأرسل التالي في وقت أنسب.',
-      'en': 'Pick one and I will send the next one at a better time.',
+      'fa': 'با یک ضربه جواب بده؛ دفعه‌ی بعد زمان و شکل پیام را مناسب‌تر می‌کنم.',
+      'ar': 'اختر إجابة واحدة، وسأجعل الرسالة التالية أنسب وقتًا وشكلًا.',
+      'en': 'Tap one answer; I will make the next message fit you better.',
+    },
+    'inbox.dislikeReasonMore': {
+      'fa': 'دلیل دیگر',
+      'ar': 'سبب آخر',
+      'en': 'Another reason',
     },
     'inbox.dislikeReasonLabel.busy_now': {
       'fa': 'الان درگیرم',
@@ -94,7 +99,7 @@ class SediCopy {
       'en': "I'm busy now",
     },
     'inbox.dislikeReasonLabel.rest_time': {
-      'fa': 'وقت استراحتمه',
+      'fa': 'وقت استراحتم است',
       'ar': 'وقت راحتي',
       'en': 'Rest time',
     },
@@ -104,27 +109,27 @@ class SediCopy {
       'en': 'Not in the mood',
     },
     'inbox.dislikeReasonLabel.too_frequent': {
-      'fa': 'زیاد می‌فرسته',
+      'fa': 'زیاد پیام می‌دهی',
       'ar': 'كثيرة جداً',
       'en': 'Too many',
     },
     'inbox.dislikeReasonLabel.irrelevant': {
-      'fa': 'به من ربطی نداره',
+      'fa': 'به من ربطی ندارد',
       'ar': 'لا تخصني',
       'en': 'Not relevant to me',
     },
     'inbox.dislikeReasonLabel.unclear': {
-      'fa': 'نامفهومه',
+      'fa': 'نامفهوم بود',
       'ar': 'غير واضحة',
       'en': 'Unclear',
     },
     'inbox.dislikeReasonLabel.not_helpful': {
-      'fa': 'کمکی نکرد',
+      'fa': 'به کارم نیامد',
       'ar': 'لم تفدني',
       'en': 'Not helpful',
     },
     'inbox.dislikeReasonLabel.default': {
-      'fa': 'زمانش بد بود',
+      'fa': 'وقتش مناسب نبود',
       'ar': 'توقيت غير مناسب',
       'en': 'Wrong time',
     },
@@ -279,9 +284,9 @@ class SediCopy {
       'en': 'Like',
     },
     'tray.action.dislike': {
-      'fa': 'نپسندیدن',
-      'ar': 'عدم إعجاب',
-      'en': 'Dislike',
+      'fa': 'فعلاً نه',
+      'ar': 'ليس الآن',
+      'en': 'Not now',
     },
     'tray.action.open_chat': {
       'fa': 'صحبت با صدی',
@@ -311,7 +316,7 @@ class SediCopy {
     'tray.processing.dislike': {
       'fa': 'در حال ثبت نظرت…',
       'ar': 'جارٍ تسجيل رأيك…',
-      'en': 'Sending Dislike…',
+      'en': 'Sending…',
     },
     'tray.processing.open_chat': {
       'fa': 'در حال آماده\u200cسازی…',

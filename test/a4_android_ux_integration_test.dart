@@ -162,7 +162,7 @@ void main() {
 
     test('safe fallback labels when metadata missing', () {
       expect(fallbackActionLabel('like', 'en'), 'Like');
-      expect(fallbackActionLabel('dislike', 'fa'), 'نپسندیدن');
+      expect(fallbackActionLabel('dislike', 'fa'), 'فعلاً نه');
       expect(fallbackActionLabel('open_chat', 'fa'), 'صحبت با صدی');
       expect(fallbackActionLabel('open_chat', 'ar'), 'التحدث مع صدي');
       expect(fallbackActionLabel('open_chat', 'en'), 'Talk to Sedi');

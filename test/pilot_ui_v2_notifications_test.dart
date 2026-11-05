@@ -59,7 +59,7 @@ void main() {
       }
     }
     expect(NotificationInboxL10n('fa').dislikeReasonLabel('busy_now'), 'الان درگیرم');
-    expect(NotificationInboxL10n('fa').dislikeReasonLabel('rest_time'), 'وقت استراحتمه');
+    expect(NotificationInboxL10n('fa').dislikeReasonLabel('rest_time'), 'وقت استراحتم است');
     expect(NotificationInboxL10n('fa').dislikeReasonLabel('not_in_mood'), 'حوصله ندارم');
   });
 }
