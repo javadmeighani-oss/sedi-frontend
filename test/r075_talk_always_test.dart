@@ -37,4 +37,10 @@ void main() {
   test('an empty payload still falls back to talk + not now', () {
     expect(_ids([], 'fa'), ['open_chat', 'dislike']);
   });
+
+  test('talk stays visible when the payload already has four actions (Codex P2)', () {
+    expect(_ids([_a('done'), _a('plan_not_done'), _a('later'), _a('open_chat')], 'fa'), ['done', 'plan_not_done', 'open_chat']);
+    expect(_ids([_a('like'), _a('dislike'), _a('done'), _a('open_chat')], 'en').contains('open_chat'), isTrue);
+    expect(_ids([_a('like'), _a('dislike'), _a('done'), _a('open_chat')], 'en').length, 3);
+  });
 }

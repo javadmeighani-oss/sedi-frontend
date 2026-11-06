@@ -171,6 +171,17 @@ List<AndroidNotificationAction> resolveNotificationActions({
     order.add('open_chat');
     labels['open_chat'] = fallbackActionLabel('open_chat', language);
   }
+  // Codex P2 (PR 23): a payload that already carries talk AND more than three actions keeps talk visible - extras give way.
+  for (final drop in const ['later', 'like']) {
+    if (order.length > 3 && order.contains(drop)) {
+      order.remove(drop);
+      labels.remove(drop);
+    }
+  }
+  while (order.length > 3) {
+    final i = order.lastIndexWhere((id) => id != 'open_chat');
+    labels.remove(order.removeAt(i));
+  }
 
   return [
     for (final id in order)
