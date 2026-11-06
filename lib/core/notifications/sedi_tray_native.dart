@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' show PluginUtilities;
 
 import 'package:flutter/foundation.dart';
@@ -20,15 +21,11 @@ Future<void> sediTrayBackgroundEntry() async {
       final args = Map<String, dynamic>.from(call.arguments as Map);
       final answer = args['answer']?.toString() ?? '';
       if (answer.isEmpty) return false;
-      await BackgroundNotificationActionHandler.handle(
-        NotificationResponse(
-          notificationResponseType: NotificationResponseType.selectedNotificationAction,
-          id: args['id'] is int ? args['id'] as int : null,
-          actionId: '${BackgroundNotificationActionHandler.reasonActionPrefix}$answer',
-          payload: args['payload']?.toString(),
-        ),
-      );
-      return true;
+      final payload = jsonDecode(args['payload']?.toString() ?? '{}');
+      final id = int.tryParse(((payload is Map ? payload['notification_id'] : null) ?? '').toString());
+      if (id == null || id <= 0) return true; // nothing to deliver: do not keep an unusable answer
+      // false = not accepted by the backend: the native side keeps the answer for the next start.
+      return await BackgroundNotificationActionHandler.deliverReasonAnswer(id, answer);
     } catch (e) {
       debugPrint('[SediTray] answer not delivered (kept for the next start): $e');
       return false;

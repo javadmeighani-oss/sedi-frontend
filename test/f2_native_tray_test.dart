@@ -125,6 +125,15 @@ void main() {
       expect(src.contains('goAsync()'), isTrue);
     });
 
+    test('an answer the backend did not accept is NOT reported as delivered (stays queued natively)', () {
+      final h = _read('lib/core/notifications/background_notification_action_handler.dart');
+      expect(h.contains('static Future<bool> deliverReasonAnswer(int id, String reason)'), isTrue);
+      expect(h.contains('delivered = resp.ok;'), isTrue);
+      expect(h.contains('return delivered;'), isTrue);
+      final bridge = _read('lib/core/notifications/sedi_tray_native.dart');
+      expect(bridge.contains('return await BackgroundNotificationActionHandler.deliverReasonAnswer(id, answer);'), isTrue);
+    });
+
     test('the runner is fail-open: a timeout or an error leaves the answer for the next start', () {
       final src = _read('$kt/BackgroundRunner.kt');
       expect(src.contains('TIMEOUT_MS'), isTrue);
