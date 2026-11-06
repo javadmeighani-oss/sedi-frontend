@@ -38,12 +38,13 @@ class SediTrayPlugin :
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val ctx = context
         if (ctx == null) {
-            result.success(if (call.method == "showGrown" || call.method == "registerBackground") false else null)
+            result.success(if (call.method == "showGrown" || call.method == "showArrival" || call.method == "registerBackground") false else null)
             return
         }
         try {
             when (call.method) {
-                "showGrown" -> result.success(GrownNotification.show(ctx, (call.arguments as? Map<*, *>) ?: emptyMap<Any, Any>()))
+                "showGrown" -> result.success(GrownNotification.present(ctx, (call.arguments as? Map<*, *>) ?: emptyMap<Any, Any>()))
+                "showArrival" -> result.success(ArrivalNotification.show(ctx, (call.arguments as? Map<*, *>) ?: emptyMap<Any, Any>()))
                 "registerBackground" -> {
                     val handle = (call.argument<Number>("handle"))?.toLong() ?: 0L
                     if (handle != 0L) TrayPrefs.setHandle(ctx, handle)
@@ -54,7 +55,7 @@ class SediTrayPlugin :
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
-            result.success(if (call.method == "showGrown" || call.method == "registerBackground") false else null)
+            result.success(if (call.method == "showGrown" || call.method == "showArrival" || call.method == "registerBackground") false else null)
         }
     }
 

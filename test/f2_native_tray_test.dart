@@ -45,10 +45,11 @@ void main() {
       final native = src.indexOf('if (await _showNativeGrown(');
       expect(native, greaterThan(0));
       expect(native, lessThan(src.indexOf('final plugin = FlutterLocalNotificationsPlugin();', native)));
-      expect(src.contains("return await SediTray.showGrown("), isTrue);
-      expect(src.contains("talkLabel: SediCopy.t('tray.action.open_chat', lang)"), isTrue);
-      expect(src.contains("notNowLabel: SediCopy.t('tray.action.dislike', lang)"), isTrue);
-      expect(src.contains("SediCopy.t('tray.reason.\$r', lang)"), isTrue);
+      expect(src.contains('return await SediTray.showGrownMap('), isTrue);
+      final args = _read('lib/core/notifications/sedi_tray_args.dart');
+      expect(args.contains("SediCopy.t('tray.action.open_chat', lang)"), isTrue);
+      expect(args.contains("SediCopy.t('tray.action.dislike', lang)"), isTrue);
+      expect(args.contains("SediCopy.t('tray.reason.\$r', lang)"), isTrue);
     });
 
     test('the app registers the background entry at start and picks up kept answers and the «talk» tap', () {
@@ -118,7 +119,7 @@ void main() {
       final src = _read('$kt/SediTrayActionReceiver.kt');
       final cancel = src.indexOf('NotificationManagerCompat.from(context).cancel(id)');
       final keep = src.indexOf('TrayPrefs.addPending(context, id, answer, payload)');
-      final run = src.indexOf('BackgroundRunner.run(');
+      final run = src.indexOf('BackgroundRunner.run(context, id, answer, payload)');
       expect(cancel, greaterThan(0));
       expect(cancel, lessThan(keep));
       expect(keep, lessThan(run));
