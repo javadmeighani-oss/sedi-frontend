@@ -21,6 +21,11 @@ String trayPromptHtml({required String originalBody, required String question, r
   return body.isEmpty ? head : '${trayEscape(body)}<br><br>$head';
 }
 
+bool _isRtl(String lang) {
+  final l = lang.toLowerCase();
+  return l.startsWith('fa') || l.startsWith('ar');
+}
+
 /// The arguments of the grown notification (rendered natively): own title and text, the question, the three short answers,
 /// the two labels of the buttons, the payloads of the «talk» tap and of the answers.
 Map<String, Object?> buildGrownArgs({
@@ -39,7 +44,8 @@ Map<String, Object?> buildGrownArgs({
   final hint = l10n.dislikeReasonHint;
   return <String, Object?>{
     'id': id,
-    'rtl': lang != 'en',
+    // Codex P2 (PR 22): a locale tag such as en-US must stay left-to-right; only Persian/Arabic are right-to-left.
+    'rtl': _isRtl(lang),
     'title': title.trim().isEmpty ? question : title,
     'body': body,
     'question': '$question $hint',

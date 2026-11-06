@@ -71,6 +71,23 @@ void main() {
       expect((a['title'] as String).isNotEmpty, isTrue);
     });
 
+    test('a locale tag decides the direction by its language (en-US is left-to-right)', () {
+      Map<String, Object?> a(String lang) => buildGrownArgs(
+            id: 1,
+            lang: lang,
+            title: 't',
+            body: 'b',
+            channelId: 'engagement',
+            talkPayload: '{}',
+            answerPayload: '{}',
+          );
+      expect(a('en-US')['rtl'], isFalse);
+      expect(a('EN')['rtl'], isFalse);
+      expect(a('fa')['rtl'], isTrue);
+      expect(a('fa-IR')['rtl'], isTrue);
+      expect(a('ar-SA')['rtl'], isTrue);
+    });
+
     test('the dislike marker is not one of the reasons', () {
       expect(kTrayReasons.contains(kTrayDislikeAnswer), isFalse);
       expect(kTrayDislikeAnswer, '__dislike__');
@@ -97,7 +114,7 @@ void main() {
 
     test('the renderer hands only talk+not-now notifications (no plan buttons) to the native tray, fail-open', () {
       final l = _read('lib/core/notifications/local_notifications_service.dart');
-      expect(l, contains("ids.contains('dislike') || !ids.contains('open_chat')"));
+      expect(l, contains("!ids.contains('dislike') || !ids.contains('open_chat')"));
       expect(l, contains('planFollowUpActions.contains'));
       expect(l, contains('SediTray.showArrival'));
     });

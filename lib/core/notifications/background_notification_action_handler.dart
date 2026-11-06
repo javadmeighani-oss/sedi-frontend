@@ -444,21 +444,30 @@ class BackgroundNotificationActionHandler {
   }
 
   static Future<void> _handleReasonAnswer(int id, String reason) async {
-    if (!promptReasons.contains(reason)) return;
+    await deliverReasonAnswer(id, reason);
+  }
+
+  /// R-073: sends the reason and closes the prompt. True ONLY when the backend accepted it - so the native tray keeps the
+  /// answer queued (and retries on the next start) when there is no token or the request failed (Codex P2, PR #21).
+  static Future<bool> deliverReasonAnswer(int id, String reason) async {
+    if (!promptReasons.contains(reason)) return true; // nothing valid to keep
+    var delivered = false;
     try {
       if (await AuthService.hasToken()) {
-        await NotificationRepository().sendFeedback(
+        final resp = await NotificationRepository().sendFeedback(
           notificationId: id,
           action: 'dislike',
           reason: reason,
           clientTs: DateTime.now().toUtc().toIso8601String(),
           recoverSessionOn401: false,
         );
+        delivered = resp.ok;
       }
     } catch (e) {
-      debugPrint('[FCM-bg] reason feedback failed (best effort): $e');
+      debugPrint('[FCM-bg] reason feedback failed (kept for retry): $e');
     }
     await _dismissTrayIsolated(id);
+    return delivered;
   }
 
   /// Dismiss exact local notification without registering UI/response callbacks.
