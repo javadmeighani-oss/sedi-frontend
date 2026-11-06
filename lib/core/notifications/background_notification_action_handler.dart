@@ -15,6 +15,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/notification_inbox_l10n.dart';
 import '../auth/auth_service.dart';
+import 'package:sedi_tray/sedi_tray.dart';
+
 import '../copy/sedi_copy.dart';
 import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
@@ -243,6 +245,9 @@ class BackgroundNotificationActionHandler {
     try {
       final lang = _lang(payload);
       final l10n = NotificationInboxL10n(lang);
+      // R-073: the native tray draws the approved layout (own title and text, the pressed button selected, the question and
+      // the answers below). Fail-open: when it cannot, the standard conversation notification below is shown as before.
+      if (await _showNativeGrown(notificationId: notificationId, payload: payload, lang: lang, l10n: l10n)) return true;
       // The saved original text is read WHILE the plugin starts (they used to run one after the other).
       final originalF = TrayNotificationSnapshotStore.get(notificationId);
       final plugin = FlutterLocalNotificationsPlugin();
@@ -306,6 +311,46 @@ class BackgroundNotificationActionHandler {
       return true;
     } catch (e) {
       debugPrint('[FCM-bg] reason prompt not shown: $e');
+      return false;
+    }
+  }
+
+  /// R-073: posts the grown notification through the native tray. True only when it was posted.
+  static Future<bool> _showNativeGrown({
+    required int notificationId,
+    required Map<String, dynamic> payload,
+    required String lang,
+    required NotificationInboxL10n l10n,
+  }) async {
+    if (!SediTray.supported) return false;
+    try {
+      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final headline = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
+      final channelRaw = (payload['channel'] ?? 'engagement').toString();
+      final answerPayload = jsonEncode({
+        'notification_id': '$notificationId',
+        'source_notification_id': '$notificationId',
+        'channel': channelRaw,
+        'language': lang,
+        'reason_prompt': true,
+      });
+      return await SediTray.showGrown(
+        id: _notificationIdToInt(notificationId),
+        rtl: lang != 'en',
+        title: headline,
+        body: original?.body ?? '',
+        question: '${l10n.dislikeReasonTitle} ${l10n.dislikeReasonHint}',
+        talkLabel: SediCopy.t('tray.action.open_chat', lang),
+        notNowLabel: SediCopy.t('tray.action.dislike', lang),
+        answers: <SediTrayAnswer>[
+          for (final r in promptReasons) SediTrayAnswer(id: r, label: SediCopy.t('tray.reason.$r', lang)),
+        ],
+        channelId: resolveAndroidChannelId(channelRaw),
+        payload: original?.payloadJson ?? answerPayload,
+        answerPayload: answerPayload,
+      );
+    } catch (e) {
+      debugPrint('[FCM-bg] native tray not used: $e');
       return false;
     }
   }

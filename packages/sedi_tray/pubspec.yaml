@@ -1,0 +1,19 @@
+name: sedi_tray
+description: Sedi native tray (Android) - the grown "why not now?" notification with custom views and an instant answer receiver (R-073).
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.sedi.sedi_tray
+        pluginClass: SediTrayPlugin
