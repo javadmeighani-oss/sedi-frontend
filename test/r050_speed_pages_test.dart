@@ -85,7 +85,8 @@ void main() {
     test('the tray question builds its avatar from a drawable, not an asset read', () {
       final bg = _read('lib/core/notifications/background_notification_action_handler.dart');
       expect(bg.contains('rootBundle'), isFalse);
-      expect(bg.contains("DrawableResourceAndroidIcon('sedi_notification_sphere')"), isTrue);
+      // R-073: the sphere is the large icon of the standard grown notification (still a drawable, no asset read)
+      expect(bg.contains("DrawableResourceAndroidBitmap('sedi_notification_sphere')"), isTrue);
     });
   });
 }
