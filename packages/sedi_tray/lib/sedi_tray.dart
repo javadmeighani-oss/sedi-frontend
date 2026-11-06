@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
@@ -52,10 +53,12 @@ class SediTray {
     required String channelId,
     required String payload,
     required String answerPayload,
+    String html = '',
   }) async {
     if (!supported) return false;
     try {
       final ok = await _channel.invokeMethod<bool>('showGrown', <String, Object?>{
+        'html': html,
         'id': id,
         'rtl': rtl,
         'title': title,
@@ -67,6 +70,47 @@ class SediTray {
         'channelId': channelId,
         'payload': payload,
         'answerPayload': answerPayload,
+      });
+      return ok == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// [showGrown] with ready-made arguments (see `buildGrownArgs`).
+  static Future<bool> showGrownMap(Map<String, Object?> args) async {
+    if (!supported) return false;
+    try {
+      return (await _channel.invokeMethod<bool>('showGrown', args)) == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// R-073 (no wait): the ARRIVAL of a notification with «talk» + «not now» drawn natively. Its «not now» button grows the
+  /// notification at once - no Flutter engine is started on the tap. [grown] is what it grows into (see `buildGrownArgs`).
+  /// Returns true when it was posted; false = the caller shows the notification itself as before.
+  static Future<bool> showArrival({
+    required int id,
+    required String title,
+    required String body,
+    required String channelId,
+    required String talkLabel,
+    required String notNowLabel,
+    required String payload,
+    required Map<String, Object?> grown,
+  }) async {
+    if (!supported) return false;
+    try {
+      final ok = await _channel.invokeMethod<bool>('showArrival', <String, Object?>{
+        'id': id,
+        'title': title,
+        'body': body,
+        'channelId': channelId,
+        'talkLabel': talkLabel,
+        'notNowLabel': notNowLabel,
+        'payload': payload,
+        'grownJson': jsonEncode(grown),
       });
       return ok == true;
     } catch (_) {

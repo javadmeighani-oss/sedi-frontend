@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sedi_tray/sedi_tray.dart';
 
 import 'background_notification_action_handler.dart';
+import 'sedi_tray_args.dart';
 
 /// R-073: the Dart side of the native tray (Android). The native answer receiver closes the grown notification at once and
 /// starts THIS entry in a headless engine to deliver the answer; nothing here is on the user's waiting path.
@@ -20,6 +21,10 @@ Future<void> sediTrayBackgroundEntry() async {
       final args = Map<String, dynamic>.from(call.arguments as Map);
       final answer = args['answer']?.toString() ?? '';
       if (answer.isEmpty) return false;
+      if (answer == kTrayDislikeAnswer) {
+        await BackgroundNotificationActionHandler.acknowledgeNativeDislike(args['payload']?.toString());
+        return true;
+      }
       await BackgroundNotificationActionHandler.handle(
         NotificationResponse(
           notificationResponseType: NotificationResponseType.selectedNotificationAction,
@@ -59,6 +64,10 @@ class SediTrayNativeBridge {
       final pending = await SediTray.drainPending();
       for (final item in pending) {
         try {
+          if (item.answer == kTrayDislikeAnswer) {
+            await BackgroundNotificationActionHandler.acknowledgeNativeDislike(item.payload);
+            continue;
+          }
           await BackgroundNotificationActionHandler.handle(
             NotificationResponse(
               notificationResponseType: NotificationResponseType.selectedNotificationAction,

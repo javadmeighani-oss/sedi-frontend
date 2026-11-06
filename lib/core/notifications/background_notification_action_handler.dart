@@ -18,6 +18,7 @@ import '../auth/auth_service.dart';
 import 'package:sedi_tray/sedi_tray.dart';
 
 import '../copy/sedi_copy.dart';
+import 'sedi_tray_args.dart';
 import '../theme/sedi_palette.dart';
 import 'local_notifications_service.dart';
 import 'pending_notification_actions.dart';
@@ -56,17 +57,9 @@ class BackgroundNotificationActionHandler {
     return body.isEmpty ? '$question\n$hint' : '$body\n\n$question\n$hint';
   }
 
-  static String _esc(String text) =>
-      text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>');
-
-  /// R-073 (Javad 2026-11-06): the notification keeps ITS OWN text first; after a blank line Sedi's question follows as a bold,
-  /// coloured heading (a medium pistachio that reads on a light and a dark tray) with its hint below. Android has no horizontal
-  /// rule in notification text, so the separation is the blank line + the heading (no text-art line).
-  static String promptHtml({required String originalBody, required String question, required String hint}) {
-    final body = originalBody.trim();
-    final head = '<b><font color="#7F9E32">${_esc(question)}</font></b><br>${_esc(hint)}';
-    return body.isEmpty ? head : '${_esc(body)}<br><br>$head';
-  }
+  /// R-073: the notification text, then the bold coloured question (see [trayPromptHtml]).
+  static String promptHtml({required String originalBody, required String question, required String hint}) =>
+      trayPromptHtml(originalBody: originalBody, question: question, hint: hint);
 
   /// The standard grown notification (the fallback of the native tray, and the whole tray below Android 12): the original
   /// TITLE stays as the title, the text keeps its place, the question is the coloured heading below it; the three answers stay
@@ -244,7 +237,7 @@ class BackgroundNotificationActionHandler {
       final l10n = NotificationInboxL10n(lang);
       // R-073: the native tray draws the approved layout (own title and text, the pressed button selected, the question and
       // the answers below). Fail-open: when it cannot, the standard conversation notification below is shown as before.
-      if (await _showNativeGrown(notificationId: notificationId, payload: payload, lang: lang, l10n: l10n)) return true;
+      if (await _showNativeGrown(notificationId: notificationId, payload: payload, lang: lang)) return true;
       // The saved original text is read WHILE the plugin starts (they used to run one after the other).
       final originalF = TrayNotificationSnapshotStore.get(notificationId);
       final plugin = FlutterLocalNotificationsPlugin();
@@ -318,12 +311,10 @@ class BackgroundNotificationActionHandler {
     required int notificationId,
     required Map<String, dynamic> payload,
     required String lang,
-    required NotificationInboxL10n l10n,
   }) async {
     if (!SediTray.supported) return false;
     try {
       final original = await TrayNotificationSnapshotStore.get(notificationId);
-      final headline = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final answerPayload = jsonEncode({
         'notification_id': '$notificationId',
@@ -332,25 +323,33 @@ class BackgroundNotificationActionHandler {
         'language': lang,
         'reason_prompt': true,
       });
-      return await SediTray.showGrown(
-        id: _notificationIdToInt(notificationId),
-        rtl: lang != 'en',
-        title: headline,
-        body: original?.body ?? '',
-        question: '${l10n.dislikeReasonTitle} ${l10n.dislikeReasonHint}',
-        talkLabel: SediCopy.t('tray.action.open_chat', lang),
-        notNowLabel: SediCopy.t('tray.action.dislike', lang),
-        answers: <SediTrayAnswer>[
-          for (final r in promptReasons) SediTrayAnswer(id: r, label: SediCopy.t('tray.reason.$r', lang)),
-        ],
-        channelId: resolveAndroidChannelId(channelRaw),
-        payload: original?.payloadJson ?? answerPayload,
-        answerPayload: answerPayload,
+      return await SediTray.showGrownMap(
+        buildGrownArgs(
+          id: _notificationIdToInt(notificationId),
+          lang: lang,
+          title: original?.title ?? '',
+          body: original?.body ?? '',
+          channelId: resolveAndroidChannelId(channelRaw),
+          talkPayload: original?.payloadJson ?? answerPayload,
+          answerPayload: answerPayload,
+        ),
       );
     } catch (e) {
       debugPrint('[FCM-bg] native tray not used: $e');
       return false;
     }
+  }
+
+  /// R-073 (no wait): the native tray already GREW the notification when the user touched «not now»; this only records that
+  /// reaction (pending write + feedback), exactly like the standard path does behind its own prompt.
+  static Future<void> acknowledgeNativeDislike(String? payloadJson) async {
+    final payload = _parsePayload(payloadJson);
+    if (payload == null) return;
+    final id = int.tryParse((payload['notification_id'] ?? '').toString());
+    if (id == null || id <= 0) return;
+    final clientTs = DateTime.now().toUtc().toIso8601String();
+    await PendingNotificationActions.enqueue(notificationId: id, actionId: 'dislike', clientTs: clientTs);
+    await _attemptLikeDislikeAck(notificationId: id, actionId: 'dislike', clientTs: clientTs);
   }
 
   /// «اشکالی نداره. چی شد؟» + three reason buttons; the answer updates the skipped review with its reason.

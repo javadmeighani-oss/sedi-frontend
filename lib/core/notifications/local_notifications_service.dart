@@ -18,6 +18,8 @@ import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'background_notification_action_handler.dart';
 import 'tray_notification_snapshot_store.dart';
+import 'sedi_tray_args.dart';
+import 'package:sedi_tray/sedi_tray.dart';
 import '../copy/sedi_copy.dart';
 
 /// Expected Android raw resource name (file without extension): sedi_alarm.
@@ -592,6 +594,49 @@ class LocalNotificationsService {
   }
 
   /// Show notification from FCM remote message. Use title/body as received.
+  /// True only when the native tray posted the notification. Only the reaction family (talk + not now, no plan buttons).
+  static Future<bool> _tryNativeArrival({
+    required int id,
+    required String lang,
+    required String title,
+    required String body,
+    required String channelId,
+    required String payloadStr,
+    required List<AndroidNotificationAction> actions,
+  }) async {
+    try {
+      final ids = actions.map((a) => a.id).toSet();
+      if (!ids.contains('dislike') || !ids.contains('open_chat')) return false;
+      if (ids.any(NotificationRepository.planFollowUpActions.contains)) return false;
+      String labelOf(String actionId) => actions.firstWhere((a) => a.id == actionId).title;
+      final talkLabel = labelOf('open_chat');
+      final notNowLabel = labelOf('dislike');
+      return await SediTray.showArrival(
+        id: id,
+        title: title,
+        body: body,
+        channelId: channelId,
+        talkLabel: talkLabel,
+        notNowLabel: notNowLabel,
+        payload: payloadStr,
+        grown: buildGrownArgs(
+          id: id,
+          lang: lang,
+          title: title,
+          body: body,
+          channelId: channelId,
+          talkPayload: payloadStr,
+          answerPayload: payloadStr,
+          talkLabel: talkLabel,
+          notNowLabel: notNowLabel,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[LocalNotif] native arrival not used: $e');
+      return false;
+    }
+  }
+
   static Future<void> showRemoteNotification(RemoteMessage message) async {
     if (!_initialized) await init();
     final notif = message.notification;
@@ -652,6 +697,21 @@ class LocalNotificationsService {
       channel: channel,
       payloadJson: payloadStr,
     );
+
+    // R-073 (no wait): a notification with «talk» + «not now» is drawn by the native tray, so touching «not now» grows it at
+    // once. Fail-open: false = the standard renderer below shows it exactly as before.
+    if (Platform.isAndroid &&
+        await _tryNativeArrival(
+          id: notifId,
+          lang: language,
+          title: title,
+          body: body,
+          channelId: channelId,
+          payloadStr: payloadStr,
+          actions: actions,
+        )) {
+      return;
+    }
 
     if (Platform.isAndroid) {
       final (importance, priority, playSound, enableVibration) =
