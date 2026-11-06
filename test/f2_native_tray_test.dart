@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/core/notifications/background_notification_action_handler.dart';
 import 'package:sedi_tray/sedi_tray.dart';
 
 String _read(String path) => File(path).readAsStringSync();
@@ -65,6 +66,48 @@ void main() {
       final pub = _read('pubspec.yaml');
       expect(pub.contains('sedi_tray:'), isTrue);
       expect(pub.contains('path: packages/sedi_tray'), isTrue);
+    });
+  });
+
+  group('the standard notification (the fallback, and the whole tray below Android 12)', () {
+    test('the notification text comes first, then a blank line, then the bold coloured question and its hint', () {
+      final html = BackgroundNotificationActionHandler.promptHtml(
+        originalBody: 'جواد جان، امروز چطوری؟',
+        question: 'چرا فعلاً نه؟',
+        hint: 'با یک ضربه جواب بده.',
+      );
+      expect(html.startsWith('جواد جان، امروز چطوری؟<br><br>'), isTrue);
+      expect(html.contains('<b><font color="#7F9E32">چرا فعلاً نه؟</font></b><br>با یک ضربه جواب بده.'), isTrue);
+    });
+
+    test('without an original text only the heading and the hint are shown', () {
+      final html = BackgroundNotificationActionHandler.promptHtml(originalBody: '  ', question: 'Why not now?', hint: 'Tap one.');
+      expect(html, '<b><font color="#7F9E32">Why not now?</font></b><br>Tap one.');
+    });
+
+    test('server text can never inject markup, and line breaks are kept', () {
+      final html = BackgroundNotificationActionHandler.promptHtml(
+        originalBody: 'a <b>x</b> & y\nnext',
+        question: 'q',
+        hint: 'h',
+      );
+      expect(html.contains('a &lt;b&gt;x&lt;/b&gt; &amp; y<br>next'), isTrue);
+      expect(html.contains('<b>x</b>'), isFalse);
+    });
+  });
+
+  group('the native tray is drawn only where it is safe', () {
+    test('only from Android 12 (API 31); below it the standard notification is shown', () {
+      final src = _read('packages/sedi_tray/android/src/main/kotlin/com/sedi/sedi_tray/GrownNotification.kt');
+      expect(src.contains('const val MIN_SDK = 31'), isTrue);
+      expect(src.contains('if (Build.VERSION.SDK_INT < MIN_SDK) return false'), isTrue);
+    });
+
+    test('the expanded layout is kept compact (the custom expanded view is height-limited)', () {
+      final xml = _read('packages/sedi_tray/android/src/main/res/layout/sedi_tray_grown_rtl.xml');
+      expect(xml.contains('android:id="@+id/tray_body"'), isTrue);
+      expect(RegExp(r'android:layout_height="44dp"').hasMatch(xml), isFalse);
+      expect(RegExp(r'android:maxLines="2"').allMatches(xml).length, greaterThanOrEqualTo(1));
     });
   });
 

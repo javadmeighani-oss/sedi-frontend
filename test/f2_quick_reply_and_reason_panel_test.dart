@@ -94,8 +94,8 @@ void main() {
     test('the tray uses the short answers and keeps the notification title as the first block', () {
       final src = _read('lib/core/notifications/background_notification_action_handler.dart');
       expect(src.contains("SediCopy.t('tray.reason.\$r', lang)"), isTrue);
-      expect(src.contains("key: 'sedi_original'"), isTrue);
-      expect(src.contains('name: headline.isEmpty ? sediBrandName(lang) : headline'), isTrue);
+      expect(src.contains('contentTitle: title'), isTrue); // the standard fallback keeps the notification title too
+      expect(src.contains('static String promptHtml('), isTrue);
     });
   });
 

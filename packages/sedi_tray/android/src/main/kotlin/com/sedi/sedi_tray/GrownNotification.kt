@@ -3,6 +3,7 @@ package com.sedi.sedi_tray
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -23,12 +24,20 @@ internal object GrownNotification {
     const val ACTION_ANSWER = "com.sedi.sedi_tray.ANSWER"
 
     private const val TIMEOUT_MS = 90_000L
+
+    /**
+     * The custom layout is drawn only from Android 12 (API 31), where the notification templates are unified; on older systems
+     * the layout may be clipped (custom expanded views are height-limited) or restyled by the maker's skin, and a bad render is
+     * NOT an error the fallback could catch. Below this level the app shows the standard notification (R-073).
+     */
+    const val MIN_SDK = 31
     private const val ACCENT = 0xFF48551F.toInt()
     private val ANSWER_VIEWS = intArrayOf(R.id.tray_ans_0, R.id.tray_ans_1, R.id.tray_ans_2)
 
     private fun str(args: Map<*, *>, key: String): String = (args[key] as? String) ?: ""
 
     fun show(context: Context, args: Map<*, *>): Boolean {
+        if (Build.VERSION.SDK_INT < MIN_SDK) return false
         val id = (args["id"] as? Number)?.toInt() ?: return false
         val rtl = args["rtl"] as? Boolean ?: false
         val title = str(args, "title")

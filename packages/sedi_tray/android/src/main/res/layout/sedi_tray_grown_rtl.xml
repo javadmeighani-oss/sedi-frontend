@@ -22,20 +22,20 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:ellipsize="end"
-        android:maxLines="3"
+        android:maxLines="2"
         android:textAlignment="viewStart"
         android:textAppearance="@android:style/TextAppearance.Material.Notification" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/tray_btn_talk"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:clickable="true"
@@ -48,7 +48,7 @@
         <TextView
             android:id="@+id/tray_btn_notnow"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/sedi_tray_btn_selected"
@@ -62,8 +62,8 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:background="#2948551F" />
 
     <LinearLayout
@@ -85,6 +85,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textAlignment="viewStart"
+            android:ellipsize="end"
+            android:maxLines="3"
             android:textAppearance="@android:style/TextAppearance.Material.Notification.Title"
             android:textSize="14sp" />
     </LinearLayout>
@@ -92,7 +94,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <TextView
@@ -104,8 +106,8 @@
             android:background="@drawable/sedi_tray_btn"
             android:clickable="true"
             android:gravity="center"
-            android:maxLines="2"
-            android:minHeight="44dp"
+            android:maxLines="1"
+            android:minHeight="40dp"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:textColor="#48551F"
@@ -122,8 +124,8 @@
             android:background="@drawable/sedi_tray_btn"
             android:clickable="true"
             android:gravity="center"
-            android:maxLines="2"
-            android:minHeight="44dp"
+            android:maxLines="1"
+            android:minHeight="40dp"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:textColor="#48551F"
@@ -139,8 +141,8 @@
             android:background="@drawable/sedi_tray_btn"
             android:clickable="true"
             android:gravity="center"
-            android:maxLines="2"
-            android:minHeight="44dp"
+            android:maxLines="1"
+            android:minHeight="40dp"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
             android:textColor="#48551F"

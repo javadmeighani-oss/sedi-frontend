@@ -19,7 +19,6 @@ import 'package:sedi_tray/sedi_tray.dart';
 
 import '../copy/sedi_copy.dart';
 import '../theme/sedi_palette.dart';
-import '../utils/brand_name.dart';
 import 'local_notifications_service.dart';
 import 'pending_notification_actions.dart';
 import 'tray_notification_snapshot_store.dart';
@@ -57,10 +56,21 @@ class BackgroundNotificationActionHandler {
     return body.isEmpty ? '$question\n$hint' : '$body\n\n$question\n$hint';
   }
 
-  /// The grown notification as a small CONVERSATION (Javad 2026-11-01: no text art, a modern native look): Sedi's own
-  /// avatar (the glass sphere with her wordmark) in front of two messages - what she said, and below it her question
-  /// with its hint. One notification, one sender, a clearly separate second bubble; the three answers stay buttons.
-  /// Fail-open: when the conversation style cannot be built the plain big-text version is shown instead.
+  static String _esc(String text) =>
+      text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>');
+
+  /// R-073 (Javad 2026-11-06): the notification keeps ITS OWN text first; after a blank line Sedi's question follows as a bold,
+  /// coloured heading (a medium pistachio that reads on a light and a dark tray) with its hint below. Android has no horizontal
+  /// rule in notification text, so the separation is the blank line + the heading (no text-art line).
+  static String promptHtml({required String originalBody, required String question, required String hint}) {
+    final body = originalBody.trim();
+    final head = '<b><font color="#7F9E32">${_esc(question)}</font></b><br>${_esc(hint)}';
+    return body.isEmpty ? head : '${_esc(body)}<br><br>$head';
+  }
+
+  /// The standard grown notification (the fallback of the native tray, and the whole tray below Android 12): the original
+  /// TITLE stays as the title, the text keeps its place, the question is the coloured heading below it; the three answers stay
+  /// buttons. Fail-open: when the styled text cannot be built the plain big-text version is shown instead.
   static Future<StyleInformation> promptStyle({
     required String lang,
     required String title,
@@ -69,27 +79,14 @@ class BackgroundNotificationActionHandler {
     required String hint,
   }) async {
     try {
-      // R-050: the avatar is an Android drawable (no asset read + no 43 KB byte transfer on the tap path: the question
-      // had to wait for them); it is the same glass sphere with the wordmark.
-      const icon = DrawableResourceAndroidIcon('sedi_notification_sphere');
-      final sedi = Person(name: sediBrandName(lang), key: 'sedi', icon: icon, important: true);
-      // R-073: the notification keeps ITS OWN title and text on top (as sent), and Sedi's question grows below them,
-      // each block with her sphere; the receiving person is a neutral one so both blocks read as hers.
-      final me = Person(name: 'me', key: 'me');
-      final headline = title.trim();
-      final first = Person(name: headline.isEmpty ? sediBrandName(lang) : headline, key: 'sedi_original', icon: icon, important: true);
-      final now = DateTime.now();
-      final body = originalBody.trim();
-      return MessagingStyleInformation(
-        me,
-        groupConversation: false,
-        messages: <Message>[
-          if (body.isNotEmpty) Message(body, now.subtract(const Duration(seconds: 30)), first),
-          Message('$question\n$hint', now, sedi),
-        ],
+      return BigTextStyleInformation(
+        promptHtml(originalBody: originalBody, question: question, hint: hint),
+        htmlFormatBigText: true,
+        contentTitle: title,
+        htmlFormatContentTitle: false,
       );
     } catch (e) {
-      debugPrint('[FCM-bg] conversation style unavailable, plain text used: $e');
+      debugPrint('[FCM-bg] styled text unavailable, plain text used: $e');
       return BigTextStyleInformation(
         growWithQuestion(originalBody: originalBody, question: question, hint: hint),
         contentTitle: title,
@@ -288,6 +285,7 @@ class BackgroundNotificationActionHandler {
             LocalNotificationsService.channelDisplayName(channelId),
             icon: androidBrandSmallIcon,
             color: SediPalette.pistachio900,
+            largeIcon: const DrawableResourceAndroidBitmap('sedi_notification_sphere'),
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
             playSound: false,
@@ -393,6 +391,7 @@ class BackgroundNotificationActionHandler {
             LocalNotificationsService.channelDisplayName(channelId),
             icon: androidBrandSmallIcon,
             color: SediPalette.pistachio900,
+            largeIcon: const DrawableResourceAndroidBitmap('sedi_notification_sphere'),
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
             playSound: false,
