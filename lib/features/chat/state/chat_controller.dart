@@ -537,6 +537,8 @@ class ChatController extends ChangeNotifier {
   // ===============================
 
   void _addSediMessage(String text, {Duration? maxReveal}) {
+    // A new Sedi message supersedes older one-tap answers; the opener sets its own right AFTER this call (R-073).
+    quickReplies = const <String>[];
     isThinking = false;
     _finishRevealNow();
     final tokens = NaturalReveal.tokens(text);
@@ -608,6 +610,8 @@ class ChatController extends ChangeNotifier {
   void insertPresentationAssistantMessage(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    // A presentation-only message (e.g. a Lifestyle starter) must never inherit the opener's answers (Codex P2 on PR #19).
+    quickReplies = const <String>[];
     isThinking = false;
     isSpeaking = false;
     messages.add(ChatMessage.assistant(text: trimmed));

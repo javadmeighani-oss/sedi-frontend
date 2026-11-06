@@ -132,6 +132,15 @@ void main() {
       expect(src.indexOf('quickReplies = const <String>[];', send), greaterThan(send));
     });
 
+    test('a later Sedi message never inherits the opener's answers (presentation starters, new Sedi messages)', () {
+      final src = _read('lib/features/chat/state/chat_controller.dart');
+      final add = src.indexOf('void _addSediMessage(');
+      expect(src.indexOf('quickReplies = const <String>[];', add), lessThan(src.indexOf('isThinking = false;', add)));
+      final insert = src.indexOf('void insertPresentationAssistantMessage(');
+      expect(src.indexOf('quickReplies = const <String>[];', insert), greaterThan(insert));
+      expect(src.indexOf('quickReplies = const <String>[];', insert), lessThan(src.indexOf('messages.add(ChatMessage.assistant(text: trimmed));', insert)));
+    });
+
     test('the page shows them on the last Sedi message only, after she has finished speaking, and sends the tapped label', () {
       final src = _read('lib/features/gate3_interactive/presentation/pages/gate3_interactive_page.dart');
       expect(src.contains('msgIndex == _controller.messages.length - 1'), isTrue);
