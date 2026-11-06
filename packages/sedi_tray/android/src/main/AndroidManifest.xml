@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- The answer buttons of the grown notification: the notification closes at once, Dart is started behind it. -->
+        <receiver
+            android:name="com.sedi.sedi_tray.SediTrayActionReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

@@ -26,6 +26,9 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   firebase_core: ^3.8.1
   firebase_messaging: ^15.1.6
+  # R-073: the native tray (grown notification with custom views, instant answers) - Android only, fail-open
+  sedi_tray:
+    path: packages/sedi_tray
   record: ^5.2.1
   path_provider: ^2.1.2
   flutter_reactive_ble: 5.4.1

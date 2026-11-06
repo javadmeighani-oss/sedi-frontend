@@ -14,18 +14,18 @@ String _read(String path) => File(path).readAsStringSync();
 /// together, named the same on the meal page and the exercise page.
 void main() {
   group('the feedback is a modern conversation inside the same notification', () {
-    test('both tray prompts are a Sedi conversation (her sphere as avatar), not a text-art frame', () {
+    test('both tray prompts keep the notification title, grow a bold coloured question below the text, sphere as large icon', () {
       final bg = _read('lib/core/notifications/background_notification_action_handler.dart');
       expect(RegExp('promptStyle\\(').allMatches(bg).length, 3); // the definition + the two prompts
       expect(RegExp('styleInformation: style').allMatches(bg).length, 2);
-      expect(bg.contains('MessagingStyleInformation('), isTrue);
-      expect(bg.contains('DrawableResourceAndroidIcon('), isTrue); // R-050: no asset read on the tap path
+      expect(bg.contains('BigTextStyleInformation('), isTrue); // R-073: the title stays, the question is a coloured heading
+      expect(RegExp("DrawableResourceAndroidBitmap\\('sedi_notification_sphere'\\)").allMatches(bg).length, 2); // R-050: no asset read on the tap path
       expect(bg.contains('rootBundle'), isFalse);
       expect(File('android/app/src/main/res/drawable-nodpi/sedi_notification_sphere.png').existsSync(), isTrue);
       expect(_read('android/app/src/main/res/raw/keep.xml').contains('sedi_notification_sphere'), isTrue);
       // no block characters / HTML frame any more
       expect(bg.contains('&#9612;'), isFalse);
-      expect(bg.contains('htmlFormatBigText: true'), isFalse);
+      expect(bg.contains('htmlFormatBigText: true'), isTrue); // simple bold / colour only, escaped text
       expect(bg.contains('final expanded = growWithQuestion('), isFalse);
     });
 

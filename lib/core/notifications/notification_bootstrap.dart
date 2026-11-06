@@ -5,6 +5,7 @@ import 'fcm_setup.dart';
 import 'local_notifications_service.dart';
 import 'notification_action_coordinator.dart';
 import 'pending_notification_actions.dart';
+import 'sedi_tray_native.dart';
 import '../../services/notifications/inbox_refresh_bus.dart';
 import '../../services/push/push_service.dart';
 
@@ -27,6 +28,8 @@ class NotificationBootstrap {
     );
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    // R-073: the native answer receiver of the grown tray notification starts this Dart entry behind the closed notification.
+    await SediTrayNativeBridge.registerBackground();
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       LocalNotificationsService.showRemoteNotification(message);
@@ -64,8 +67,11 @@ class NotificationBootstrap {
   /// Call on app resume to retry transient feedback failures.
   static Future<void> onAppResumed() => drainPendingActions();
 
-  static Future<void> drainPendingActions() =>
-      NotificationActionCoordinator.drainPendingActions();
+  static Future<void> drainPendingActions() async {
+    // R-073: answers / the «talk» tap the native tray kept for the app come first (fail-open).
+    await SediTrayNativeBridge.pickUp(openChat: _handleNotificationResponse);
+    await NotificationActionCoordinator.drainPendingActions();
+  }
 
   static Future<void> _recoverLocalNotificationLaunch() async {
     try {
