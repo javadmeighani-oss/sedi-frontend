@@ -79,6 +79,26 @@ void main() {
     });
   });
 
+  group('the grown tray notification (R-073)', () {
+    test('the tray answers are short in every language (three equal buttons)', () {
+      for (final lang in ['fa', 'ar', 'en']) {
+        for (final r in ['busy_now', 'rest_time', 'not_in_mood']) {
+          final label = SediCopy.t('tray.reason.$r', lang);
+          expect(label.trim(), isNotEmpty, reason: '$lang $r');
+          expect(label.length, lessThanOrEqualTo(12), reason: '$lang $r: $label');
+        }
+      }
+      expect(SediCopy.t('tray.reason.rest_time', 'fa'), 'در استراحتم');
+    });
+
+    test('the tray uses the short answers and keeps the notification title as the first block', () {
+      final src = _read('lib/core/notifications/background_notification_action_handler.dart');
+      expect(src.contains("SediCopy.t('tray.reason.\$r', lang)"), isTrue);
+      expect(src.contains("key: 'sedi_original'"), isTrue);
+      expect(src.contains('name: headline.isEmpty ? sediBrandName(lang) : headline'), isTrue);
+    });
+  });
+
   group('the glass reason panel', () {
     testWidgets('a reason pill answers with one tap and is at least 44 dp high (52 dp for the large one)', (tester) async {
       var taps = 0;

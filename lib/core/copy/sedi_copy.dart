@@ -288,6 +288,22 @@ class SediCopy {
       'ar': 'ليس الآن',
       'en': 'Not now',
     },
+    // R-073: the tray answers are short (three equal buttons; Samsung cuts anything over about 12 characters).
+    'tray.reason.busy_now': {
+      'fa': 'الان درگیرم',
+      'ar': 'مشغول الآن',
+      'en': 'Busy now',
+    },
+    'tray.reason.rest_time': {
+      'fa': 'در استراحتم',
+      'ar': 'وقت راحتي',
+      'en': 'Resting',
+    },
+    'tray.reason.not_in_mood': {
+      'fa': 'حوصله ندارم',
+      'ar': 'لا رغبة لدي',
+      'en': 'Not in mood',
+    },
     'tray.action.open_chat': {
       'fa': 'صحبت با صدی',
       'ar': 'التحدث مع صدي',
