@@ -116,6 +116,7 @@ void main() {
       final l = _read('lib/core/notifications/local_notifications_service.dart');
       expect(l, contains("!ids.contains('dislike') || !ids.contains('open_chat')"));
       expect(l, contains('planFollowUpActions.contains'));
+      expect(l, contains("if (ids.contains('like')) return false;"));
       expect(l, contains('SediTray.showArrival'));
     });
 

@@ -608,6 +608,8 @@ class LocalNotificationsService {
       final ids = actions.map((a) => a.id).toSet();
       if (!ids.contains('dislike') || !ids.contains('open_chat')) return false;
       if (ids.any(NotificationRepository.planFollowUpActions.contains)) return false;
+      // Codex P2 (PR 22): the native arrival has only «talk» + «not now»; a payload that carries Like keeps the standard renderer.
+      if (ids.contains('like')) return false;
       String labelOf(String actionId) => actions.firstWhere((a) => a.id == actionId).title;
       final talkLabel = labelOf('open_chat');
       final notNowLabel = labelOf('dislike');
