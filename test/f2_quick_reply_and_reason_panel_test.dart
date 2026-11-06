@@ -132,7 +132,7 @@ void main() {
       expect(src.indexOf('quickReplies = const <String>[];', send), greaterThan(send));
     });
 
-    test('a later Sedi message never inherits the opener's answers (presentation starters, new Sedi messages)', () {
+    test('a later Sedi message never inherits the answers of the opener (presentation starters, new Sedi messages)', () {
       final src = _read('lib/features/chat/state/chat_controller.dart');
       final add = src.indexOf('void _addSediMessage(');
       expect(src.indexOf('quickReplies = const <String>[];', add), lessThan(src.indexOf('isThinking = false;', add)));
