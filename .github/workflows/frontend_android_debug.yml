@@ -157,6 +157,7 @@ jobs:
             test/f2_quick_reply_and_reason_panel_test.dart \
             test/f2_native_tray_test.dart \
             test/f2_native_arrival_test.dart \
+            test/r075_talk_always_test.dart \
             test/notif_box_plan_setup_test.dart \
             test/notification_tap_flow_test.dart \
             test/pilot_ui_v2_plan_test.dart
