@@ -15,6 +15,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/notification_inbox_l10n.dart';
 import '../auth/auth_service.dart';
+import '../copy/sedi_copy.dart';
 import '../theme/sedi_palette.dart';
 import '../utils/brand_name.dart';
 import 'local_notifications_service.dart';
@@ -70,13 +71,18 @@ class BackgroundNotificationActionHandler {
       // had to wait for them); it is the same glass sphere with the wordmark.
       const icon = DrawableResourceAndroidIcon('sedi_notification_sphere');
       final sedi = Person(name: sediBrandName(lang), key: 'sedi', icon: icon, important: true);
+      // R-073: the notification keeps ITS OWN title and text on top (as sent), and Sedi's question grows below them,
+      // each block with her sphere; the receiving person is a neutral one so both blocks read as hers.
+      final me = Person(name: 'me', key: 'me');
+      final headline = title.trim();
+      final first = Person(name: headline.isEmpty ? sediBrandName(lang) : headline, key: 'sedi_original', icon: icon, important: true);
       final now = DateTime.now();
       final body = originalBody.trim();
       return MessagingStyleInformation(
-        sedi,
+        me,
         groupConversation: false,
         messages: <Message>[
-          if (body.isNotEmpty) Message(body, now.subtract(const Duration(seconds: 30)), sedi),
+          if (body.isNotEmpty) Message(body, now.subtract(const Duration(seconds: 30)), first),
           Message('$question\n$hint', now, sedi),
         ],
       );
@@ -252,7 +258,7 @@ class BackgroundNotificationActionHandler {
         for (final r in promptReasons)
           AndroidNotificationAction(
             '$reasonActionPrefix$r',
-            l10n.dislikeReasonLabel(r),
+            SediCopy.t('tray.reason.$r', lang),
             showsUserInterface: false,
             cancelNotification: true,
           ),
