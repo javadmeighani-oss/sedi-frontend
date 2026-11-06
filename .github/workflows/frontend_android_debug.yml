@@ -154,6 +154,7 @@ jobs:
             test/a3_profile_memory_control_test.dart \
             test/a3_current_day_continuity_test.dart \
             test/d128_tray_dislike_reason_and_repeat_test.dart \
+            test/f2_quick_reply_and_reason_panel_test.dart \
             test/notif_box_plan_setup_test.dart \
             test/notification_tap_flow_test.dart \
             test/pilot_ui_v2_plan_test.dart

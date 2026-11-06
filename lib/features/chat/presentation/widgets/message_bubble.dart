@@ -19,6 +19,10 @@ class MessageBubble extends StatefulWidget {
   final String? readLessLabel;
   final String? retryLabel;
 
+  /// R-073: one-tap answers drawn INSIDE Sedi's message box (Sedi messages only). A tap is sent as an ordinary chat message.
+  final List<String> replies;
+  final ValueChanged<String>? onReply;
+
   /// User bubble (D-127): the same pistachio glass as Sedi's sphere, with deep-olive ink (contrast >= 8:1).
   static const Color userTextColor = Color(0xFF1B2208);
   static const List<Color> userBubbleGradient = [
@@ -69,6 +73,8 @@ class MessageBubble extends StatefulWidget {
     this.readMoreLabel,
     this.readLessLabel,
     this.retryLabel,
+    this.replies = const <String>[],
+    this.onReply,
   });
 
   @override
@@ -148,6 +154,22 @@ class _MessageBubbleState extends State<MessageBubble> {
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
+            ),
+          ),
+        ],
+        if (widget.isSedi && widget.replies.isNotEmpty && widget.onReply != null) ...[
+          const SizedBox(height: 12),
+          Container(height: 1, color: const Color(0x2948551F)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final reply in widget.replies)
+                  _QuickReplyChip(label: reply, onTap: () => widget.onReply!(reply)),
+              ],
             ),
           ),
         ],
@@ -375,6 +397,41 @@ class _TypingDotsState extends State<_TypingDots>
         decoration: const BoxDecoration(
           color: SediPalette.pistachio900,
           shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+/// One glass answer inside Sedi's message box (touch target >= 44 dp).
+class _QuickReplyChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickReplyChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          alignment: Alignment.center,
+          decoration: SediGlass.pill().copyWith(borderRadius: BorderRadius.circular(22)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: SediGlass.inkDeep,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
         ),
       ),
     );

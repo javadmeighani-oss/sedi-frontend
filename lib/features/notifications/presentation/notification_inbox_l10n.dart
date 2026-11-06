@@ -53,6 +53,7 @@ class NotificationInboxL10n {
       SediCopy.t('inbox.dislikeReasonTitle', lang);
 
   String get dislikeReasonHint => SediCopy.t('inbox.dislikeReasonHint', lang);
+  String get dislikeReasonMore => SediCopy.t('inbox.dislikeReasonMore', lang);
 
   String dislikeReasonLabel(String code) {
     switch (code) {

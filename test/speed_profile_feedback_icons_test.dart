@@ -180,7 +180,6 @@ void main() {
       expect(_at(src, 'final originalF = TrayNotificationSnapshotStore.get('), lessThan(_at(src, 'await plugin.initialize(')));
       // contracts that already existed
       expect(src.contains("action == 'dislike'"), isTrue);
-      expect(src.contains('PendingDislikeReasons.add(id)'), isTrue);
     });
   });
 

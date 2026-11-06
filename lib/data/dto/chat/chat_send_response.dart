@@ -10,6 +10,9 @@ class ChatSendResponse {
   final bool? introCompleted;
   final String? proactiveOpener;
 
+  /// R-073: one-tap answers of the question in the opener (labels only; a tap is sent as an ordinary chat message).
+  final List<String> followupAskLabels;
+
   const ChatSendResponse({
     required this.message,
     required this.language,
@@ -21,6 +24,7 @@ class ChatSendResponse {
     this.firstIntro,
     this.introCompleted,
     this.proactiveOpener,
+    this.followupAskLabels = const <String>[],
   });
 
   factory ChatSendResponse.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,19 @@ class ChatSendResponse {
       firstIntro: json['first_intro'] as bool?,
       introCompleted: json['intro_completed'] as bool?,
       proactiveOpener: json['proactive_opener']?.toString(),
+      followupAskLabels: _askLabels(json['followup_ask']),
     );
+  }
+
+  static List<String> _askLabels(dynamic raw) {
+    if (raw is! Map) return const <String>[];
+    final options = raw['options'];
+    if (options is! List) return const <String>[];
+    final out = <String>[];
+    for (final option in options) {
+      final label = (option is Map ? option['label'] : option)?.toString().trim() ?? '';
+      if (label.isNotEmpty) out.add(label);
+    }
+    return out;
   }
 }
