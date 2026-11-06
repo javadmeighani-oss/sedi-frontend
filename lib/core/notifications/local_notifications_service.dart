@@ -155,6 +155,23 @@ List<AndroidNotificationAction> resolveNotificationActions({
     }
   }
 
+  // R-075: «talk with Sedi» is ALWAYS on the notification. Android shows three buttons at most, so when the list is full
+  // «later» (then Like) makes room - they stay in the inbox sheet.
+  if (!labels.containsKey('open_chat')) {
+    for (final drop in const ['later', 'like']) {
+      if (order.length >= 3 && labels.containsKey(drop)) {
+        order.remove(drop);
+        labels.remove(drop);
+      }
+    }
+    if (order.length >= 3) {
+      final last = order.removeLast();
+      labels.remove(last);
+    }
+    order.add('open_chat');
+    labels['open_chat'] = fallbackActionLabel('open_chat', language);
+  }
+
   return [
     for (final id in order)
       AndroidNotificationAction(
