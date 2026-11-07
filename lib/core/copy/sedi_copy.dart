@@ -134,29 +134,29 @@ class SediCopy {
       'en': 'Wrong time',
     },
     'inbox.planNotDoneTitle': {
-      'fa': 'اشکالی نداره. چی شد؟',
+      'fa': 'اشکالی ندارد. چه شد؟',
       'ar': 'لا بأس. ماذا حدث؟',
       'en': 'That is fine. What happened?',
     },
     'inbox.planNotDoneHint': {
-      'fa': 'با این، صدی برنامه رو راحت‌تر می‌کنه.',
-      'ar': 'هذا يساعد صدي على تسهيل خطتك.',
-      'en': 'This helps Sedi make your plan easier.',
+      'fa': 'با دانستن دلیل، برنامه را برایت راحت‌تر می‌کنم.',
+      'ar': 'بمعرفة السبب أجعل برنامجك أسهل عليك.',
+      'en': 'Knowing why helps me make your plan easier for you.',
     },
     'inbox.planReasonLabel.no_time': {
       'fa': 'وقت نداشتم',
-      'ar': 'لم يكن لدي وقت',
+      'ar': 'ضيق الوقت',
       'en': 'No time',
     },
     'inbox.planReasonLabel.dont_like': {
-      'fa': 'دوست نداشتم',
+      'fa': 'خوشم نیامد',
       'ar': 'لم يعجبني',
-      'en': 'Did not like it',
+      'en': "Didn't like it",
     },
     'inbox.planReasonLabel.default': {
-      'fa': 'حالم خوب نیست',
+      'fa': 'حالم بد بود',
       'ar': 'لست بخير',
-      'en': 'Not feeling well',
+      'en': 'Felt unwell',
     },
     'inbox.talkToSedi': {
       'fa': 'صحبت با صدی',

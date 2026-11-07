@@ -18,6 +18,7 @@ import '../auth/auth_service.dart';
 import 'package:sedi_tray/sedi_tray.dart';
 
 import '../copy/sedi_copy.dart';
+import '../utils/brand_name.dart';
 import 'sedi_tray_args.dart';
 import '../theme/sedi_palette.dart';
 import 'local_notifications_service.dart';
@@ -227,6 +228,33 @@ class BackgroundNotificationActionHandler {
     return (raw == 'fa' || raw == 'ar' || raw == 'en') ? raw : 'fa';
   }
 
+  /// The notification's own title and text: the saved snapshot first; when it is gone (older install, cleared storage) the text
+  /// of the notification that is STILL in the tray is read before it is replaced, so the grown notification never loses it.
+  static Future<({String title, String body})?> _originalText(
+    FlutterLocalNotificationsPlugin plugin,
+    int notificationId,
+    Future<TrayNotificationSnapshot?> snapshotF,
+  ) async {
+    final snap = await snapshotF;
+    if (snap != null && (snap.title.trim().isNotEmpty || snap.body.trim().isNotEmpty)) {
+      return (title: snap.title, body: snap.body);
+    }
+    try {
+      final intId = _notificationIdToInt(notificationId);
+      final active = await plugin.getActiveNotifications();
+      for (final n in active) {
+        if (n.id == intId) {
+          final t = (n.title ?? '').trim();
+          final b = (n.body ?? '').trim();
+          if (t.isNotEmpty || b.isNotEmpty) return (title: t, body: b);
+        }
+      }
+    } catch (e) {
+      debugPrint('[FCM-bg] active notification text unavailable: $e');
+    }
+    return null;
+  }
+
   /// Replaces the tray entry with a short question («چرا نپسندیدی؟») and three reason buttons. Auto-dismisses after 90 s.
   static Future<bool> _showReasonPrompt({
     required int notificationId,
@@ -259,8 +287,9 @@ class BackgroundNotificationActionHandler {
           ),
       ];
       // The SAME notification keeps its own title and text; the question opens below them (Javad 2026-10-30).
-      final original = await originalF;
-      final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.dislikeReasonTitle;
+      final original = await _originalText(plugin, notificationId, originalF);
+      // Without any original text the title is the brand name; the question and hint follow once (never the question twice).
+      final title = original != null && original.title.trim().isNotEmpty ? original.title : sediBrandName(lang);
       final style = await promptStyle(
         lang: lang,
         title: title,
@@ -314,7 +343,25 @@ class BackgroundNotificationActionHandler {
   }) async {
     if (!SediTray.supported) return false;
     try {
-      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final snapshot = await TrayNotificationSnapshotStore.get(notificationId);
+      var title = snapshot?.title ?? '';
+      var body = snapshot?.body ?? '';
+      if (snapshot == null) {
+        // No saved copy: read the text of the notification still in the tray before the native one replaces it (Codex P2).
+        try {
+          final plugin = FlutterLocalNotificationsPlugin();
+          await plugin.initialize(
+            const InitializationSettings(android: AndroidInitializationSettings(androidBrandSmallIcon)),
+            onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+          );
+          final active = await _originalText(plugin, notificationId, Future<TrayNotificationSnapshot?>.value(null));
+          title = active?.title ?? '';
+          body = active?.body ?? '';
+        } catch (e) {
+          debugPrint('[FCM-bg] active text for native tray unavailable: $e');
+        }
+      }
+      final original = snapshot;
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final answerPayload = jsonEncode({
         'notification_id': '$notificationId',
@@ -327,8 +374,8 @@ class BackgroundNotificationActionHandler {
         buildGrownArgs(
           id: _notificationIdToInt(notificationId),
           lang: lang,
-          title: original?.title ?? '',
-          body: original?.body ?? '',
+          title: title,
+          body: body,
           channelId: resolveAndroidChannelId(channelRaw),
           talkPayload: original?.payloadJson ?? answerPayload,
           answerPayload: answerPayload,
@@ -371,8 +418,8 @@ class BackgroundNotificationActionHandler {
       );
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final channelId = resolveAndroidChannelId(channelRaw);
-      final original = await originalF;
-      final title = original != null && original.title.trim().isNotEmpty ? original.title : l10n.planNotDoneTitle;
+      final original = await _originalText(plugin, notificationId, originalF);
+      final title = original != null && original.title.trim().isNotEmpty ? original.title : sediBrandName(lang);
       final style = await promptStyle(
         lang: lang,
         title: title,
