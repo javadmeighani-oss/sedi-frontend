@@ -343,7 +343,25 @@ class BackgroundNotificationActionHandler {
   }) async {
     if (!SediTray.supported) return false;
     try {
-      final original = await TrayNotificationSnapshotStore.get(notificationId);
+      final snapshot = await TrayNotificationSnapshotStore.get(notificationId);
+      var title = snapshot?.title ?? '';
+      var body = snapshot?.body ?? '';
+      if (snapshot == null) {
+        // No saved copy: read the text of the notification still in the tray before the native one replaces it (Codex P2).
+        try {
+          final plugin = FlutterLocalNotificationsPlugin();
+          await plugin.initialize(
+            const InitializationSettings(android: AndroidInitializationSettings(androidBrandSmallIcon)),
+            onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+          );
+          final active = await _originalText(plugin, notificationId, Future<TrayNotificationSnapshot?>.value(null));
+          title = active?.title ?? '';
+          body = active?.body ?? '';
+        } catch (e) {
+          debugPrint('[FCM-bg] active text for native tray unavailable: $e');
+        }
+      }
+      final original = snapshot;
       final channelRaw = (payload['channel'] ?? 'engagement').toString();
       final answerPayload = jsonEncode({
         'notification_id': '$notificationId',
@@ -356,8 +374,8 @@ class BackgroundNotificationActionHandler {
         buildGrownArgs(
           id: _notificationIdToInt(notificationId),
           lang: lang,
-          title: original?.title ?? '',
-          body: original?.body ?? '',
+          title: title,
+          body: body,
           channelId: resolveAndroidChannelId(channelRaw),
           talkPayload: original?.payloadJson ?? answerPayload,
           answerPayload: answerPayload,
