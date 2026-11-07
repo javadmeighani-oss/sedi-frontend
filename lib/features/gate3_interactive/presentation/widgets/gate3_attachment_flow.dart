@@ -173,6 +173,7 @@ class Gate3AttachmentFlow {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final summary = (item.summary ?? '').trim();
+    final analysis = (item.analysisText ?? '').trim();
     final rawFindings = item.findings?['findings'];
     final findings = <String>[];
     if (rawFindings is List) {
@@ -220,6 +221,17 @@ class Gate3AttachmentFlow {
                       color: AppTheme.textPrimary,
                     ),
                   ),
+                  if (analysis.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      analysis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
                   if (findings.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(

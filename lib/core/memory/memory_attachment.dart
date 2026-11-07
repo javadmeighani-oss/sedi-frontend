@@ -8,6 +8,7 @@ class MemoryAttachment {
     this.summary,
     this.transcript,
     this.findings,
+    this.analysisText,
     this.confirmed = false,
   });
 
@@ -22,6 +23,9 @@ class MemoryAttachment {
   final String? summary;
   final String? transcript;
   final Map<String, dynamic>? findings;
+
+  /// R-074 step 4: the backend's plain-words analysis of a read document (flags as printed, trends vs earlier documents).
+  final String? analysisText;
   final bool confirmed;
 
   bool get isAudio => kind == 'audio';
@@ -40,6 +44,7 @@ class MemoryAttachment {
       summary: m['summary']?.toString(),
       transcript: m['transcript']?.toString(),
       findings: f is Map ? Map<String, dynamic>.from(f) : null,
+      analysisText: m['analysis'] is Map ? (m['analysis'] as Map)['text']?.toString() : null,
       confirmed: m['confirmed'] == true,
     );
   }
