@@ -47,7 +47,7 @@ internal object ArrivalNotification {
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setAutoCancel(true)
+            .setAutoCancel(false) // R-073: Android also dismisses a notification when one of its ACTION buttons is tapped if autoCancel is on; this one is closed or grown explicitly
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         talk?.let {
             builder.setContentIntent(it)

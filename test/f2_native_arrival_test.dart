@@ -132,4 +132,15 @@ void main() {
       expect(p, contains('ArrivalNotification.show'));
     });
   });
+
+  test('no native tray notification auto-cancels: an action tap must not dismiss the notification that «not now» is growing', () {
+    for (final f in ['ArrivalNotification.kt', 'GrownNotification.kt', 'StandardGrown.kt']) {
+      final src = _read('$_kt/$f');
+      expect(src.contains('.setAutoCancel(true)'), isFalse, reason: f);
+      expect(src.contains('.setAutoCancel(false)'), isTrue, reason: f);
+    }
+    // the talk tap still closes the notification explicitly (plugin capture) and every answer cancels itself in the receiver
+    expect(_read('$_kt/SediTrayPlugin.kt').contains('NotificationManagerCompat.from(ctx).cancel(id)'), isTrue);
+    expect(_read('$_kt/SediTrayActionReceiver.kt').contains('NotificationManagerCompat.from(context).cancel(id)'), isTrue);
+  });
 }

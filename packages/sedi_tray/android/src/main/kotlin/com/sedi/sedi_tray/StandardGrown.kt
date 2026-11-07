@@ -36,7 +36,7 @@ internal object StandardGrown {
             .setContentText(question)
             .setStyle(NotificationCompat.BigTextStyle().bigText(styled))
             .setOnlyAlertOnce(true)
-            .setAutoCancel(true)
+            .setAutoCancel(false) // R-073: Android also dismisses a notification when one of its ACTION buttons is tapped if autoCancel is on; this one is closed or grown explicitly
             .setTimeoutAfter(GrownNotification.TIMEOUT_MS)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         talk?.let { builder.setContentIntent(it) }
