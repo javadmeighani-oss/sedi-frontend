@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:ui' show PluginUtilities;
+import 'dart:ui' show DartPluginRegistrant, PluginUtilities;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +15,10 @@ import 'sedi_tray_args.dart';
 @pragma('vm:entry-point')
 Future<void> sediTrayBackgroundEntry() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // This engine is started natively (not by `main()`): Dart-implemented plugins (shared_preferences, used by the token
+  // migration and the pending-action store) are registered only when asked. Without it every answer from the grown
+  // notification failed silently in the background (token unreadable -> reason never sent).
+  DartPluginRegistrant.ensureInitialized();
   const channel = MethodChannel('sedi/tray_bg');
   channel.setMethodCallHandler((call) async {
     if (call.method != 'onAction') return false;
