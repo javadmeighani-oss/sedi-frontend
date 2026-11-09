@@ -31,40 +31,11 @@ class ProfileIdentityEditor {
     BuildContext context, {
     required Gate3Localization l10n,
     required String? current,
-  }) async {
-    final controller = TextEditingController(text: current ?? '');
-    final result = await showDialog<String>(
+  }) {
+    return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.profileEditNameTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 60,
-          textInputAction: TextInputAction.done,
-          decoration: InputDecoration(hintText: l10n.profileNameLabel),
-          onSubmitted: (value) {
-            final v = value.trim();
-            if (v.isNotEmpty) Navigator.of(ctx).pop(v);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.profileEditCancel),
-          ),
-          TextButton(
-            onPressed: () {
-              final v = controller.text.trim();
-              if (v.isNotEmpty) Navigator.of(ctx).pop(v);
-            },
-            child: Text(l10n.profileEditSave),
-          ),
-        ],
-      ),
+      builder: (ctx) => _NameEditDialog(l10n: l10n, initial: current ?? ''),
     );
-    controller.dispose();
-    return result;
   }
 
   /// A bottom sheet with the three backend sex codes. Returns `male`, `female` or `other`, or null when dismissed.
@@ -193,6 +164,57 @@ class ProfileIdentityEditor {
           );
         },
       ),
+    );
+  }
+}
+
+/// The name dialog owns its controller (initState / dispose): disposing it right after the route closed made Flutter assert
+/// ('_dependents.isEmpty') and paint the red screen (Javad 2026-11-09).
+class _NameEditDialog extends StatefulWidget {
+  final Gate3Localization l10n;
+  final String initial;
+
+  const _NameEditDialog({required this.l10n, required this.initial});
+
+  @override
+  State<_NameEditDialog> createState() => _NameEditDialogState();
+}
+
+class _NameEditDialogState extends State<_NameEditDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final v = _controller.text.trim();
+    if (v.isNotEmpty) Navigator.of(context).pop(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    return AlertDialog(
+      title: Text(l10n.profileEditNameTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 60,
+        textInputAction: TextInputAction.done,
+        decoration: InputDecoration(hintText: l10n.profileNameLabel),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.profileEditCancel),
+        ),
+        TextButton(onPressed: _submit, child: Text(l10n.profileEditSave)),
+      ],
     );
   }
 }
