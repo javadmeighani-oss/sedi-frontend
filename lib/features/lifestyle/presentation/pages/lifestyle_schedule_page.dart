@@ -468,7 +468,9 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                           _emptyAddCard(l10n),
                           const SizedBox(height: 14),
                         ] else ...[
-                          if (all.isNotEmpty) ...[
+                          // Javad 2026-11-09: the "next" card only helps when there is something to choose from; with ONE item it
+                          // just repeats the card right below it.
+                          if (all.length >= 2) ...[
                             _nextCard(next, all, l10n, now),
                             const SizedBox(height: 12),
                           ],
