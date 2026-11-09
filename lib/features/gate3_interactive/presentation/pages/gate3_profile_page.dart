@@ -22,6 +22,7 @@ import 'gate3_memory_page.dart';
 import '../widgets/a3_destination_surface.dart';
 import '../widgets/a3_page_app_bar.dart';
 import '../widgets/gate3_profile_memory_control.dart';
+import '../widgets/profile_identity_editor.dart';
 import '../widgets/profile_language_picker.dart';
 import '../widgets/sedi_hologram_orb.dart';
 import '../widgets/sedi_scene_backdrop.dart';
@@ -279,14 +280,29 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // The name stands alone: no icon beside it.
-                                    Text(
-                                      _me?.name ?? '—',
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppTheme.textPrimary,
-                                      ),
+                                    // The name is editable (Javad 2026-11-09): a pencil beside it, like the phone.
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _me?.name ?? '—',
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          tooltip: l10n.profileEditNameTitle,
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            size: 22,
+                                            color: SediGlass.ink,
+                                          ),
+                                          onPressed: _editName,
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 14),
                                     Row(
@@ -296,12 +312,14 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
                                           label: l10n.profileDobLabel,
                                           value: _formatDob(_me),
                                           forceLtr: true,
+                                          onTap: _editBirth,
                                         ),
                                         const SizedBox(width: 10),
                                         _factTile(
                                           icon: _sexIcon(_me?.sex),
                                           label: l10n.profileSexLabel,
                                           value: l10n.profileSexValue(_me?.sex),
+                                          onTap: _editSex,
                                         ),
                                         const SizedBox(width: 10),
                                         _factTile(
@@ -438,6 +456,60 @@ class _Gate3ProfilePageState extends State<Gate3ProfilePage> {
       // The summary card is text Sedi writes in the account language: fetch it again.
       await _load();
     }
+  }
+
+  /// Sends one profile change (PATCH /auth/me) and refreshes the page; a failure shows one short message.
+  Future<void> _saveIdentity(MeUpdateDto update) async {
+    final res = await _profile.patchMe(update, recoverSessionOn401: true);
+    if (!mounted) return;
+    if (!res.ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_l10n.profileEditFailed)),
+      );
+      return;
+    }
+    await _load();
+  }
+
+  Future<void> _editName() async {
+    final value = await ProfileIdentityEditor.editName(
+      context,
+      l10n: _l10n,
+      current: _me?.name,
+    );
+    if (value == null || !mounted || value == _me?.name) return;
+    await _saveIdentity(MeUpdateDto(name: value));
+  }
+
+  Future<void> _editSex() async {
+    final value = await ProfileIdentityEditor.editSex(
+      context,
+      l10n: _l10n,
+      current: _me?.sex,
+    );
+    if (value == null || !mounted || value == _me?.sex) return;
+    await _saveIdentity(MeUpdateDto(sex: value));
+  }
+
+  Future<void> _editBirth() async {
+    final me = _me;
+    final value = await ProfileIdentityEditor.editBirth(
+      context,
+      l10n: _l10n,
+      language: me?.preferredLanguage ?? SediLocaleController.instance.languageCode,
+      calendarType: me?.calendarType,
+      year: me?.birthYear,
+      month: me?.birthMonth,
+      day: me?.birthDay,
+    );
+    if (value == null || !mounted) return;
+    await _saveIdentity(MeUpdateDto(
+      calendarType: value.calendarType,
+      birthYear: value.year,
+      birthMonth: value.month,
+      birthDay: value.day,
+      dateOfBirth: value.isoDate,
+    ));
   }
 
   IconData _sexIcon(String? sex) {

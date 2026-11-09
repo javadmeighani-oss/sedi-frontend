@@ -158,6 +158,21 @@ class Gate3Localization {
   String get profileDobLabel =>
       _t(en: 'Date of birth', fa: 'تاریخ تولد', ar: 'تاريخ الميلاد');
   String get profileSexLabel => _t(en: 'Sex', fa: 'جنسیت', ar: 'الجنس');
+  String get profileEditNameTitle =>
+      _t(en: 'Edit your name', fa: 'ویرایش نام', ar: 'تعديل الاسم');
+  String get profileEditSexTitle =>
+      _t(en: 'Choose your sex', fa: 'جنسیت را انتخاب کن', ar: 'اختر الجنس');
+  String get profileEditBirthTitle => _t(
+      en: 'Edit date of birth', fa: 'ویرایش تاریخ تولد', ar: 'تعديل تاريخ الميلاد');
+  String get profileEditSave => _t(en: 'Save', fa: 'ذخیره', ar: 'حفظ');
+  String get profileEditCancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
+  String get profileEditFailed => _t(
+      en: 'Could not save. Try again.',
+      fa: 'ذخیره نشد؛ دوباره امتحان کن.',
+      ar: 'تعذّر الحفظ. حاول مجدداً.');
+  String get profileDayLabel => _t(en: 'Day', fa: 'روز', ar: 'اليوم');
+  String get profileMonthLabel => _t(en: 'Month', fa: 'ماه', ar: 'الشهر');
+  String get profileYearLabel => _t(en: 'Year', fa: 'سال', ar: 'السنة');
   String get profilePhoneLabel =>
       _t(en: 'Phone', fa: 'شماره همراه', ar: 'الهاتف');
 
