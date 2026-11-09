@@ -192,6 +192,21 @@ class LifestyleL10n {
   String get save => _t(en: 'Save', fa: 'ثبت', ar: 'حفظ');
   String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
   String get deleteItem => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
+  String get editItem => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
+  String get editItemTitle =>
+      _t(en: 'Edit the plan', fa: 'ویرایش برنامه', ar: 'تعديل الخطة');
+  String get editNameHint =>
+      _t(en: 'Plan name', fa: 'نام برنامه', ar: 'اسم الخطة');
+  String get editChangeDay =>
+      _t(en: 'Change the day', fa: 'تغییر روز', ar: 'تغيير اليوم');
+  String get editChangeTime =>
+      _t(en: 'Change the time', fa: 'تغییر ساعت', ar: 'تغيير الساعة');
+  String get notifyAtLabel =>
+      _t(en: 'Notification at', fa: 'اعلان در ساعت', ar: 'الإشعار الساعة');
+  String get saveFailedNetwork => _t(
+      en: 'No connection. Check the internet or VPN and try again.',
+      fa: 'اتصال برقرار نشد؛ اینترنت یا VPN را بررسی کن و دوباره امتحان کن.',
+      ar: 'لا يوجد اتصال. تحقق من الإنترنت أو VPN وحاول مجدداً.');
   String get fromChat => _t(en: 'From chat', fa: 'از چت', ar: 'من المحادثة');
 
   // ---- R-031: My Schedule redesign (categories, done, add by type, notification wording)

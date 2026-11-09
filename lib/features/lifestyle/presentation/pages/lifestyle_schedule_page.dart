@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/locale/sedi_locale_controller.dart';
+import '../../../../core/network/api_response.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
@@ -188,7 +189,7 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     if (res.ok) {
       await _load(silent: true);
     } else {
-      _toast(_l10n.saveFailed);
+      _toast(_failText(res));
     }
   }
 
@@ -220,7 +221,101 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     if (res.ok) {
       await _load(silent: true);
     } else {
-      _toast(_l10n.saveFailed);
+      _toast(_failText(res));
+    }
+  }
+
+  /// Why a save failed: no answer from the server (network / VPN) is said plainly; anything else keeps the short message.
+  String _failText(ApiResponse<void> res) {
+    debugPrint('[Schedule] save failed status=${res.statusCode} code=${res.error?.code}');
+    return res.statusCode == null ? _l10n.saveFailedNetwork : _l10n.saveFailed;
+  }
+
+  /// Javad 2026-11-09: edit the plan name and its day / time (the notification follows the new time).
+  Future<void> _edit(ScheduleItem item) async {
+    if (item.event == null) return;
+    final controller = TextEditingController(text: item.title);
+    var when = item.when;
+    String two(int n) => n.toString().padLeft(2, '0');
+    final result = await showDialog<_EditedPlan>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text(_l10n.editItemTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLength: 120,
+                  minLines: 1,
+                  maxLines: 3,
+                  decoration: InputDecoration(labelText: _l10n.editNameHint),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.event_rounded),
+                  label: Text('${_l10n.editChangeDay}: ${when.year}-${two(when.month)}-${two(when.day)}'),
+                  onPressed: () async {
+                    final d = await showDatePicker(
+                      context: ctx,
+                      initialDate: when,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (d != null) {
+                      setLocal(() => when = DateTime(d.year, d.month, d.day, when.hour, when.minute));
+                    }
+                  },
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.schedule_rounded),
+                  label: Text('${_l10n.editChangeTime}: ${two(when.hour)}:${two(when.minute)}'),
+                  onPressed: () async {
+                    final tm = await showTimePicker(
+                      context: ctx,
+                      initialTime: TimeOfDay(hour: when.hour, minute: when.minute),
+                    );
+                    if (tm != null) {
+                      setLocal(() => when = DateTime(when.year, when.month, when.day, tm.hour, tm.minute));
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(_l10n.cancel)),
+            TextButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+                Navigator.of(ctx).pop(_EditedPlan(name, when));
+              },
+              child: Text(_l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (result == null || !mounted) return;
+    final titleChanged = result.title != item.title;
+    final timeChanged = result.when != item.when;
+    if (!titleChanged && !timeChanged) return;
+    final res = await _svc.updateEvent(
+      eventId: item.refId,
+      title: titleChanged ? result.title : null,
+      startsAt: timeChanged ? result.when : null,
+    );
+    if (!mounted) return;
+    if (res.ok) {
+      await _load(silent: true);
+    } else {
+      _toast(_failText(res));
     }
   }
 
@@ -576,9 +671,8 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF2B3316)),
                   ),
                 Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  title, // the full name the user gave (Javad 2026-11-09): no cut-off
+                  softWrap: true,
                   style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: ink, height: 1.3),
                 ),
               ],
@@ -727,9 +821,8 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      i.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      i.title, // the full name the user gave: it wraps instead of being cut off
+                      softWrap: true,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -784,6 +877,21 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                         ],
                       ],
                     ),
+                    if (!done && i.event != null && i.reminderMinutes != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text(
+                            '${l10n.notifyAtLabel}: ${l10n.timeText(i.when.subtract(Duration(minutes: i.reminderMinutes!)))}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF3F4A24),
+                            ),
+                          ),
+                        ),
+                      ),
                     if (i.event?.location != null && i.event!.location!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -845,8 +953,11 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
                 icon: const Icon(Icons.more_horiz_rounded, color: AppTheme.textSecondary),
                 onSelected: (v) {
                   if (v == 'delete') _delete(i);
+                  if (v == 'edit') _edit(i);
                 },
                 itemBuilder: (_) => [
+                  if (i.kind != 'medication' && i.event != null)
+                    PopupMenuItem(value: 'edit', child: Text(l10n.editItem)),
                   PopupMenuItem(value: 'delete', child: Text(l10n.deleteItem)),
                 ],
               ),
@@ -856,4 +967,11 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
       ),
     );
   }
+}
+
+/// The result of the edit dialog: the new plan name and its (possibly new) day and time.
+class _EditedPlan {
+  final String title;
+  final DateTime when;
+  const _EditedPlan(this.title, this.when);
 }
