@@ -192,7 +192,15 @@ class LifestyleL10n {
   String get save => _t(en: 'Save', fa: 'ثبت', ar: 'حفظ');
   String get cancel => _t(en: 'Cancel', fa: 'انصراف', ar: 'إلغاء');
   String get deleteItem => _t(en: 'Delete', fa: 'حذف', ar: 'حذف');
-  String get editItem => _t(en: 'Edit', fa: 'ویرایش', ar: 'تعديل');
+  String get weeklyReportTitle =>
+      _t(en: 'My week', fa: 'هفته‌ی من', ar: 'أسبوعي');
+  String get weeklyDone => _t(en: 'Done', fa: 'انجام شد', ar: 'تم');
+  String get weeklyNotDone =>
+      _t(en: 'Not done', fa: 'انجام نشد', ar: 'لم يتم');
+  String get weeklyUnavailable => _t(
+      en: 'The weekly report is not available right now.',
+      fa: 'گزارش هفتگی الان در دسترس نیست.',
+      ar: 'التقرير الأسبوعي غير متاح الآن.');
   String get editItemTitle =>
       _t(en: 'Edit the plan', fa: 'ویرایش برنامه', ar: 'تعديل الخطة');
   String get editNameHint =>

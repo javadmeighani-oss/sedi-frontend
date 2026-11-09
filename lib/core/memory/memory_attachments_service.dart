@@ -43,6 +43,23 @@ class MemoryAttachmentsService {
     );
   }
 
+  /// «Yes, put the next visit printed on this document in my plan» (confirmed documents only).
+  Future<ApiResponse<bool>> acceptNextVisit(int id, {String? time}) {
+    return _api.post<bool>(
+      '/memory/attachments/$id/accept-next-visit',
+      queryParams: (time == null || time.isEmpty) ? null : {'time': time},
+      parser: (d) => d is Map && (d['created'] == true || d['duplicate'] == true),
+    );
+  }
+
+  /// What to bring and say at a doctor visit, built from the user's own recorded picture.
+  Future<ApiResponse<String>> previsitChecklist() {
+    return _api.get<String>(
+      '/memory/previsit-checklist',
+      parser: (d) => d is Map ? (d['text'] ?? '').toString() : null,
+    );
+  }
+
   Future<ApiResponse<bool>> delete(int id) {
     return _api.delete<bool>(
       '/memory/attachments/$id',

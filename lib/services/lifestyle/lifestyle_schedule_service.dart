@@ -168,6 +168,14 @@ class LifestyleScheduleService {
     );
   }
 
+  /// R-074 step 5b: the user's own week (done / not done and the plan reviews), read-only.
+  Future<ApiResponse<Map<String, dynamic>>> weeklyReport() {
+    return _api.get<Map<String, dynamic>>(
+      '/lifestyle/weekly-report',
+      parser: (d) => d is Map ? Map<String, dynamic>.from(d) : null,
+    );
+  }
+
   Future<ApiResponse<void>> patchReminder({
     required int eventId,
     required bool enabled,

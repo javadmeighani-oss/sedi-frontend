@@ -225,6 +225,45 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     }
   }
 
+  /// R-074 step 5b: the user's own week in one sheet (Sedi's sentence + done / not done).
+  Future<void> _showWeeklyReport() async {
+    final res = await _svc.weeklyReport();
+    if (!mounted) return;
+    final data = res.ok ? res.data : null;
+    final totals = data?['totals'];
+    final done = (totals is Map ? totals['done'] : null) ?? 0;
+    final notDone = (totals is Map ? totals['not_done'] : null) ?? 0;
+    final message = (data?['message'] ?? '').toString().trim();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _l10n.weeklyReportTitle,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: SediGlass.inkDeep),
+              ),
+              const SizedBox(height: 10),
+              if (data == null)
+                Text(_l10n.weeklyUnavailable)
+              else ...[
+                if (message.isNotEmpty) Text(message, style: const TextStyle(fontSize: 15, height: 1.5)),
+                const SizedBox(height: 12),
+                Text('${_l10n.weeklyDone}: $done    ${_l10n.weeklyNotDone}: $notDone',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Why a save failed: no answer from the server (network / VPN) is said plainly; anything else keeps the short message.
   String _failText(ApiResponse<void> res) {
     debugPrint('[Schedule] save failed status=${res.statusCode} code=${res.error?.code}');
@@ -363,6 +402,11 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
           ),
           backgroundColor: Colors.transparent,
           actions: [
+            IconButton(
+              tooltip: l10n.weeklyReportTitle,
+              icon: const Icon(Icons.insights_rounded, color: SediGlass.inkDeep),
+              onPressed: _showWeeklyReport,
+            ),
             Padding(
               padding: const EdgeInsetsDirectional.only(end: 12),
               child: Tooltip(
