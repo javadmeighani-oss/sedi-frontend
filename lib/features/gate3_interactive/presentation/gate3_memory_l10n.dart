@@ -157,6 +157,38 @@ extension Gate3MemoryL10n on Gate3Localization {
         fa: 'من فقط آنچه نوشته شده را می‌خوانم؛ تفسیر پزشکی نمی‌کنم.',
         ar: 'أقرأ فقط ما هو مكتوب ولا أفسّره طبياً.',
       );
+  String get attachNextVisitButton => _p(
+        en: 'Add the next visit to my plan',
+        fa: 'ثبت نوبت بعدی در برنامه‌ام',
+        ar: 'أضف الموعد القادم إلى خطتي',
+      );
+  String attachNextVisitQuestion(String date) => _p(
+        en: 'The next visit on this document is on $date. Add it to My plan?',
+        fa: 'نوبت بعدی این مدرک $date است. آن را در «برنامه من» ثبت کنم؟',
+        ar: 'الموعد القادم في هذه الوثيقة هو $date. هل أضيفه إلى «خطتي»؟',
+      );
+  String get attachNextVisitYes => _p(en: 'Yes, add it', fa: 'بله، ثبت کن', ar: 'نعم، أضِفه');
+  String get attachNextVisitNo => _p(en: 'Not now', fa: 'فعلاً نه', ar: 'ليس الآن');
+  String get attachNextVisitAdded => _p(
+        en: 'Added to My plan.',
+        fa: 'در «برنامه من» ثبت شد.',
+        ar: 'تمت الإضافة إلى «خطتي».',
+      );
+  String get attachNextVisitTimeHelp => _p(
+        en: 'At what time is the visit?',
+        fa: 'ساعت نوبت چند است؟',
+        ar: 'في أي ساعة الموعد؟',
+      );
+  String get attachChecklistButton => _p(
+        en: 'Pre-visit checklist',
+        fa: 'فهرست پیش از ویزیت',
+        ar: 'قائمة ما قبل الزيارة',
+      );
+  String get attachChecklistTitle => _p(
+        en: 'What to bring and say',
+        fa: 'چه چیزهایی ببر و چه بگو',
+        ar: 'ماذا تُحضر وماذا تقول',
+      );
   String attachTalkMessage(String summary) => _p(
         en: 'I sent you a document. Here is what it says: $summary',
         fa: 'یک مدرک برایت فرستادم. خلاصه‌اش این است: $summary',

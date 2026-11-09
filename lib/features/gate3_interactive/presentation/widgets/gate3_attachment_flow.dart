@@ -272,10 +272,25 @@ class Gate3AttachmentFlow {
                           messenger,
                           r.ok ? l10n.attachRemembered : errorText(l10n, r),
                         );
+                        // Step 3 (Javad 2026-11-09): a remembered document with a printed next visit offers to plan it.
+                        if (r.ok && item.nextVisitDate != null && context.mounted) {
+                          await _offerNextVisit(context, l10n, item, messenger);
+                        }
                       },
                       child: Text(l10n.attachRemember),
                     ),
                   ),
+                  if (item.nextVisitDate != null) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.checklist_rounded),
+                        label: Text(l10n.attachChecklistButton),
+                        onPressed: () => _showChecklist(ctx, l10n),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
@@ -304,6 +319,55 @@ class Gate3AttachmentFlow {
           ),
         );
       },
+    );
+  }
+
+  /// Asks whether to put the next visit printed on the document into My plan (backend: accept-next-visit, confirmed documents).
+  Future<void> _offerNextVisit(
+    BuildContext context,
+    Gate3Localization l10n,
+    MemoryAttachment item,
+    ScaffoldMessengerState messenger,
+  ) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(l10n.attachNextVisitQuestion(item.nextVisitDate ?? '')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l10n.attachNextVisitNo)),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(l10n.attachNextVisitYes)),
+        ],
+      ),
+    );
+    if (yes != true || !context.mounted) return;
+    String? time = item.nextVisitTime;
+    if (time == null || time.isEmpty) {
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: const TimeOfDay(hour: 9, minute: 0),
+        helpText: l10n.attachNextVisitTimeHelp,
+      );
+      if (picked == null) return;
+      final hh = picked.hour.toString().padLeft(2, '0');
+      final mm = picked.minute.toString().padLeft(2, '0');
+      time = '$hh:$mm';
+    }
+    final r = await _service.acceptNextVisit(item.id, time: time);
+    _toast(messenger, r.ok ? l10n.attachNextVisitAdded : errorText(l10n, r));
+  }
+
+  /// The pre-visit checklist: what to bring and say, from the user's own recorded picture.
+  Future<void> _showChecklist(BuildContext context, Gate3Localization l10n) async {
+    final r = await _service.previsitChecklist();
+    if (!context.mounted) return;
+    final text = (r.ok ? (r.data ?? '') : '').trim();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.attachChecklistTitle),
+        content: SingleChildScrollView(child: Text(text.isEmpty ? errorText(l10n, r) : text)),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK'))],
+      ),
     );
   }
 }

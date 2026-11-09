@@ -9,6 +9,8 @@ class MemoryAttachment {
     this.transcript,
     this.findings,
     this.analysisText,
+    this.nextVisitDate,
+    this.nextVisitTime,
     this.confirmed = false,
   });
 
@@ -26,6 +28,10 @@ class MemoryAttachment {
 
   /// R-074 step 4: the backend's plain-words analysis of a read document (flags as printed, trends vs earlier documents).
   final String? analysisText;
+
+  /// R-074 step 3b: the next appointment printed on the document (YYYY-MM-DD) and its time (HH:MM, may be empty).
+  final String? nextVisitDate;
+  final String? nextVisitTime;
   final bool confirmed;
 
   bool get isAudio => kind == 'audio';
@@ -36,6 +42,17 @@ class MemoryAttachment {
     final id = m['id'];
     if (id is! int) return null;
     final f = m['findings'];
+    String? visitDate;
+    String? visitTime;
+    final analysis = m['analysis'];
+    if (analysis is Map && analysis['suggestions'] is List) {
+      for (final s in (analysis['suggestions'] as List)) {
+        if (s is Map && s['kind'] == 'next_visit') {
+          visitDate = s['date']?.toString();
+          visitTime = s['time']?.toString();
+        }
+      }
+    }
     return MemoryAttachment(
       id: id,
       kind: (m['kind'] ?? '').toString(),
@@ -45,6 +62,8 @@ class MemoryAttachment {
       transcript: m['transcript']?.toString(),
       findings: f is Map ? Map<String, dynamic>.from(f) : null,
       analysisText: m['analysis'] is Map ? (m['analysis'] as Map)['text']?.toString() : null,
+      nextVisitDate: (visitDate != null && visitDate.isNotEmpty) ? visitDate : null,
+      nextVisitTime: (visitTime != null && visitTime.isNotEmpty) ? visitTime : null,
       confirmed: m['confirmed'] == true,
     );
   }

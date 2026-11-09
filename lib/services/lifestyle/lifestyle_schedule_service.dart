@@ -141,6 +141,41 @@ class LifestyleScheduleService {
     );
   }
 
+  /// Javad 2026-11-09: edit the plan name and/or its time (the same UserEvent the chat and the add sheet create).
+  Future<ApiResponse<void>> updateEvent({
+    required int eventId,
+    String? title,
+    DateTime? startsAt,
+  }) async {
+    final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
+    if (startsAt != null) {
+      String? tz;
+      try {
+        tz = await FlutterTimezone.getLocalTimezone();
+      } catch (_) {
+        tz = null;
+      }
+      final local = DateTime(startsAt.year, startsAt.month, startsAt.day,
+          startsAt.hour, startsAt.minute);
+      body['starts_at'] = local.toIso8601String();
+      if (tz != null && tz.isNotEmpty) body['timezone'] = tz;
+    }
+    return _api.patch<void>(
+      '/user/events/$eventId',
+      body: body,
+      parser: (_) => null,
+    );
+  }
+
+  /// R-074 step 5b: the user's own week (done / not done and the plan reviews), read-only.
+  Future<ApiResponse<Map<String, dynamic>>> weeklyReport() {
+    return _api.get<Map<String, dynamic>>(
+      '/lifestyle/weekly-report',
+      parser: (d) => d is Map ? Map<String, dynamic>.from(d) : null,
+    );
+  }
+
   Future<ApiResponse<void>> patchReminder({
     required int eventId,
     required bool enabled,
