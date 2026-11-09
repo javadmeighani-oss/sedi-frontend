@@ -125,10 +125,23 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     if (next) {
       _toast(res.data?.inMemory == true ? _l10n.rememberedBySedi : _l10n.doneSaved);
     }
-    await _load(silent: true);
+    _load(silent: true); // in the background: the tick already shows
   }
 
   Future<void> _setReminder(LifestyleUserEventDto e, int? minutes) async {
+    // Instant: the bell shows the new lead time at once; the server answer only confirms or undoes it.
+    final before = _events;
+    setState(() {
+      _events = [
+        for (final x in _events)
+          if (x.id == e.id)
+            _copyEvent(x,
+                reminderEnabled: minutes != null,
+                reminderOffsets: minutes == null ? <int>[] : <int>[minutes])
+          else
+            x,
+      ];
+    });
     final res = await _svc.patchReminder(
       eventId: e.id,
       enabled: minutes != null,
@@ -136,9 +149,10 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     );
     if (!mounted) return;
     if (res.ok) {
-      await _load(silent: true);
+      _load(silent: true);
     } else {
-      _toast(res.errorMessage);
+      setState(() => _events = before);
+      _toast(_failText(res));
     }
   }
 
@@ -156,14 +170,30 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   }
 
   Future<void> _delete(ScheduleItem item) async {
+    // Instant: the card disappears at once; if the server refuses it comes back with a short message.
+    final beforeEvents = _events;
+    final beforeMeds = _meds;
+    setState(() {
+      if (item.kind == 'medication') {
+        _meds = [for (final m in _meds) if (m.id != item.refId) m];
+      } else {
+        _events = [for (final e in _events) if (e.id != item.refId) e];
+      }
+    });
     final res = item.kind == 'medication'
         ? await _svc.deleteMedication(item.refId)
         : await _svc.deleteEvent(item.refId);
     if (!mounted) return;
-    if (res.ok) {
-      await _load(silent: true);
+    if (res.ok || res.statusCode == 404) {
+      // 404 = it was already gone: the card stays removed.
+      ScheduleSnapshot.remember(_events, _meds, _doneIds);
+      _load(silent: true);
     } else {
-      _toast(_l10n.saveFailed);
+      setState(() {
+        _events = beforeEvents;
+        _meds = beforeMeds;
+      });
+      _toast(_failText(res));
     }
   }
 
@@ -273,78 +303,24 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
   /// Javad 2026-11-09: edit the plan name and its day / time (the notification follows the new time).
   Future<void> _edit(ScheduleItem item) async {
     if (item.event == null) return;
-    final controller = TextEditingController(text: item.title);
-    var when = item.when;
-    String two(int n) => n.toString().padLeft(2, '0');
     final result = await showDialog<_EditedPlan>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text(_l10n.editItemTitle),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  maxLength: 120,
-                  minLines: 1,
-                  maxLines: 3,
-                  decoration: InputDecoration(labelText: _l10n.editNameHint),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.event_rounded),
-                  label: Text('${_l10n.editChangeDay}: ${when.year}-${two(when.month)}-${two(when.day)}'),
-                  onPressed: () async {
-                    final d = await showDatePicker(
-                      context: ctx,
-                      initialDate: when,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now().add(const Duration(days: 3650)),
-                    );
-                    if (d != null) {
-                      setLocal(() => when = DateTime(d.year, d.month, d.day, when.hour, when.minute));
-                    }
-                  },
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.schedule_rounded),
-                  label: Text('${_l10n.editChangeTime}: ${two(when.hour)}:${two(when.minute)}'),
-                  onPressed: () async {
-                    final tm = await showTimePicker(
-                      context: ctx,
-                      initialTime: TimeOfDay(hour: when.hour, minute: when.minute),
-                    );
-                    if (tm != null) {
-                      setLocal(() => when = DateTime(when.year, when.month, when.day, tm.hour, tm.minute));
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(_l10n.cancel)),
-            TextButton(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isEmpty) return;
-                Navigator.of(ctx).pop(_EditedPlan(name, when));
-              },
-              child: Text(_l10n.save),
-            ),
-          ],
-        ),
-      ),
+      builder: (ctx) => _EditPlanDialog(l10n: _l10n, title: item.title, when: item.when),
     );
-    controller.dispose();
     if (result == null || !mounted) return;
     final titleChanged = result.title != item.title;
     final timeChanged = result.when != item.when;
     if (!titleChanged && !timeChanged) return;
+    // The new name shows at once; the server and the reload follow in the background.
+    final before = _events;
+    if (titleChanged) {
+      setState(() {
+        _events = [
+          for (final e in _events)
+            if (e.id == item.refId) _copyEvent(e, title: result.title) else e,
+        ];
+      });
+    }
     final res = await _svc.updateEvent(
       eventId: item.refId,
       title: titleChanged ? result.title : null,
@@ -352,10 +328,32 @@ class _LifestyleSchedulePageState extends State<LifestyleSchedulePage> {
     );
     if (!mounted) return;
     if (res.ok) {
-      await _load(silent: true);
+      _load(silent: true);
     } else {
+      setState(() => _events = before);
       _toast(_failText(res));
     }
+  }
+
+  /// A copy of an event with some fields changed (the DTO is immutable) - used for instant, optimistic updates.
+  LifestyleUserEventDto _copyEvent(
+    LifestyleUserEventDto e, {
+    String? title,
+    bool? reminderEnabled,
+    List<int>? reminderOffsets,
+  }) {
+    return LifestyleUserEventDto(
+      id: e.id,
+      title: title ?? e.title,
+      location: e.location,
+      eventType: e.eventType,
+      status: e.status,
+      startsAt: e.startsAt,
+      reminderEnabled: reminderEnabled ?? e.reminderEnabled,
+      reminderOffsets: reminderOffsets ?? e.reminderOffsets,
+      source: e.source,
+      recurrenceRule: e.recurrenceRule,
+    );
   }
 
   // ------------------------------------------------------------------ build
@@ -1018,4 +1016,93 @@ class _EditedPlan {
   final String title;
   final DateTime when;
   const _EditedPlan(this.title, this.when);
+}
+
+/// The edit dialog owns its controller (initState / dispose) - see the name dialog of the profile.
+class _EditPlanDialog extends StatefulWidget {
+  final LifestyleL10n l10n;
+  final String title;
+  final DateTime when;
+
+  const _EditPlanDialog({required this.l10n, required this.title, required this.when});
+
+  @override
+  State<_EditPlanDialog> createState() => _EditPlanDialogState();
+}
+
+class _EditPlanDialogState extends State<_EditPlanDialog> {
+  late final TextEditingController _controller = TextEditingController(text: widget.title);
+  late DateTime _when = widget.when;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    return AlertDialog(
+      title: Text(l10n.editItemTitle),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              maxLength: 120,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(labelText: l10n.editNameHint),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.event_rounded),
+              label: Text('${l10n.editChangeDay}: ${_when.year}-${_two(_when.month)}-${_two(_when.day)}'),
+              onPressed: () async {
+                final d = await showDatePicker(
+                  context: context,
+                  initialDate: _when,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now().add(const Duration(days: 3650)),
+                );
+                if (d != null && mounted) {
+                  setState(() => _when = DateTime(d.year, d.month, d.day, _when.hour, _when.minute));
+                }
+              },
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.schedule_rounded),
+              label: Text('${l10n.editChangeTime}: ${_two(_when.hour)}:${_two(_when.minute)}'),
+              onPressed: () async {
+                final tm = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay(hour: _when.hour, minute: _when.minute),
+                );
+                if (tm != null && mounted) {
+                  setState(() => _when = DateTime(_when.year, _when.month, _when.day, tm.hour, tm.minute));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.cancel)),
+        TextButton(
+          onPressed: () {
+            final name = _controller.text.trim();
+            if (name.isEmpty) return;
+            Navigator.of(context).pop(_EditedPlan(name, _when));
+          },
+          child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
 }
