@@ -33,7 +33,7 @@ class LifestyleWeeklyPlanService {
     return _api.patch<void>(
       '/lifestyle/actions/$actionId',
       body: <String, dynamic>{'local_time': localTime},
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
@@ -62,7 +62,7 @@ class LifestyleWeeklyPlanService {
     return _api.post<void>(
       '/lifestyle/actions/$actionId/replace',
       body: <String, dynamic>{'item_id': itemId},
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
@@ -75,13 +75,13 @@ class LifestyleWeeklyPlanService {
         if (note != null) 'note': note,
         if (durationMinutes != null) 'duration_minutes': durationMinutes,
       },
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
   /// The user takes one plan item out of this week.
   Future<ApiResponse<void>> removeAction(int actionId) {
-    return _api.delete<void>('/lifestyle/actions/$actionId', parser: (_) => null);
+    return _api.delete<void>('/lifestyle/actions/$actionId', parser: ackParser);
   }
 
   /// Reminder days / lead and the weekly-review day of one plan (`nutrition` | `exercise`).

@@ -233,34 +233,34 @@ class MemoryExplorerService {
         if (userMessage != null) 'user_message': userMessage,
         if (sediResponse != null) 'sedi_response': sediResponse,
       },
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
   Future<ApiResponse<void>> deleteTurn(int id) =>
-      _api.delete<void>('/memory/turns/$id', parser: (_) => null);
+      _api.delete<void>('/memory/turns/$id', parser: ackParser);
 
   /// [kind] 'note' (about the day) or 'correction' (placed beside an old summary; the summary is never rewritten).
   Future<ApiResponse<void>> addNote({required String day, required String text, String kind = 'note'}) {
     return _api.post<void>(
       '/memory/day-notes',
       body: {'day': day, 'text': text, 'kind': kind},
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
   Future<ApiResponse<void>> editNote(int id, String text) =>
-      _api.patch<void>('/memory/day-notes/$id', body: {'text': text}, parser: (_) => null);
+      _api.patch<void>('/memory/day-notes/$id', body: {'text': text}, parser: ackParser);
 
   Future<ApiResponse<void>> deleteNote(int id) =>
-      _api.delete<void>('/memory/day-notes/$id', parser: (_) => null);
+      _api.delete<void>('/memory/day-notes/$id', parser: ackParser);
 
   Future<ApiResponse<void>> editFact(int id, String value) =>
-      _api.patch<void>('/memory/facts/$id', body: {'value': value}, parser: (_) => null);
+      _api.patch<void>('/memory/facts/$id', body: {'value': value}, parser: ackParser);
 
   Future<ApiResponse<void>> deleteFact(int id) =>
-      _api.delete<void>('/memory/facts/$id', parser: (_) => null);
+      _api.delete<void>('/memory/facts/$id', parser: ackParser);
 
   Future<ApiResponse<void>> deleteEvent(int id) =>
-      _api.delete<void>('/memory/events/$id', parser: (_) => null);
+      _api.delete<void>('/memory/events/$id', parser: ackParser);
 }

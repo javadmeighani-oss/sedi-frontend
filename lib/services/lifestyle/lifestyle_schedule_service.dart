@@ -164,7 +164,7 @@ class LifestyleScheduleService {
     return _api.patch<void>(
       '/user/events/$eventId',
       body: body,
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
@@ -187,7 +187,7 @@ class LifestyleScheduleService {
         'reminder_enabled': enabled,
         if (offsets != null) 'reminder_offsets': offsets,
       },
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
@@ -221,7 +221,7 @@ class LifestyleScheduleService {
         if (recurrenceRule != null && recurrenceRule.isNotEmpty) 'recurrence_rule': recurrenceRule,
         'source': 'manual',
       },
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
@@ -258,12 +258,12 @@ class LifestyleScheduleService {
         'reminder_times': times,
         if (tz != null && tz.isNotEmpty) 'timezone': tz,
       },
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
   Future<ApiResponse<void>> deleteMedication(int id) {
-    return _api.delete<void>('/user/medications/$id', parser: (_) => null);
+    return _api.delete<void>('/user/medications/$id', parser: ackParser);
   }
 
   /// Marks one occurrence done (or undoes it). The backend records it through its owner and in Sedi's memory (I7).
@@ -313,7 +313,7 @@ class LifestyleScheduleService {
   Future<ApiResponse<void>> deleteEvent(int eventId) {
     return _api.delete<void>(
       '/user/events/$eventId',
-      parser: (_) => null,
+      parser: ackParser,
     );
   }
 
