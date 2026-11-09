@@ -95,3 +95,6 @@ class ApiResponse<T> {
   @override
   String toString() => 'ApiResponse(ok: $ok, data: $data, error: $error)';
 }
+/// Parser for calls whose answer is only an acknowledgement (create / patch / delete). The backend sends a `data` object
+/// with them; a parser returning null made ApiResponse report PARSE_ERROR although the server had saved (Javad 2026-11-09).
+Object? ackParser(Object? dataJson) => dataJson ?? true;
