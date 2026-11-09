@@ -16,12 +16,17 @@ void main() {
     expect(page.contains('keyedLogo: false'), isTrue);
   });
 
-  test('the name stands alone: no avatar or icon beside it', () {
+  test('the name has no avatar; its only mark is the edit pencil (Javad 2026-11-09: name, birth date and sex are editable)', () {
     expect(page.contains('CircleAvatar'), isFalse);
     final name = page.indexOf('_me?.name');
     final tiles = page.indexOf('_factTile(', name);
     final between = page.substring(name, tiles);
-    expect(between.contains('Icon('), isFalse);
+    // exactly one icon between the name and the tiles: the pencil that edits it
+    expect('Icon('.allMatches(between).length, 1);
+    expect(between.contains('Icons.edit_outlined'), isTrue);
+    expect(between.contains('_editName'), isTrue);
+    expect(page.contains('onTap: _editBirth'), isTrue);
+    expect(page.contains('onTap: _editSex'), isTrue);
   });
 
   test('birthday, sex and language are icon tiles', () {
