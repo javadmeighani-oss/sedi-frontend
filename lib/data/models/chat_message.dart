@@ -8,6 +8,8 @@
 /// - بدون logic
 /// ============================================
 
+import 'chat_link.dart';
+
 enum ChatRole { user, assistant, system }
 
 enum ChatMessageStatus { sending, sent, failed }
@@ -23,6 +25,9 @@ class ChatMessage {
   final String? title; // عنوان (برای notification)
   final List<String>? quickReplies; // پاسخ‌های سریع (برای notification)
 
+  /// R-107 am.3: doctor-introduction links, shown as blue lines OUTSIDE the bubble.
+  final List<ChatLink> links;
+
   ChatMessage({
     String? localId,
     this.id,
@@ -33,6 +38,7 @@ class ChatMessage {
     this.type,
     this.title,
     this.quickReplies,
+    this.links = const <ChatLink>[],
   })  : localId = localId ?? DateTime.now().microsecondsSinceEpoch.toString(),
         createdAt = createdAt ?? DateTime.now();
 
@@ -54,18 +60,21 @@ class ChatMessage {
   factory ChatMessage.assistant({
     required String text,
     String? localId,
+    List<ChatLink> links = const <ChatLink>[],
   }) {
     return ChatMessage(
       localId: localId,
       text: text,
       role: ChatRole.assistant,
       status: ChatMessageStatus.sent,
+      links: links,
     );
   }
 
   ChatMessage copyWith({
     String? text,
     ChatMessageStatus? status,
+    List<ChatLink>? links,
   }) {
     return ChatMessage(
       localId: localId,
@@ -77,6 +86,7 @@ class ChatMessage {
       type: type,
       title: title,
       quickReplies: quickReplies,
+      links: links ?? this.links,
     );
   }
 

@@ -11,6 +11,7 @@ import '../../../../core/locale/calendar_date_math.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/sedi_palette.dart';
+import '../../../../data/models/chat_link.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
@@ -724,6 +725,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           key: ValueKey(msg.localId),
           message: msg.text,
           isSedi: msg.isSedi,
+          links: msg.isSedi ? msg.links : const <ChatLink>[],
           replies: showReplies ? _controller.quickReplies : const <String>[],
           onReply: showReplies ? (reply) => _controller.sendUserMessage(reply) : null,
           isFailed: msg.isUser && msg.status == ChatMessageStatus.failed,

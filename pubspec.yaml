@@ -9,6 +9,8 @@ environment:
 
 dependencies:
   flutter_timezone: ^1.0.8
+  # R-107 am.3: doctor links open the original site in the browser
+  url_launcher: ^6.3.0
   flutter:
     sdk: flutter
   flutter_localizations:
