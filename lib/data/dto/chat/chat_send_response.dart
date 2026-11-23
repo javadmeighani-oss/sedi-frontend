@@ -1,3 +1,5 @@
+import '../../models/chat_link.dart';
+
 class ChatSendResponse {
   final String message;
   final String language;
@@ -13,6 +15,9 @@ class ChatSendResponse {
   /// R-073: one-tap answers of the question in the opener (labels only; a tap is sent as an ordinary chat message).
   final List<String> followupAskLabels;
 
+  /// R-107 am.3: the doctor-introduction links of this reply (blue lines below the bubble).
+  final List<ChatLink> links;
+
   const ChatSendResponse({
     required this.message,
     required this.language,
@@ -25,6 +30,7 @@ class ChatSendResponse {
     this.introCompleted,
     this.proactiveOpener,
     this.followupAskLabels = const <String>[],
+    this.links = const <ChatLink>[],
   });
 
   factory ChatSendResponse.fromJson(Map<String, dynamic> json) {
@@ -45,6 +51,7 @@ class ChatSendResponse {
       introCompleted: json['intro_completed'] as bool?,
       proactiveOpener: json['proactive_opener']?.toString(),
       followupAskLabels: _askLabels(json['followup_ask']),
+      links: ChatLink.listFromJson(json['links']),
     );
   }
 

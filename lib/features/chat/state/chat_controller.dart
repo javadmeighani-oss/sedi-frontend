@@ -16,6 +16,7 @@ import '../../../core/network/api_response.dart';
 import '../../../data/dto/chat/chat_send_response.dart';
 import '../../../data/dto/history_response.dart';
 import '../../../data/dto/lifestyle_summary_response.dart';
+import '../../../data/models/chat_link.dart';
 import '../../../data/models/chat_message.dart';
 import '../../../data/models/user_profile.dart';
 import '../../../data/repositories/lifestyle_repository.dart';
@@ -414,6 +415,7 @@ class ChatController extends ChangeNotifier {
             messages[idx] = ChatMessage.assistant(
               text: streamed.message,
               localId: streamLocalId,
+              links: streamed.links,
             );
           }
         }
@@ -519,7 +521,7 @@ class ChatController extends ChangeNotifier {
     await UserProfileManager.saveProfile(_userProfile);
 
     if (data.message.trim().isNotEmpty) {
-      _addSediMessage(data.message.trim());
+      _addSediMessage(data.message.trim(), links: data.links);
     } else {
       isThinking = false;
       notifyListeners();
@@ -536,7 +538,7 @@ class ChatController extends ChangeNotifier {
   // Sedi Message (Display Only)
   // ===============================
 
-  void _addSediMessage(String text, {Duration? maxReveal}) {
+  void _addSediMessage(String text, {Duration? maxReveal, List<ChatLink> links = const <ChatLink>[]}) {
     // A new Sedi message supersedes older one-tap answers; the opener sets its own right AFTER this call (R-073).
     quickReplies = const <String>[];
     isThinking = false;
@@ -544,7 +546,7 @@ class ChatController extends ChangeNotifier {
     final tokens = NaturalReveal.tokens(text);
     if (tokens.length <= 1) {
       isSpeaking = false;
-      messages.add(ChatMessage(text: text, role: ChatRole.assistant));
+      messages.add(ChatMessage(text: text, role: ChatRole.assistant, links: links));
       notifyListeners();
       return;
     }
@@ -556,6 +558,7 @@ class ChatController extends ChangeNotifier {
     _revealPacer = pacer;
     _revealId = id;
     _revealFull = text;
+    _revealLinks = links;
     isSpeaking = true;
     var shown = false;
     final gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
@@ -580,6 +583,7 @@ class ChatController extends ChangeNotifier {
     }
     pacer.whenIdle.then((_) {
       if (_revealId == id) {
+        _attachLinks(id, links); // the links appear once the text is fully spoken
         _revealId = null;
         _revealPacer = null;
         isSpeaking = false;
@@ -591,6 +595,13 @@ class ChatController extends ChangeNotifier {
   AssistantStreamPacer? _revealPacer;
   String? _revealId;
   String _revealFull = '';
+  List<ChatLink> _revealLinks = const <ChatLink>[];
+
+  void _attachLinks(String id, List<ChatLink> links) {
+    if (links.isEmpty) return;
+    final idx = messages.indexWhere((m) => m.localId == id);
+    if (idx >= 0) messages[idx] = messages[idx].copyWith(links: links);
+  }
 
   /// A reveal in progress shows its whole text at once (the user sent something new, or the screen closes).
   void _finishRevealNow() {
@@ -599,7 +610,7 @@ class ChatController extends ChangeNotifier {
     _revealPacer?.cancel();
     final idx = messages.indexWhere((m) => m.localId == id);
     if (idx >= 0) {
-      messages[idx] = ChatMessage.assistant(text: _revealFull, localId: id);
+      messages[idx] = ChatMessage.assistant(text: _revealFull, localId: id, links: _revealLinks);
     }
     _revealId = null;
     _revealPacer = null;

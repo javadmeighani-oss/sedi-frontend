@@ -24,6 +24,8 @@ class ChatSendRequest {
         'conversation_id': conversationId,
       if (healthSubjectId != null) 'health_subject_id': healthSubjectId,
       if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
+      // R-107 am.3: this app shows `links` below the bubble, so the reply text carries no raw doctor URLs.
+      'supports_links': true,
       // JWT is identity authority — do not send body user_id.
     };
   }

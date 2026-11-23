@@ -214,6 +214,9 @@ jobs:
       - name: Targeted PushDevice install-id registration tests
         run: flutter test test/mobile_install_id_and_push_register_test.dart
 
+      - name: Targeted R-107 provider links tests (doctor links outside the bubble)
+        run: flutter test test/r107_provider_links_test.dart
+
       - name: Targeted known-issues consolidated closure tests
         run: |
           flutter test \

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/locale/sedi_locale_controller.dart';
 import '../../../../core/theme/sedi_glass.dart';
 import '../../../../core/theme/sedi_palette.dart';
+import '../../../../data/models/chat_link.dart';
 import '../../../gate3_interactive/models/gate3_interaction_state.dart';
 import '../../../gate3_interactive/presentation/widgets/sedi_hologram_orb.dart';
 
@@ -22,6 +24,16 @@ class MessageBubble extends StatefulWidget {
   /// R-073: one-tap answers drawn INSIDE Sedi's message box (Sedi messages only). A tap is sent as an ordinary chat message.
   final List<String> replies;
   final ValueChanged<String>? onReply;
+
+  /// R-107 am.3: the doctor-introduction links of this Sedi message - blue underlined lines OUTSIDE (below) the glass panel;
+  /// a tap opens the original site in the browser.
+  final List<ChatLink> links;
+
+  /// How a link is opened (tests replace it; the app uses the external browser).
+  static Future<bool> Function(Uri uri) linkOpener = (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
+
+  /// Blue link ink: contrast >= 4.5:1 on the pistachio page.
+  static const Color linkColor = Color(0xFF0B57D0);
 
   /// User bubble (D-127): the same pistachio glass as Sedi's sphere, with deep-olive ink (contrast >= 8:1).
   static const Color userTextColor = Color(0xFF1B2208);
@@ -75,6 +87,7 @@ class MessageBubble extends StatefulWidget {
     this.retryLabel,
     this.replies = const <String>[],
     this.onReply,
+    this.links = const <ChatLink>[],
   });
 
   @override
@@ -259,7 +272,16 @@ class _MessageBubbleState extends State<MessageBubble> {
                     keyedLogo: false,
                   ),
                 ),
-                Flexible(child: panel),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      panel,
+                      if (widget.links.isNotEmpty) _LinkLines(links: widget.links, direction: textDirection),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -334,6 +356,76 @@ class _MessageBubbleState extends State<MessageBubble> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// R-107 am.3 (Javad 2026-11-21): the links of a doctor introduction - blue, underlined, OUTSIDE the chat bubble.
+/// A tap opens the doctor's page on the original site (Paziresh24, Doctor-Doctor, ...) in the browser; if the phone cannot open it,
+/// the address is shown so it can still be used. Each line is a 44 dp touch target and a screen-reader link.
+class _LinkLines extends StatelessWidget {
+  final List<ChatLink> links;
+  final TextDirection direction;
+
+  const _LinkLines({required this.links, required this.direction});
+
+  Future<void> _open(BuildContext context, ChatLink link) async {
+    final uri = link.uri;
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await MessageBubble.linkOpener(uri);
+      } catch (_) {
+        opened = false;
+      }
+    }
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(link.url, textDirection: TextDirection.ltr)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 6, end: 6, top: 2),
+      child: Directionality(
+        textDirection: direction,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final link in links)
+              Semantics(
+                link: true,
+                label: link.label,
+                child: InkWell(
+                  key: ValueKey('chat-link-${link.url}'),
+                  onTap: () => _open(context, link),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          link.label,
+                          style: const TextStyle(
+                            color: MessageBubble.linkColor,
+                            decoration: TextDecoration.underline,
+                            decorationColor: MessageBubble.linkColor,
+                            fontSize: 14,
+                            height: 1.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
