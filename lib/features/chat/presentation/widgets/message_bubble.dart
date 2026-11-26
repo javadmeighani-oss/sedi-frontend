@@ -117,7 +117,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     // R-120 am.2: a doctor introduction is ONE bubble - the opening line, then each doctor with his link right under him, then the rest.
     final inBubble = widget.isSedi && !widget.showTyping ? widget.links.where((l) => l.inBubble).toList() : const <ChatLink>[];
     final outside = widget.links.where((l) => !l.inBubble || widget.showTyping).toList();
-    final split = inBubble.isEmpty ? null : DoctorListSplit.of(widget.message);
+    final split = inBubble.isEmpty ? null : DoctorListSplit.of(widget.message, [for (final d in inBubble) d.title.split(' — ').first]);
 
     final text = widget.showTyping
         ? const _TypingDots()
@@ -397,19 +397,23 @@ class DoctorListSplit {
 
   const DoctorListSplit(this.head, this.tail);
 
-  static DoctorListSplit of(String message) {
+  /// Only the «•» lines of the doctors drawn from the links ([names]) - and their indented second lines - are left out; any other line
+  /// (another doctor without a page, bulleted advice) stays where it was (Codex P2, PR 34).
+  static DoctorListSplit of(String message, List<String> names) {
+    final wanted = [for (final n in names) n.trim()].where((n) => n.isNotEmpty).toList();
     final lines = message.split('\n');
     final head = <String>[];
     final tail = <String>[];
     var seenList = false;
     var inItem = false;
     for (final line in lines) {
-      if (line.trimLeft().startsWith('•')) {
+      final trimmed = line.trimLeft();
+      if (trimmed.startsWith('•') && wanted.any((n) => trimmed.substring(1).trimLeft().startsWith(n))) {
         seenList = true;
         inItem = true;
         continue;
       }
-      if (inItem && line.startsWith(' ') && line.trim().isNotEmpty) continue; // the indented second line of a doctor
+      if (inItem && line.startsWith(' ') && line.trim().isNotEmpty) continue; // the indented second line of a drawn doctor
       inItem = false;
       (seenList ? tail : head).add(line);
     }
