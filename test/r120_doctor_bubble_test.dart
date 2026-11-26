@@ -33,10 +33,17 @@ void main() {
   ];
 
   test('the reply text is split around the doctor lines (which the list replaces)', () {
-    final split = DoctorListSplit.of(_message);
+    final split = DoctorListSplit.of(_message, ['دکتر الف', 'دکتر ب']);
     expect(split.head, _head);
     expect(split.tail, 'تماس بگیر و مرا در جریان قرار بده.');
-    expect(DoctorListSplit.of('فقط یک جمله').head, 'فقط یک جمله');
+    expect(DoctorListSplit.of('فقط یک جمله', ['دکتر الف']).head, 'فقط یک جمله');
+  });
+
+  test('a doctor without a drawn link and other bulleted lines stay visible (Codex P2, PR 34)', () {
+    const msg = '$_head\n• دکتر الف — قلب\n   دلیل\n• دکتر بی‌لینک — قلب، تهران\n\n• نکته‌ی مراقبتی\nپایان';
+    final split = DoctorListSplit.of(msg, ['دکتر الف']);
+    expect(split.head, _head);
+    expect(split.tail, '• دکتر بی‌لینک — قلب، تهران\n\n• نکته‌ی مراقبتی\nپایان');
   });
 
   test('the doctor line, place, note and link text are read from the backend', () {
