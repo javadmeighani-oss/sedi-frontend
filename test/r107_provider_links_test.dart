@@ -34,7 +34,7 @@ void main() {
       expect(ChatLink.fromJson('not a map'), isNull);
     });
 
-    test('the list is cleaned: unsafe skipped, duplicates dropped, at most five', () {
+    test('the list is cleaned: unsafe skipped, duplicates dropped, at most six (five near + one worth the trip)', () {
       final raw = [
         _link('الف', _pazireshUrl),
         _link('ب', _drdrUrl),
@@ -43,7 +43,7 @@ void main() {
         for (var i = 0; i < 9; i++) _link('د$i', 'https://www.paziresh24.com/dr/$i'),
       ];
       final out = ChatLink.listFromJson(raw);
-      expect(out.length, 5);
+      expect(out.length, 6);
       expect(out.map((l) => l.label).take(2), ['الف', 'ب']);
       expect(ChatLink.listFromJson(null), isEmpty);
       expect(ChatLink.listFromJson('x'), isEmpty);

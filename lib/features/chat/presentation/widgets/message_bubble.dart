@@ -114,9 +114,24 @@ class _MessageBubbleState extends State<MessageBubble> {
         ? TextDirection.rtl
         : MessageBubble.resolveTextDirection(widget.message);
 
+    // R-120 am.2: a doctor introduction is ONE bubble - the opening line, then each doctor with his link right under him, then the rest.
+    final inBubble = widget.isSedi && !widget.showTyping ? widget.links.where((l) => l.inBubble).toList() : const <ChatLink>[];
+    final outside = widget.links.where((l) => !l.inBubble || widget.showTyping).toList();
+    final split = inBubble.isEmpty ? null : DoctorListSplit.of(widget.message);
+
     final text = widget.showTyping
         ? const _TypingDots()
-        : Text(
+        : split != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (split.head.isNotEmpty) _sediText(split.head, textDirection),
+                  _DoctorList(doctors: inBubble, direction: textDirection),
+                  if (split.tail.isNotEmpty) ...[const SizedBox(height: 8), _sediText(split.tail, textDirection)],
+                ],
+              )
+            : Text(
             widget.message,
             maxLines: shouldCollapse ? 2 : null,
             overflow: shouldCollapse ? TextOverflow.ellipsis : null,
@@ -278,7 +293,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       panel,
-                      if (widget.links.isNotEmpty) _LinkLines(links: widget.links, direction: textDirection),
+                      if (outside.isNotEmpty) _LinkLines(links: outside, direction: textDirection),
                     ],
                   ),
                 ),
@@ -356,6 +371,142 @@ class _MessageBubbleState extends State<MessageBubble> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+Widget _sediText(String text, TextDirection direction) => Text(
+      text,
+      textDirection: direction,
+      textAlign: TextAlign.justify,
+      style: const TextStyle(
+        color: SediPalette.charcoal950,
+        fontSize: MessageBubble._fontSize,
+        height: MessageBubble._lineHeight,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+
+/// R-120 am.2: the reply text around the doctor list. The backend's text lists the doctors as «• …» lines (older apps show them); here
+/// the list is drawn from the links, so those lines are left out: [head] = everything before the first doctor line, [tail] = after.
+class DoctorListSplit {
+  final String head;
+  final String tail;
+
+  const DoctorListSplit(this.head, this.tail);
+
+  static DoctorListSplit of(String message) {
+    final lines = message.split('\n');
+    final head = <String>[];
+    final tail = <String>[];
+    var seenList = false;
+    var inItem = false;
+    for (final line in lines) {
+      if (line.trimLeft().startsWith('•')) {
+        seenList = true;
+        inItem = true;
+        continue;
+      }
+      if (inItem && line.startsWith(' ') && line.trim().isNotEmpty) continue; // the indented second line of a doctor
+      inItem = false;
+      (seenList ? tail : head).add(line);
+    }
+    return DoctorListSplit(head.join('\n').trim(), tail.join('\n').trim());
+  }
+}
+
+/// R-120 am.2 (Javad 2026-11-26): the doctors INSIDE Sedi's bubble - name and specialty, his place, an optional note, and RIGHT UNDER them the
+/// blue link to his page on the reference site. Each link is a 44 dp touch target and a screen-reader link.
+class _DoctorList extends StatelessWidget {
+  final List<ChatLink> doctors;
+  final TextDirection direction;
+
+  const _DoctorList({required this.doctors, required this.direction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: direction,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final d in doctors)
+            Padding(
+              key: ValueKey('chat-doctor-${d.url}'),
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(d.title,
+                      style: const TextStyle(color: SediPalette.charcoal950, fontSize: 15, height: 1.6, fontWeight: FontWeight.w700)),
+                  if (d.location.isNotEmpty)
+                    Text(d.location,
+                        style: const TextStyle(color: SediPalette.charcoal950, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w500)),
+                  if (d.note.isNotEmpty)
+                    Text(d.note,
+                        style: const TextStyle(color: SediPalette.pistachio900, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w600)),
+                  _LinkLine(link: d, text: d.linkText.isNotEmpty ? d.linkText : d.label),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _openLink(BuildContext context, ChatLink link) async {
+  final uri = link.uri;
+  var opened = false;
+  if (uri != null) {
+    try {
+      opened = await MessageBubble.linkOpener(uri);
+    } catch (_) {
+      opened = false;
+    }
+  }
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(link.url, textDirection: TextDirection.ltr)));
+  }
+}
+
+class _LinkLine extends StatelessWidget {
+  final ChatLink link;
+  final String text;
+
+  const _LinkLine({required this.link, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      link: true,
+      label: text,
+      child: InkWell(
+        key: ValueKey('chat-link-${link.url}'),
+        onTap: () => _openLink(context, link),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: MessageBubble.linkColor,
+                  decoration: TextDecoration.underline,
+                  decorationColor: MessageBubble.linkColor,
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
