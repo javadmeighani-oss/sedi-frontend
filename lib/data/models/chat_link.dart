@@ -17,6 +17,10 @@ class ChatLink {
   final String note;
   final String linkText;
 
+  /// R-120 am.3 (Javad 2026-11-27): the doctor's number in the introduction (1..5) and the phone his site publishes.
+  final int index;
+  final String phone;
+
   const ChatLink({
     required this.label,
     required this.url,
@@ -25,7 +29,26 @@ class ChatLink {
     this.location = '',
     this.note = '',
     this.linkText = '',
+    this.index = 0,
+    this.phone = '',
   });
+
+  /// The phone as a dialable `tel:` URI (digits and a leading +, Persian/Arabic digits folded), or null.
+  Uri? get phoneUri {
+    const fa = '۰۱۲۳۴۵۶۷۸۹';
+    const ar = '٠١٢٣٤٥٦٧٨٩';
+    final buf = StringBuffer();
+    for (final ch in phone.split('')) {
+      final i = fa.indexOf(ch) >= 0 ? fa.indexOf(ch) : ar.indexOf(ch);
+      if (i >= 0) {
+        buf.write(i);
+      } else if (RegExp(r'[0-9]').hasMatch(ch) || (ch == '+' && buf.isEmpty)) {
+        buf.write(ch);
+      }
+    }
+    final digits = buf.toString();
+    return digits.replaceAll('+', '').length >= 5 ? Uri(scheme: 'tel', path: digits) : null;
+  }
 
   /// A doctor shown INSIDE the bubble with his link under him.
   bool get inBubble => kind == 'provider' && title.isNotEmpty;
@@ -58,6 +81,8 @@ class ChatLink {
       location: text('location'),
       note: text('note'),
       linkText: text('link_text'),
+      index: int.tryParse(raw['index']?.toString() ?? '') ?? 0,
+      phone: text('phone'),
     );
   }
 
