@@ -169,7 +169,7 @@ jobs:
         run: flutter test test/r3_canonical_structure_legacy_quarantine_test.dart
 
       - name: Doctor links and the one-bubble doctor list (R-107 am.3, R-120 am.2)
-        run: flutter test test/r107_provider_links_test.dart test/r120_doctor_bubble_test.dart
+        run: flutter test test/r107_provider_links_test.dart test/r120_doctor_bubble_test.dart test/r120_am3_doctor_bubbles_test.dart
 
       - name: Targeted R1 session identity and empty-state tests
         run: |

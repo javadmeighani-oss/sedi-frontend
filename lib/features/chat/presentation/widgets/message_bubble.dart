@@ -122,15 +122,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     final text = widget.showTyping
         ? const _TypingDots()
         : split != null
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (split.head.isNotEmpty) _sediText(split.head, textDirection),
-                  _DoctorList(doctors: inBubble, direction: textDirection),
-                  if (split.tail.isNotEmpty) ...[const SizedBox(height: 8), _sediText(split.tail, textDirection)],
-                ],
-              )
+            ? _sediText(split.head, textDirection)
             : Text(
             widget.message,
             maxLines: shouldCollapse ? 2 : null,
@@ -246,19 +238,35 @@ class _MessageBubbleState extends State<MessageBubble> {
         bottomEnd: Radius.circular(22),
         bottomStart: Radius.circular(6),
       ).resolve(Directionality.of(context));
-      final panel = SediGlass.blur(
-        radius: radius,
-        child: DecoratedBox(
-          decoration: SediGlass.messagePanel(radius),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: MessageBubble._panelPaddingH,
-              vertical: MessageBubble._panelPaddingV,
+      Widget glass(Widget child) => SediGlass.blur(
+            radius: radius,
+            child: DecoratedBox(
+              decoration: SediGlass.messagePanel(radius),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MessageBubble._panelPaddingH,
+                  vertical: MessageBubble._panelPaddingV,
+                ),
+                child: child,
+              ),
             ),
-            child: body,
-          ),
-        ),
-      );
+          );
+      // R-120 am.3 (Javad 2026-11-27): a doctor introduction = the opening in one bubble, then EACH doctor in his OWN bubble (number, name and
+      // specialty, place, phone, note and his link - all together), then the closing bubble.
+      final Widget panel = split == null
+          ? glass(body)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (split.head.isNotEmpty) glass(body),
+                for (var i = 0; i < inBubble.length; i++) ...[
+                  const SizedBox(height: 8),
+                  glass(_DoctorCard(doctor: inBubble[i], number: inBubble[i].index > 0 ? inBubble[i].index : i + 1, direction: textDirection)),
+                ],
+                if (split.tail.isNotEmpty) ...[const SizedBox(height: 8), glass(_sediText(split.tail, textDirection))],
+              ],
+            );
       return Align(
         alignment: alignment,
         child: Padding(
@@ -423,40 +431,62 @@ class DoctorListSplit {
 
 /// R-120 am.2 (Javad 2026-11-26): the doctors INSIDE Sedi's bubble - name and specialty, his place, an optional note, and RIGHT UNDER them the
 /// blue link to his page on the reference site. Each link is a 44 dp touch target and a screen-reader link.
-class _DoctorList extends StatelessWidget {
-  final List<ChatLink> doctors;
+/// R-120 am.3 (Javad 2026-11-27): ONE doctor in his own bubble - «۱. name — specialty», his place, his phone (tap = dial), an optional note,
+/// and RIGHT UNDER them the blue link to his page on the reference site. Everything appears together.
+class _DoctorCard extends StatelessWidget {
+  final ChatLink doctor;
+  final int number;
   final TextDirection direction;
 
-  const _DoctorList({required this.doctors, required this.direction});
+  const _DoctorCard({required this.doctor, required this.number, required this.direction});
+
+  static String localDigits(String text, TextDirection direction) {
+    if (direction != TextDirection.rtl) return text;
+    const fa = '۰۱۲۳۴۵۶۷۸۹';
+    return text.split('').map((c) => RegExp(r'[0-9]').hasMatch(c) ? fa[int.parse(c)] : c).join();
+  }
+
+  Future<void> _dial(BuildContext context) async {
+    final uri = doctor.phoneUri;
+    if (uri == null) return;
+    try {
+      await MessageBubble.linkOpener(uri);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
+    final d = doctor;
     return Directionality(
       textDirection: direction,
       child: Column(
+        key: ValueKey('chat-doctor-${d.url}'),
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final d in doctors)
-            Padding(
-              key: ValueKey('chat-doctor-${d.url}'),
-              padding: const EdgeInsets.only(top: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(d.title,
-                      style: const TextStyle(color: SediPalette.charcoal950, fontSize: 15, height: 1.6, fontWeight: FontWeight.w700)),
-                  if (d.location.isNotEmpty)
-                    Text(d.location,
-                        style: const TextStyle(color: SediPalette.charcoal950, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w500)),
-                  if (d.note.isNotEmpty)
-                    Text(d.note,
-                        style: const TextStyle(color: SediPalette.pistachio900, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w600)),
-                  _LinkLine(link: d, text: d.linkText.isNotEmpty ? d.linkText : d.label),
-                ],
+          Text('${localDigits('$number', direction)}. ${d.title}',
+              style: const TextStyle(color: SediPalette.charcoal950, fontSize: 15, height: 1.6, fontWeight: FontWeight.w700)),
+          if (d.location.isNotEmpty)
+            Text(d.location,
+                style: const TextStyle(color: SediPalette.charcoal950, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w500)),
+          if (d.phone.isNotEmpty)
+            InkWell(
+              key: ValueKey('chat-phone-${d.url}'),
+              onTap: () => _dial(context),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('☎ ${d.phone}',
+                      textDirection: TextDirection.ltr,
+                      style: const TextStyle(color: SediPalette.charcoal950, fontSize: 14, height: 1.5, fontWeight: FontWeight.w600)),
+                ),
               ),
             ),
+          if (d.note.isNotEmpty)
+            Text(d.note,
+                style: const TextStyle(color: SediPalette.pistachio900, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w600)),
+          _LinkLine(link: d, text: d.linkText.isNotEmpty ? d.linkText : d.label),
         ],
       ),
     );

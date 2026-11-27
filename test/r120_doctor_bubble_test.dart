@@ -56,9 +56,9 @@ void main() {
     await tester.pumpWidget(host(const MessageBubble(message: _message, isSedi: true, links: doctors)));
     expect(find.text(_head), findsOneWidget);
     expect(find.textContaining('• دکتر الف'), findsNothing); // the plain list is not shown twice
-    final titleA = find.text('دکتر الف — متخصص قلب');
+    final titleA = find.textContaining('دکتر الف — متخصص قلب');
     final linkA = find.byKey(const ValueKey('chat-link-$_a'));
-    final titleB = find.text('دکتر ب — متخصص قلب');
+    final titleB = find.textContaining('دکتر ب — متخصص قلب');
     expect(titleA, findsOneWidget);
     expect(find.text('تهرانپارس، خیابان ۱۹۶'), findsOneWidget);
     expect(find.text('از محله‌ات دورتر است، ولی ارزش ویزیت دارد.'), findsOneWidget);
