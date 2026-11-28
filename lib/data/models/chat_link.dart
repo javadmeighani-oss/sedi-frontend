@@ -53,6 +53,25 @@ class ChatLink {
   /// A doctor shown INSIDE the bubble with his link under him.
   bool get inBubble => kind == 'provider' && title.isNotEmpty;
 
+  /// The doctor's name as the reply's «•» line starts with it (the title is «name — specialty»).
+  String get doctorName => title.split(' — ').first.trim();
+
+  /// R-120 am.4: [line] is this doctor's «•» line of the reply text.
+  bool startsDoctorLine(String line) => inBubble && bulletNames(line, doctorName);
+
+  /// [line] is a «•» line whose name is exactly [name]: after the name comes the end of the line or a delimiter («—», «،», «,», «(»…),
+  /// never more name - «دکتر علی» does not match the line of «دکتر علی رضایی» (Codex P2, FE PR 37).
+  static bool bulletNames(String line, String name) {
+    // only the FIRST line: a reveal chunk carries the doctor's indented second line too (Codex P2, FE PR 37 round 2)
+    final trimmed = line.trimLeft().split('\n').first;
+    final wanted = name.trim();
+    if (wanted.isEmpty || !trimmed.startsWith('•')) return false;
+    final body = trimmed.substring(1).trimLeft();
+    if (!body.startsWith(wanted)) return false;
+    final rest = body.substring(wanted.length).trimLeft();
+    return rest.isEmpty || RegExp(r'^[—–\-،,:;(|/]').hasMatch(rest);
+  }
+
   /// The https [Uri] that may be opened, or null.
   Uri? get uri => safeUri(url);
 

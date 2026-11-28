@@ -117,7 +117,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     // R-120 am.2: a doctor introduction is ONE bubble - the opening line, then each doctor with his link right under him, then the rest.
     final inBubble = widget.isSedi && !widget.showTyping ? widget.links.where((l) => l.inBubble).toList() : const <ChatLink>[];
     final outside = widget.links.where((l) => !l.inBubble || widget.showTyping).toList();
-    final split = inBubble.isEmpty ? null : DoctorListSplit.of(widget.message, [for (final d in inBubble) d.title.split(' — ').first]);
+    final split = inBubble.isEmpty ? null : DoctorListSplit.of(widget.message, [for (final d in inBubble) d.doctorName]);
 
     final text = widget.showTyping
         ? const _TypingDots()
@@ -416,7 +416,7 @@ class DoctorListSplit {
     var inItem = false;
     for (final line in lines) {
       final trimmed = line.trimLeft();
-      if (trimmed.startsWith('•') && wanted.any((n) => trimmed.substring(1).trimLeft().startsWith(n))) {
+      if (wanted.any((n) => ChatLink.bulletNames(trimmed, n))) {
         seenList = true;
         inItem = true;
         continue;

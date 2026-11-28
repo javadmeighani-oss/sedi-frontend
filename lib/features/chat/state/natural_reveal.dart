@@ -15,6 +15,55 @@ class NaturalReveal {
     return [for (final m in RegExp(r'\S+\s*').allMatches(text)) m.group(0)!];
   }
 
+  /// R-120 am.4 (Javad 2026-11-28): the reveal of a doctor introduction. Words as usual, but every line [startsItem] accepts - with its
+  /// indented second line - is ONE chunk, so that doctor's card appears whole (number, name, place, phone and link together) in its own
+  /// bubble instead of being typed inside the opening bubble. Joining the chunks still gives the original text back.
+  static List<String> tokensKeepingItems(String text, bool Function(String line) startsItem) {
+    final out = <String>[];
+    var plain = StringBuffer();
+    void flush() {
+      final s = plain.toString();
+      plain = StringBuffer();
+      if (s.isEmpty) return;
+      final lead = RegExp(r'^\s*').firstMatch(s)!.group(0)!;
+      final words = tokens(s.substring(lead.length));
+      if (lead.isNotEmpty) {
+        if (out.isNotEmpty) {
+          out[out.length - 1] = out.last + lead;
+        } else if (words.isNotEmpty) {
+          words[0] = lead + words[0];
+        } else {
+          out.add(lead);
+        }
+      }
+      out.addAll(words);
+    }
+
+    final lines = text.split('\n');
+    var inItem = false;
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final nl = i < lines.length - 1 ? '\n' : '';
+      if (startsItem(line)) {
+        flush();
+        out.add(line + nl);
+        inItem = true;
+        continue;
+      }
+      if (inItem && line.startsWith(' ') && line.trim().isNotEmpty) {
+        out[out.length - 1] = out.last + line + nl; // the indented second line of the same doctor
+        continue;
+      }
+      inItem = false;
+      plain.write(line + nl);
+    }
+    flush();
+    return out;
+  }
+
+  /// The pause after a whole doctor card.
+  static const Duration itemPause = Duration(milliseconds: 650);
+
   /// The pause AFTER [token]. [total] = how many words the whole text has: a very long answer is revealed faster so that
   /// nobody waits half a minute.
   static Duration gapFor(String token, {int total = 0}) {
