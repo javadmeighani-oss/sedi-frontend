@@ -91,6 +91,7 @@ void main() {
     final controller = ChatController();
     controller.revealSediMessageForTest(_message, links: _doctors);
     final counts = <int>[];
+    var sawPartlyTypedCard = false;
     var guard = 0;
     while (true) {
       await tester.pump(const Duration(milliseconds: 40));
@@ -103,7 +104,14 @@ void main() {
       // every «•» doctor line already in the text has its card, so the bubble never shows it as typed text
       for (final d in _doctors) {
         final typed = m.text.split('\n').any(d.startsDoctorLine);
-        if (typed) expect(m.links.contains(d), isTrue, reason: 'card of ${d.doctorName} missing while its line is shown');
+        if (typed) expect(m.links.any((l) => l.url == d.url), isTrue, reason: 'card of ${d.doctorName} missing while its line is shown');
+      }
+      // second phone test: a card is TYPED - only the newest card may still be partly typed, and it never shows its link yet
+      final partly = m.links.where((l) => l.revealUnits >= 0 && l.revealUnits < l.revealPieces.length).toList();
+      expect(partly.length <= 1, isTrue);
+      if (partly.isNotEmpty) {
+        sawPartlyTypedCard = true;
+        expect(m.links.last.url, partly.single.url);
       }
       if (counts.isEmpty || counts.last != m.links.length) counts.add(m.links.length);
       if (!controller.isSpeaking || ++guard > 2000) break;
@@ -111,6 +119,8 @@ void main() {
     expect(controller.messages.last.text, _message);
     expect(controller.messages.last.links.length, 5);
     expect(counts, [0, 1, 2, 3, 4, 5]); // the opening first, then the doctors one after another
+    expect(sawPartlyTypedCard, isTrue); // the cards were typed, not dropped in whole
+    expect(controller.messages.last.links.every((l) => l.revealUnits < 0), isTrue); // finished: every card whole
 
     // a moment in the middle, drawn: the opening bubble + two cards, no «•» text, no closing bubble yet
     final partial = '${[_head, '• دکتر شماره1 — متخصص قلب، تهرانپارس', '• دکتر شماره2 — متخصص قلب، تهرانپارس'].join('\n')}\n';
@@ -123,5 +133,29 @@ void main() {
     expect(find.byKey(ValueKey('chat-doctor-${_url(2)}')), findsOneWidget);
     expect(find.byKey(ValueKey('chat-doctor-${_url(3)}')), findsNothing);
     expect(find.textContaining('مرا در جریان'), findsNothing);
+  });
+
+  testWidgets('a card being typed shows only its first pieces and no link; a finished card is light blue with its blue link', (tester) async {
+    final d = _doctors.first; // pieces: title words | place words | phone | link
+    Future<void> draw(ChatLink card) => tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: SingleChildScrollView(
+                  child: MessageBubble(message: '$_head\n• دکتر شماره1 — متخصص قلب، تهرانپارس\n', isSedi: true, links: [card]))),
+        ));
+    await draw(d.revealedTo(2));
+    expect(find.textContaining('دکتر شماره1'), findsOneWidget);
+    expect(find.textContaining('متخصص قلب'), findsNothing);
+    expect(find.byKey(ValueKey('chat-phone-${d.url}')), findsNothing);
+    expect(find.byKey(ValueKey('chat-link-${d.url}')), findsNothing);
+    await draw(d.revealedTo(d.revealPieces.length - 1)); // everything but the link
+    expect(find.byKey(ValueKey('chat-phone-${d.url}')), findsOneWidget);
+    expect(find.byKey(ValueKey('chat-link-${d.url}')), findsNothing);
+    await draw(d);
+    expect(find.byKey(ValueKey('chat-link-${d.url}')), findsOneWidget);
+    final panel = tester.widget<DecoratedBox>(find.byKey(ValueKey('chat-doctor-panel-${d.url}')));
+    final gradient = (panel.decoration as BoxDecoration).gradient as LinearGradient;
+    expect(gradient.colors.first.blue > gradient.colors.first.red, isTrue); // a blue tint, unlike Sedi's clear and the user's pistachio bubbles
+    final link = tester.widget<Text>(find.descendant(of: find.byKey(ValueKey('chat-link-${d.url}')), matching: find.byType(Text)).first);
+    expect(link.style?.color, MessageBubble.linkColor);
   });
 }

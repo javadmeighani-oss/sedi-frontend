@@ -262,7 +262,18 @@ class _MessageBubbleState extends State<MessageBubble> {
                 if (split.head.isNotEmpty) glass(body),
                 for (var i = 0; i < inBubble.length; i++) ...[
                   const SizedBox(height: 8),
-                  glass(_DoctorCard(doctor: inBubble[i], number: inBubble[i].index > 0 ? inBubble[i].index : i + 1, direction: textDirection)),
+                  // R-120 am.4 (Javad): a doctor's card is a very light blue glass - unlike Sedi's and the user's bubbles; the link stays blue
+                  SediGlass.blur(
+                    radius: radius,
+                    child: DecoratedBox(
+                      key: ValueKey('chat-doctor-panel-${inBubble[i].url}'),
+                      decoration: SediGlass.doctorPanel(radius),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: MessageBubble._panelPaddingH, vertical: MessageBubble._panelPaddingV),
+                        child: _DoctorCard(doctor: inBubble[i], number: inBubble[i].index > 0 ? inBubble[i].index : i + 1, direction: textDirection),
+                      ),
+                    ),
+                  ),
                 ],
                 if (split.tail.isNotEmpty) ...[const SizedBox(height: 8), glass(_sediText(split.tail, textDirection))],
               ],
@@ -457,6 +468,21 @@ class _DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = doctor;
+    // R-120 am.4 (Javad 2026-11-28): while Sedi types, the card is typed too - title, place, phone, note, then the link - piece by piece
+    var left = d.revealUnits < 0 ? 1 << 30 : d.revealUnits;
+    String take(String text) {
+      final words = ChatLink.words(text);
+      final n = left < words.length ? left : words.length;
+      left -= n;
+      return words.take(n).join().trimRight();
+    }
+
+    final title = take(d.title);
+    final location = take(d.location);
+    final showPhone = d.phone.isNotEmpty && left > 0;
+    if (showPhone) left -= 1;
+    final note = take(d.note);
+    final showLink = left > 0;
     return Directionality(
       textDirection: direction,
       child: Column(
@@ -464,12 +490,12 @@ class _DoctorCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('${localDigits('$number', direction)}. ${d.title}',
+          Text('${localDigits('$number', direction)}. $title',
               style: const TextStyle(color: SediPalette.charcoal950, fontSize: 15, height: 1.6, fontWeight: FontWeight.w700)),
-          if (d.location.isNotEmpty)
-            Text(d.location,
+          if (location.isNotEmpty)
+            Text(location,
                 style: const TextStyle(color: SediPalette.charcoal950, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w500)),
-          if (d.phone.isNotEmpty)
+          if (showPhone)
             InkWell(
               key: ValueKey('chat-phone-${d.url}'),
               onTap: () => _dial(context),
@@ -483,10 +509,10 @@ class _DoctorCard extends StatelessWidget {
                 ),
               ),
             ),
-          if (d.note.isNotEmpty)
-            Text(d.note,
+          if (note.isNotEmpty)
+            Text(note,
                 style: const TextStyle(color: SediPalette.pistachio900, fontSize: 13.5, height: 1.6, fontWeight: FontWeight.w600)),
-          _LinkLine(link: d, text: d.linkText.isNotEmpty ? d.linkText : d.label),
+          if (showLink) _LinkLine(link: d, text: d.linkText.isNotEmpty ? d.linkText : d.label),
         ],
       ),
     );

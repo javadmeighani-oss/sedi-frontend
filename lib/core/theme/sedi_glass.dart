@@ -61,6 +61,30 @@ class SediGlass {
     );
   }
 
+  /// R-120 am.4 (Javad 2026-11-28): the bubble of ONE introduced doctor - a very light blue glass, so the doctors stand apart from Sedi's
+  /// (clear) and the user's (pistachio) bubbles; the link inside stays the same blue.
+  static const Color doctorTintTop = Color(0xFFE6F0FF);
+  static const Color doctorTintBottom = Color(0xFFF2F7FF);
+
+  static BoxDecoration doctorPanel(BorderRadius radius) {
+    return BoxDecoration(
+      borderRadius: radius,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [doctorTintTop.withOpacity(0.86), doctorTintBottom.withOpacity(0.62)],
+      ),
+      border: Border.all(color: const Color(0xFFC9DCFA)),
+      boxShadow: [
+        BoxShadow(
+          color: _shadow.withOpacity(0.11),
+          blurRadius: 20,
+          offset: const Offset(0, 7),
+        ),
+      ],
+    );
+  }
+
   /// A soft glass card (profile cards, the memory row, the logout pill). [strong] is the identity card.
   static BoxDecoration card(BorderRadius radius, {bool strong = false}) {
     return BoxDecoration(

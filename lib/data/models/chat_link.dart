@@ -21,6 +21,10 @@ class ChatLink {
   final int index;
   final String phone;
 
+  /// R-120 am.4 (Javad 2026-11-28): while Sedi is typing, how many pieces of this doctor's card are shown ([revealPieces]: the words of his
+  /// title, of his place, his phone, the words of the note, then the link). -1 = the whole card (history, finished replies).
+  final int revealUnits;
+
   const ChatLink({
     required this.label,
     required this.url,
@@ -31,7 +35,34 @@ class ChatLink {
     this.linkText = '',
     this.index = 0,
     this.phone = '',
+    this.revealUnits = -1,
   });
+
+  /// Words + the spaces after them (joined they give the text back).
+  static List<String> words(String text) => [for (final m in RegExp(r'\S+\s*').allMatches(text)) m.group(0)!];
+
+  /// The card's pieces in the order they are typed: title words, place words, the phone (whole), note words, the link (whole).
+  List<String> get revealPieces => [
+        ...words(title),
+        ...words(location),
+        if (phone.isNotEmpty) phone,
+        ...words(note),
+        linkText.isNotEmpty ? linkText : label,
+      ];
+
+  /// This card typed up to [units] pieces (the same doctor; the full fields stay for matching his «•» line).
+  ChatLink revealedTo(int units) => ChatLink(
+        label: label,
+        url: url,
+        kind: kind,
+        title: title,
+        location: location,
+        note: note,
+        linkText: linkText,
+        index: index,
+        phone: phone,
+        revealUnits: units,
+      );
 
   /// The phone as a dialable `tel:` URI (digits and a leading +, Persian/Arabic digits folded), or null.
   Uri? get phoneUri {
