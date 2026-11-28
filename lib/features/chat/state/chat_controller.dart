@@ -565,31 +565,55 @@ class ChatController extends ChangeNotifier {
     _revealLinks = links;
     isSpeaking = true;
     var shown = false;
-    var gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
-    if (doctors.isNotEmpty) {
-      gaps = [for (var i = 0; i < tokens.length; i++) startsDoctor(tokens[i]) ? NaturalReveal.itemPause : gaps[i]];
-    }
-    final arrived = <ChatLink>{};
+    final gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
+    // R-120 am.4 (Javad 2026-11-28, second phone test): a doctor's card is TYPED like Sedi's text - his «•» line opens his bubble with the
+    // first word of his title, then the rest of the title, his place, his phone, the note and finally his link, piece by piece. The next
+    // doctor starts after a short pause once this card is complete.
+    final steps = <_RevealStep>[];
     for (var i = 0; i < tokens.length; i++) {
       final token = tokens[i];
+      final matching = doctors.where((d) => d.startsDoctorLine(token));
+      if (matching.isEmpty) {
+        steps.add(_RevealStep(token, null, 0, gaps[i]));
+        continue;
+      }
+      final doctor = matching.first;
+      final pieces = doctor.revealPieces;
+      for (var u = 1; u <= pieces.length; u++) {
+        final piece = pieces[u - 1];
+        final gap = u == pieces.length
+            ? NaturalReveal.itemPause
+            : piece == doctor.phone
+                ? const Duration(milliseconds: 300)
+                : NaturalReveal.gapFor(piece, total: tokens.length);
+        steps.add(_RevealStep(u == 1 ? token : '', doctor, u, gap));
+      }
+    }
+    final typed = <ChatLink, int>{};
+    for (final step in steps) {
       pacer.enqueue(
-        token,
-        (chunk) {
-          // the doctors whose line has arrived get their card now (in the order of the links)
-          arrived.addAll(doctors.where((d) => d.startsDoctorLine(chunk)));
-          final cards = doctors.isEmpty ? const <ChatLink>[] : [for (final d in doctors) if (arrived.contains(d)) d];
+        step.text.isEmpty ? '​' : step.text, // the pacer skips empty chunks; a card-only step appends nothing
+        (_) {
+          final doctor = step.doctor;
+          if (doctor != null) typed[doctor] = step.units;
+          final cards = doctors.isEmpty
+              ? const <ChatLink>[]
+              : [
+                  for (final d in doctors)
+                    if (typed.containsKey(d)) typed[d]! >= d.revealPieces.length ? d : d.revealedTo(typed[d]!),
+                ];
           if (!shown) {
             shown = true;
-            messages.add(ChatMessage.assistant(text: chunk, localId: id, links: cards));
+            messages.add(ChatMessage.assistant(text: step.text, localId: id, links: cards));
           } else {
             final idx = messages.indexWhere((m) => m.localId == id);
             if (idx >= 0) {
-              messages[idx] = ChatMessage.assistant(text: messages[idx].text + chunk, localId: id, links: cards);
+              messages[idx] = ChatMessage.assistant(text: messages[idx].text + step.text, localId: id, links: cards);
             }
           }
           notifyListeners();
         },
-        gap: gaps[i],
+        gap: step.gap,
       );
     }
     pacer.whenIdle.then((_) {
@@ -709,4 +733,14 @@ class ChatController extends ChangeNotifier {
     _streamClient.dispose();
     super.dispose();
   }
+}
+
+/// R-120 am.4: one step of a reveal - text to append (may be empty) and/or how far one doctor's card is typed.
+class _RevealStep {
+  final String text;
+  final ChatLink? doctor;
+  final int units;
+  final Duration gap;
+
+  const _RevealStep(this.text, this.doctor, this.units, this.gap);
 }
