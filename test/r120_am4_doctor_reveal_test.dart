@@ -72,6 +72,16 @@ void main() {
     expect(split.head.contains('دکتر علی رضایی'), isTrue);
   });
 
+  test('a bullet that ends at the name with an indented second line is still his chunk (Codex P2, PR 37 round 2)', () {
+    final d = _doctors.first;
+    final msg = '$_head\n• دکتر شماره1\n  تهرانپارس، خیابان ۱\n\n$_close';
+    final chunks = NaturalReveal.tokensKeepingItems(msg, d.startsDoctorLine);
+    final item = chunks.firstWhere((c) => c.startsWith('•'));
+    expect(item.contains('تهرانپارس'), isTrue); // grouped with its second line
+    expect(d.startsDoctorLine(item), isTrue); // ... and still recognised, so his card arrives with it
+    expect(chunks.join(), msg);
+  });
+
   test('text without doctors keeps the plain word-by-word reveal', () {
     const text = 'سلام، امروز حالت چطور است؟';
     expect(NaturalReveal.tokensKeepingItems(text, _startsDoctor), NaturalReveal.tokens(text));
