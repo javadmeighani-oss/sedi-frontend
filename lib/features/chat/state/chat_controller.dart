@@ -543,7 +543,11 @@ class ChatController extends ChangeNotifier {
     quickReplies = const <String>[];
     isThinking = false;
     _finishRevealNow();
-    final tokens = NaturalReveal.tokens(text);
+    // R-120 am.4 (Javad 2026-11-28): a doctor introduction is revealed in its OWN bubbles from the first moment - the opening line word by
+    // word, then each doctor's card whole (his «•» line is one chunk and his link arrives with it), then the closing text in its bubble.
+    final doctors = links.where((l) => l.inBubble).toList();
+    bool startsDoctor(String line) => doctors.any((d) => d.startsDoctorLine(line));
+    final tokens = doctors.isEmpty ? NaturalReveal.tokens(text) : NaturalReveal.tokensKeepingItems(text, startsDoctor);
     if (tokens.length <= 1) {
       isSpeaking = false;
       messages.add(ChatMessage(text: text, role: ChatRole.assistant, links: links));
@@ -561,19 +565,26 @@ class ChatController extends ChangeNotifier {
     _revealLinks = links;
     isSpeaking = true;
     var shown = false;
-    final gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
+    var gaps = NaturalReveal.gapsFor(tokens, maxTotal: maxReveal);
+    if (doctors.isNotEmpty) {
+      gaps = [for (var i = 0; i < tokens.length; i++) startsDoctor(tokens[i]) ? NaturalReveal.itemPause : gaps[i]];
+    }
+    final arrived = <ChatLink>{};
     for (var i = 0; i < tokens.length; i++) {
       final token = tokens[i];
       pacer.enqueue(
         token,
         (chunk) {
+          // the doctors whose line has arrived get their card now (in the order of the links)
+          arrived.addAll(doctors.where((d) => d.startsDoctorLine(chunk)));
+          final cards = doctors.isEmpty ? const <ChatLink>[] : [for (final d in doctors) if (arrived.contains(d)) d];
           if (!shown) {
             shown = true;
-            messages.add(ChatMessage.assistant(text: chunk, localId: id));
+            messages.add(ChatMessage.assistant(text: chunk, localId: id, links: cards));
           } else {
             final idx = messages.indexWhere((m) => m.localId == id);
             if (idx >= 0) {
-              messages[idx] = ChatMessage.assistant(text: messages[idx].text + chunk, localId: id);
+              messages[idx] = ChatMessage.assistant(text: messages[idx].text + chunk, localId: id, links: cards);
             }
           }
           notifyListeners();
@@ -591,6 +602,10 @@ class ChatController extends ChangeNotifier {
       }
     });
   }
+
+  /// Test seam for the reveal of one Sedi reply (R-120 am.4).
+  @visibleForTesting
+  void revealSediMessageForTest(String text, {List<ChatLink> links = const <ChatLink>[]}) => _addSediMessage(text, links: links);
 
   AssistantStreamPacer? _revealPacer;
   String? _revealId;

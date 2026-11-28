@@ -53,6 +53,16 @@ class ChatLink {
   /// A doctor shown INSIDE the bubble with his link under him.
   bool get inBubble => kind == 'provider' && title.isNotEmpty;
 
+  /// The doctor's name as the reply's «•» line starts with it (the title is «name — specialty»).
+  String get doctorName => title.split(' — ').first.trim();
+
+  /// R-120 am.4: [line] is this doctor's «•» line of the reply text.
+  bool startsDoctorLine(String line) {
+    final trimmed = line.trimLeft();
+    final name = doctorName;
+    return inBubble && name.isNotEmpty && trimmed.startsWith('•') && trimmed.substring(1).trimLeft().startsWith(name);
+  }
+
   /// The https [Uri] that may be opened, or null.
   Uri? get uri => safeUri(url);
 
