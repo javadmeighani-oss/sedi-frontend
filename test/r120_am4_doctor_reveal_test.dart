@@ -57,6 +57,21 @@ void main() {
     expect(const ChatLink(label: 'x', url: 'https://a.ir/b').startsDoctorLine('• x'), isFalse); // not a provider card
   });
 
+  test('a name that begins another doctor\'s name never matches his line (Codex P2, PR 37)', () {
+    const ali = ChatLink(label: 'a', url: 'https://www.paziresh24.com/dr/ali/', kind: 'provider', title: 'دکتر علی — متخصص قلب');
+    const aliReza = ChatLink(label: 'b', url: 'https://www.paziresh24.com/dr/ali-reza/', kind: 'provider', title: 'دکتر علی رضایی — متخصص قلب');
+    expect(ali.startsDoctorLine('• دکتر علی رضایی — متخصص قلب، تهران'), isFalse);
+    expect(aliReza.startsDoctorLine('• دکتر علی رضایی — متخصص قلب، تهران'), isTrue);
+    expect(ali.startsDoctorLine('• دکتر علی — متخصص قلب، تهران'), isTrue);
+    expect(ali.startsDoctorLine('• دکتر علی، تهران'), isTrue); // no specialty: the place follows the name
+    const msg = '$_head\n• دکتر علی رضایی — متخصص قلب، تهران\n• دکتر علی — متخصص قلب، تهران\n\n$_close';
+    final chunks = NaturalReveal.tokensKeepingItems(msg, (l) => ali.startsDoctorLine(l) || aliReza.startsDoctorLine(l));
+    final first = chunks.firstWhere((c) => c.startsWith('•'));
+    expect([ali, aliReza].where((d) => d.startsDoctorLine(first)).toList(), [aliReza]); // one card per line
+    final split = DoctorListSplit.of(msg, ['دکتر علی']); // only «دکتر علی» drawn: «دکتر علی رضایی» stays as text
+    expect(split.head.contains('دکتر علی رضایی'), isTrue);
+  });
+
   test('text without doctors keeps the plain word-by-word reveal', () {
     const text = 'سلام، امروز حالت چطور است؟';
     expect(NaturalReveal.tokensKeepingItems(text, _startsDoctor), NaturalReveal.tokens(text));

@@ -57,10 +57,18 @@ class ChatLink {
   String get doctorName => title.split(' — ').first.trim();
 
   /// R-120 am.4: [line] is this doctor's «•» line of the reply text.
-  bool startsDoctorLine(String line) {
+  bool startsDoctorLine(String line) => inBubble && bulletNames(line, doctorName);
+
+  /// [line] is a «•» line whose name is exactly [name]: after the name comes the end of the line or a delimiter («—», «،», «,», «(»…),
+  /// never more name - «دکتر علی» does not match the line of «دکتر علی رضایی» (Codex P2, FE PR 37).
+  static bool bulletNames(String line, String name) {
     final trimmed = line.trimLeft();
-    final name = doctorName;
-    return inBubble && name.isNotEmpty && trimmed.startsWith('•') && trimmed.substring(1).trimLeft().startsWith(name);
+    final wanted = name.trim();
+    if (wanted.isEmpty || !trimmed.startsWith('•')) return false;
+    final body = trimmed.substring(1).trimLeft();
+    if (!body.startsWith(wanted)) return false;
+    final rest = body.substring(wanted.length).trimLeft();
+    return rest.isEmpty || RegExp(r'^[—–\-،,:;(|/]').hasMatch(rest);
   }
 
   /// The https [Uri] that may be opened, or null.

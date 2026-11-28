@@ -416,7 +416,7 @@ class DoctorListSplit {
     var inItem = false;
     for (final line in lines) {
       final trimmed = line.trimLeft();
-      if (trimmed.startsWith('•') && wanted.any((n) => trimmed.substring(1).trimLeft().startsWith(n))) {
+      if (wanted.any((n) => ChatLink.bulletNames(trimmed, n))) {
         seenList = true;
         inItem = true;
         continue;
